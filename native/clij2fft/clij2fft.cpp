@@ -147,7 +147,7 @@ void test() {
 }
 
 
-int fft2d_long(size_t N0, size_t N1, long d_image, long d_out, long l_context, long l_queue) {
+int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
   printf("input address %ld", d_image);
   printf("input address %lu", (unsigned long)d_image);
 
