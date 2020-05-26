@@ -1,0 +1,55 @@
+# from CLIJ2
+
+/target/
+/.idea/
+*.iml
+CLIJ*.txt
+
+# temporary files
+*.log
+*~*
+*.swp
+
+# Maven 
+target/
+
+# Eclipse 
+.classpath
+.project
+.settings/
+/.metadata
+/.recommenders
+
+# vscode 
+.vscode/
+
+# binaries 
+*.class
+*.exp
+*.dll
+*.lib
+*.obj
+*.o
+*.so
+*.so.*
+*.a
+*.dylib
+
+# java cpp
+cppbuild
+
+# CMake 
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+*.cmake
+install_manifest.txt
+compile_commands.json
+
+# build directories
+bin/
+build/
+__pycache__/
+
+
