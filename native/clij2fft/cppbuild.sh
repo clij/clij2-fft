@@ -26,7 +26,7 @@ case $PLATFORM in
     windows-x86_64)
         $CMAKE -G"NMake Makefiles" \
 		       -DCMAKE_BUILD_TYPE=Release \
-               -DCMAKE_INSTALL_PREFIX="../../" \
+               -DCMAKE_INSTALL_PREFIX="../../../src/resources/native" \
                -DOPENCL_INCLUDE_DIR="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/include/" \
 		       -DCLFFT_LIBRARY_DIR="C:/OpenCL/clFFT-2.12.2-Windows-x64/lib64/import/" .. 
         nmake
