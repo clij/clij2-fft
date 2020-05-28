@@ -13,17 +13,17 @@ mvn
 # copy the javacpp wrapper to the resource folder
 case $PLATFORM in
     linux-x86_64)
-       	echo "TODO"
-      	;;
+			cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so src/resources/native/lib/
+      ;;
     macosx-*)
-       	echo "TODO"
-       	;;
+      echo "TODO"
+      ;;
     windows-x86_64)
-       	echo "copy jni wriapper"
-	cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll src/resources/native/lib/
+      echo "copy jni wriapper"
+			cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll src/resources/native/lib/
 	;;
     *)
-        echo "Error: Platform \"$PLATFORM\" is not supported"
-        ;;
+      echo "Error: Platform \"$PLATFORM\" is not supported"
+      ;;
 esac
 
