@@ -26,14 +26,8 @@ target/
 # binaries 
 *.class
 *.exp
-*.dll
-*.lib
 *.obj
 *.o
-*.so
-*.so.*
-*.a
-*.dylib
 
 # java cpp
 cppbuild
