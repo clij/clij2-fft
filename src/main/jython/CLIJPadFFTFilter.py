@@ -5,7 +5,7 @@
 from net.haesleinhuepf.clij2 import CLIJ2;
 from net.haesleinhuepf.clijx.plugins import DeconvolveFFT;
 
-from net.imagej.ops.experiments import ImageUtility;
+from net.haesleinhuepf.clijx.plugins import ImageUtility;
 from net.imglib2.view import Views;
 from net.imglib2 import FinalDimensions;
 from net.imagej.ops.filter.pad import DefaultPadInputFFT;

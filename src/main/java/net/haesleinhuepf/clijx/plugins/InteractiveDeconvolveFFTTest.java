@@ -43,7 +43,7 @@ public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>>
 			"/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
 		Dataset psf = (Dataset) ij.io().open(
 			"/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3.tif");
-
+		
 		// open the test data
 		RandomAccessibleInterval<FloatType> imgF = (RandomAccessibleInterval) (ij
 			.op().convert().float32((Img) testData.getImgPlus().getImg()));
@@ -54,14 +54,16 @@ public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>>
 		// crop PSF - the image will be extended using PSF size
 		// if the PSF size is too large it will explode image size, memory needed and processing speed
 		// so crop just small enough to capture significant signal of PSF 
-		psfF = cropSymmetric(psfF,
+		psfF = ImageUtility.cropSymmetric(psfF,
 				new long[] { 64, 64, 41 }, ij.op());
+		
+		ij.ui().show(Views.zeroMin(psfF));
 
 		// subtract min from PSF		
-		psfF = Views.zeroMin(subtractMin(psfF, ij.op()));
+		psfF = Views.zeroMin(ImageUtility.subtractMin(psfF, ij.op()));
 
 		// normalize PSF
-		psfF = Views.zeroMin(normalize(psfF, ij.op()));
+		psfF = Views.zeroMin(ImageUtility.normalize(psfF, ij.op()));
 
 		// compute extended dimensions based on image and PSF dimensions
 		long[] extendedSize = new long[imgF.numDimensions()];
@@ -123,50 +125,4 @@ public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>>
 		ij.ui().show("output", outputRAI);
 
 	}
-	
-	
-	static public <T extends ComplexType<T> & NativeType<T>> Img<T>
-		cropSymmetric(RandomAccessibleInterval<T> in, long[] cropSize, OpService ops)
-	{
-		long[] min = new long[cropSize.length];
-		long[] max= new long[cropSize.length];
-
-		for (int d = 0; d < cropSize.length; d++) {
-			min[d] = in.dimension(d) / 2 - cropSize[d] / 2;
-			max[d] = min[d]+cropSize[d]-1;
-		}
-
-		Interval interval = new FinalInterval(min, max);
-
-		RandomAccessibleInterval<T> cropped=Views.interval(in, interval);
-		
-		Img<T> out=ops.create().img(cropped, Util.getTypeFromInterval(cropped));
-		
-		ops.copy().rai(out, cropped);
-		
-		return out;
-	}
-
-	static public Img<FloatType> normalize(RandomAccessibleInterval<FloatType> in,
-		OpService ops)
-	{
-
-		final FloatType sum = new FloatType(ops.stats().sum(Views.iterable(in))
-			.getRealFloat());
-
-		return (Img<FloatType>) ops.math().divide(Views.iterable(in), sum);
-
-	}
-
-	static public RandomAccessibleInterval<FloatType> subtractMin(RandomAccessibleInterval<FloatType> in,
-		OpService ops)
-	{
-
-		final FloatType min = new FloatType(ops.stats().min(Views.iterable(in))
-			.getRealFloat());
-
-		return (RandomAccessibleInterval)ops.math().subtract(Views.iterable(in), min);
-
-	}
-
 }
