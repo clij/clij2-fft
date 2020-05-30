@@ -5,14 +5,23 @@ import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
 
-@Properties(value = { @Platform(include = "clij2fft.h", link = {
-	"clij2fft", "clFFT" }), @Platform(value = "windows-x86_64", linkpath = {
-		"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/lib/x64/",
-		"C:/OpenCL/clFFT-2.12.2-Windows-x64/lib64/import/" }, preloadpath = {
-			"C:/OpenCL/clFFT-2.12.2-Windows-x64/bin/" }, preload = { "clFFT" }),
+@Properties(value = { @Platform(
+	include = "clij2fft.h", 
+	link = {"clij2fft", 
+					"clFFT" }), 
+	@Platform(value = "windows-x86_64", 
+		linkpath = {
+			"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/lib/x64/",
+			"C:/OpenCL/clFFT-2.12.2-Windows-x64/lib64/import/"
+		}, 
+		preloadpath = {
+			"C:/OpenCL/clFFT-2.12.2-Windows-x64/bin/" }, 
+			preload = { "clFFT" }),
 	@Platform(value = "linux-x86_64",
-		includepath = "/usr/local/cuda-10.0/include/", linkpath = {
-			"/usr/local/cuda-10.0/lib64/" }, preload = { "clFFT" }) })
+			includepath = {"/usr/local/cuda-10.0/include/"}, 
+			linkpath = {
+			"/usr/local/cuda-10.0/lib64/" }, 
+			preload = { "clFFT" }) })
 public class clij2fftWrapper {
 
 	static {
