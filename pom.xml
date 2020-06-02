@@ -163,6 +163,7 @@
 					<linkPaths>
 						<linkPath>${basedir}/src/resources/native/windows-x86_64/lib/</linkPath>
 						<linkPath>${basedir}/src/resources/native/linux-x86_64/lib/</linkPath>
+						<linkPath>${basedir}/src/resources/native/macosx-x86_64/lib/</linkPath>
 					</linkPaths>
 					<copyLibs>true</copyLibs>
 				</configuration>
