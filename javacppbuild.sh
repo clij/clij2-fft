@@ -13,7 +13,7 @@ mvn
 # copy the javacpp wrapper to the resource folder
 case $PLATFORM in
     linux-x86_64)
-			cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so src/resources/native/$PLATFORM/lib/
+			cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
       ;;
     macosx-*)
       echo "TODO"

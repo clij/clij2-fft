@@ -12,4 +12,4 @@ link_directories(/Users/haase/code/ops-experiments/ops-experiments-opencl/native
 add_library(clij2fft SHARED clij2fft.cpp)
 target_link_libraries(clij2fft clFFT ${OpenCL_LIBRARY})
 
-install(TARGETS clij2fft DESTINATION lib)
+install(TARGETS clij2fft DESTINATION .)

@@ -13,7 +13,7 @@ fi
 case $PLATFORM in
     linux-x86_64)
         $CMAKE -DCMAKE_BUILD_TYPE=Release \
-               -DCMAKE_INSTALL_PREFIX="../../../src/resources/native/$PLATFORM" \
+               -DCMAKE_INSTALL_PREFIX="../../../lib/linux64/" \
                -DCMAKE_CXX_COMPILER="/usr/bin/g++" \
                -DCMAKE_CUDA_HOST_COMPILER="/usr/bin/g++" \
 		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clFFT-2.12.2-Linux-x64/lib64/" .. 
