@@ -14,8 +14,8 @@ from net.imglib2.util import Intervals;
 from net.imagej.ops import Ops;
 
 # test names
-testData = io.open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
-psf = io.open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3.tif");
+testData = io.open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images\\Bars-G10-P15-stack-cropped.tif")
+psf = io.open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images\\PSF-Bars-stack-cropped-64.tif")
 
 # 0 - deconvolve, 1 convolve 
 filterType=0

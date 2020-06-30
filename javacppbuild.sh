@@ -20,7 +20,7 @@ case $PLATFORM in
       ;;
     windows-x86_64)
        	echo "copy jni wriapper"
-	cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll src/resources/native/$PLATFORM/lib/
+	cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll lib/win64/
       ;;
     *)
       echo "Error: Platform \"$PLATFORM\" is not supported"
