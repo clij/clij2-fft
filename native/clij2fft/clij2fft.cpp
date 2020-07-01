@@ -139,14 +139,6 @@ cl_int callKernel(cl_kernel kernel, cl_mem in1, cl_mem in2, cl_mem out, const un
   return ret;
 }
 
-void test() {
-  printf("Test opencldeconv entry point \n");
-
-  void * test;
-  cl_mem test2=(cl_mem)(test);
-}
-
-
 int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
   printf("input address %ld", d_image);
   printf("input address %lu", (unsigned long)d_image);
