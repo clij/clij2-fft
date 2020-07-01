@@ -1,11 +1,13 @@
 
-package net.haesleinhuepf.clijx.plugins;
+package net.haesleinhuepf.clijx.tests;
 
 import java.io.IOException;
 
 import net.haesleinhuepf.clij.CLIJ;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij2.CLIJ2;
+import net.haesleinhuepf.clijx.plugins.DeconvolveFFT;
+import net.haesleinhuepf.clijx.plugins.ImageUtility;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imagej.ops.OpService;
@@ -25,7 +27,7 @@ import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.imagej.ops.filter.pad.DefaultPadInputFFT;
 
-public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>> {
+public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 
 	final static ImageJ ij = new ImageJ();
 
@@ -38,11 +40,12 @@ public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>>
 		// launch IJ so we can interact with the inputs and outputs
 		ij.launch(args);
 
-		// test names
-		Dataset testData = (Dataset) ij.io().open(
-			"/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
-		Dataset psf = (Dataset) ij.io().open(
-			"/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3.tif");
+	
+	// test names
+			Dataset testData = (Dataset) ij.io().open(
+				"/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+			Dataset psf = (Dataset) ij.io().open(
+				"/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
 		
 		// open the test data
 		RandomAccessibleInterval<FloatType> imgF = (RandomAccessibleInterval) (ij
@@ -54,8 +57,8 @@ public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>>
 		// crop PSF - the image will be extended using PSF size
 		// if the PSF size is too large it will explode image size, memory needed and processing speed
 		// so crop just small enough to capture significant signal of PSF 
-		psfF = ImageUtility.cropSymmetric(psfF,
-				new long[] { 64, 64, 41 }, ij.op());
+	//	psfF = ImageUtility.cropSymmetric(psfF,
+	//			new long[] { 64, 64, 41 }, ij.op());
 		
 		ij.ui().show(Views.zeroMin(psfF));
 
@@ -83,8 +86,14 @@ public class InteractiveDeconvolveFFTTest<T extends RealType<T> & NativeType<T>>
 		ij.ui().show("img ", imgF);
 		ij.ui().show("psf ", psfF);
 		
+		CLIJ2 clij2=null;
 		// get clij
-		CLIJ2 clij2 = CLIJ2.getInstance("RTX");
+		try {
+			clij2 = CLIJ2.getInstance("RTX");
+		}
+		catch(Exception e) {
+			System.out.println(e);
+		}
 
 		// push extended image and psf to GPU
 		ClearCLBuffer inputGPU = clij2.push(extended);
