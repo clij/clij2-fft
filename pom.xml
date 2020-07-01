@@ -161,9 +161,9 @@
 						<includePath>${basedir}/native/clij2fft/</includePath>
 					</includePaths>
 					<linkPaths>
-						<linkPath>${basedir}/src/resources/native/windows-x86_64/lib/</linkPath>
-						<linkPath>${basedir}/src/resources/native/linux-x86_64/lib/</linkPath>
-						<linkPath>${basedir}/src/resources/native/macosx-x86_64/lib/</linkPath>
+						<linkPath>${basedir}/lib/win64/</linkPath>
+						<linkPath>${basedir}/lib/linux64/</linkPath>
+						<linkPath>${basedir}/lib/macosx/</linkPath>
 					</linkPaths>
 					<copyLibs>true</copyLibs>
 				</configuration>
