@@ -1,1 +1,2 @@
-add_subdirectory(opencldeconv)
+
+add_subdirectory(test)
