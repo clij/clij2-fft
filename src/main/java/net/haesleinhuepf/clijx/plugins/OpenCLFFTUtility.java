@@ -1,7 +1,7 @@
 
 package net.haesleinhuepf.clijx.plugins;
 
-import net.haesleinhuepf.clij.CLIJ;
+import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.imagej.ops.OpService;
@@ -42,15 +42,15 @@ public class OpenCLFFTUtility {
 			DefaultPadInputFFT.class, img, img, false);
 
 		// get CLIJ and push to GPU
-		CLIJ clij = CLIJ.getInstance();
-		ClearCLBuffer gpuInput = clij.push(img);
+		CLIJ2 clij2 = CLIJ2.getInstance();
+		ClearCLBuffer gpuInput = clij2.push(img);
 
 		// run FFT
 		ClearCLBuffer fft = runFFT(gpuInput);
 
 		// pull result from GPU
 		RandomAccessibleInterval<FloatType> result =
-			(RandomAccessibleInterval<FloatType>) clij.pullRAI(fft);
+			(RandomAccessibleInterval<FloatType>) clij2.pullRAI(fft);
 
 		// convert to Complex
 		// TODO: do this without a copy (CLIJ needs complex types?)
@@ -83,7 +83,7 @@ public class OpenCLFFTUtility {
 	 */
 	public static ClearCLBuffer padInputFFTAndPush(
 		RandomAccessibleInterval<FloatType> in, Dimensions paddedDimensions,
-		OpService ops, CLIJ clij)
+		OpService ops, CLIJ2 clij2)
 	{
 		System.out.println(in.dimension(0) + " " + in.dimension(1) + " " + in
 			.dimension(2));
@@ -95,7 +95,7 @@ public class OpenCLFFTUtility {
 		System.out.println(extended.dimension(0) + " " + extended.dimension(1) +
 			" " + extended.dimension(2));
 
-		return clij.push(extended);
+		return clij2.push(extended);
 
 	}
 
@@ -110,7 +110,7 @@ public class OpenCLFFTUtility {
 	 */
 	public static ClearCLBuffer padKernelFFTAndPush(
 		RandomAccessibleInterval<FloatType> psf, Dimensions paddedDimensions,
-		OpService ops, CLIJ clij)
+		OpService ops, CLIJ2 clij2)
 	{
 
 		// extend and shift the PSF
@@ -123,7 +123,7 @@ public class OpenCLFFTUtility {
 		long start = System.currentTimeMillis();
 
 		// transfer PSF to the GPU and return
-		return clij.push(extendedPSF);
+		return clij2.push(extendedPSF);
 
 	}
 
@@ -135,23 +135,23 @@ public class OpenCLFFTUtility {
 	 * @return - output FFT as CLBuffer
 	 */
 	public static ClearCLBuffer runFFT(ClearCLBuffer gpuImg) {
-		CLIJ clij = CLIJ.getInstance();
+		CLIJ2 clij2 = CLIJ2.getInstance();
 
 		// compute complex FFT dimension assuming Hermitian interleaved
 		long[] fftDim = new long[] { (gpuImg.getWidth() / 2 + 1) * 2, gpuImg
 			.getHeight() };
 
 		// create GPU memory for FFT
-		ClearCLBuffer gpuFFT = clij.create(fftDim, NativeTypeEnum.Float);
+		ClearCLBuffer gpuFFT = clij2.create(fftDim, NativeTypeEnum.Float);
 
 		// use a hack to get the long pointers to in, out, context and queue.
 		long l_in = ((NativePointerObject) (gpuImg.getPeerPointer()
 			.getPointer())).getNativePointer();
 		long l_out = ((NativePointerObject) (gpuFFT.getPeerPointer()
 			.getPointer())).getNativePointer();
-		long l_context = ((NativePointerObject) (clij.getClearCLContext()
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_queue = ((NativePointerObject) (clij.getClearCLContext()
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
 
 		// call the native code that runs the FFT
@@ -168,7 +168,7 @@ public class OpenCLFFTUtility {
 	 * @param gpuPSF - need to prepad to supported FFT size (see padKernelFFTAndPush)
 	 * @return
 	 */
-	public static ClearCLBuffer runDecon(CLIJ clij, ClearCLBuffer gpuImg,
+	public static ClearCLBuffer runDecon(CLIJ2 clij2, ClearCLBuffer gpuImg,
 		ClearCLBuffer gpuPSF, ClearCLBuffer output)
 	{
 
@@ -176,8 +176,9 @@ public class OpenCLFFTUtility {
 
 		// create another copy of the image to use as the initial value
 		ClearCLBuffer gpuEstimate = output;
-		clij.op().copy(gpuImg, gpuEstimate);
+		clij2.copy(gpuImg, gpuEstimate);
 
+		
 		// Get the CL Buffers, context, queue and device as long native pointers
 		long longPointerImg = ((NativePointerObject) (gpuImg
 			.getPeerPointer().getPointer())).getNativePointer();
@@ -185,11 +186,11 @@ public class OpenCLFFTUtility {
 			.getPeerPointer().getPointer())).getNativePointer();
 		long longPointerEstimate = ((NativePointerObject) (gpuEstimate
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_context = ((NativePointerObject) (clij.getClearCLContext()
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_queue = ((NativePointerObject) (clij.getClearCLContext()
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
-		long l_device = ((NativePointerObject) clij.getClearCLContext()
+		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 			.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (100 iterations of RL)
@@ -212,7 +213,7 @@ public class OpenCLFFTUtility {
 	 * @param ops
 	 * @return
 	 */
-	public static ClearCLBuffer runDecon(CLIJ clij, ClearCLBuffer gpuImg,
+	public static ClearCLBuffer runDecon(CLIJ2 clij2, ClearCLBuffer gpuImg,
 		RandomAccessibleInterval<FloatType> psf, OpService ops)
 	{
 
@@ -226,11 +227,11 @@ public class OpenCLFFTUtility {
 		long start = System.currentTimeMillis();
 
 		// transfer PSF to the GPU
-		ClearCLBuffer gpuPSF = clij.push(extendedPSF);
+		ClearCLBuffer gpuPSF = clij2.push(extendedPSF);
 
 		// create another copy of the image to use as the initial value
-		ClearCLBuffer gpuEstimate = clij.create(gpuImg);
-		clij.op().copy(gpuImg, gpuEstimate);
+		ClearCLBuffer gpuEstimate = clij2.create(gpuImg);
+		clij2.copy(gpuImg, gpuEstimate);
 
 		// Use a hack to get long pointers to the CL Buffers, context, queue and
 		// device
@@ -242,11 +243,11 @@ public class OpenCLFFTUtility {
 			.getPeerPointer().getPointer())).getNativePointer();
 		long longPointerEstimate = ((NativePointerObject) (gpuEstimate
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_context = ((NativePointerObject) (clij.getClearCLContext()
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_queue = ((NativePointerObject) (clij.getClearCLContext()
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
-		long l_device = ((NativePointerObject) clij.getClearCLContext()
+		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 			.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (100 iterations of RL)
@@ -269,7 +270,7 @@ public class OpenCLFFTUtility {
 	 * @param gpuPSF - need to prepad to supported FFT size (see padKernelFFTAndPush)
 	 * @return
 	 */
-	public static ClearCLBuffer runConvolve(CLIJ clij, ClearCLBuffer gpuImg,
+	public static ClearCLBuffer runConvolve(CLIJ2 clij2, ClearCLBuffer gpuImg,
 		ClearCLBuffer gpuPSF, ClearCLBuffer output)
 	{
 
@@ -277,7 +278,7 @@ public class OpenCLFFTUtility {
 
 		// create another copy of the image to use as the initial value
 		ClearCLBuffer gpuEstimate = output;
-		clij.op().copy(gpuImg, gpuEstimate);
+		clij2.copy(gpuImg, gpuEstimate);
 
 		// Get the CL Buffers, context, queue and device as long native pointers
 		long longPointerImg = ((NativePointerObject) (gpuImg
@@ -286,11 +287,11 @@ public class OpenCLFFTUtility {
 			.getPeerPointer().getPointer())).getNativePointer();
 		long longPointerOutput = ((NativePointerObject) (gpuEstimate
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_context = ((NativePointerObject) (clij.getClearCLContext()
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getPeerPointer().getPointer())).getNativePointer();
-		long l_queue = ((NativePointerObject) (clij.getClearCLContext()
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
-		long l_device = ((NativePointerObject) clij.getClearCLContext()
+		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 			.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (100 iterations of RL)

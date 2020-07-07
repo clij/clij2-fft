@@ -43,7 +43,7 @@ public class DeconvolveFFT extends AbstractCLIJ2Plugin implements CLIJMacroPlugi
 
         ClearCLBuffer extendedKernel_float = clij2.create(input_float);
         pad(clij2, input_float, convolution_kernel_float, extendedKernel_float);
-        OpenCLFFTUtility.runDecon(clij2.getCLIJ(), input_float, extendedKernel_float, destination);
+        OpenCLFFTUtility.runDecon(clij2, input_float, extendedKernel_float, destination);
         clij2.release(extendedKernel_float);
 
         if (input_float != input) {
@@ -75,7 +75,7 @@ public class DeconvolveFFT extends AbstractCLIJ2Plugin implements CLIJMacroPlugi
         ClearCLBuffer extendedKernel_float = clij2.create(input_float);
         pad(clij2, input_float, convolution_kernel_float, extendedKernel_float);
         
-        OpenCLFFTUtility.runConvolve(clij2.getCLIJ(), input_float, extendedKernel_float, destination);
+        OpenCLFFTUtility.runConvolve(clij2, input_float, extendedKernel_float, destination);
         
         clij2.release(extendedKernel_float);
 
