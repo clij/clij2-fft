@@ -26,13 +26,17 @@ public class InteractiveFFT {
 
 		// load the dataset
 		Dataset dataset = (Dataset) ij.io().open("../../images/bridge.tif");
-		
+
+		// convert to 32 bit 
 		Img<FloatType> img = ij.op().convert().float32((Img)dataset.getImgPlus().getImg());
 		
 		// show the image
 		ij.ui().show(img);
 		
+		// run the FFT
 		RandomAccessibleInterval<ComplexFloatType> resultComplex = OpenCLFFTUtility.runFFT(img, true, ij.op());
+		
+		// show the result
 		ImageJFunctions.show(resultComplex, "FFT OpenCL");
 		
 	}
