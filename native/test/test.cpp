@@ -98,6 +98,4 @@ int main() {
     delete abs;
     delete rescaled;
     delete rescaledabs;
-
-
 }
