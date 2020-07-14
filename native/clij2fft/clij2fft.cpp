@@ -152,7 +152,6 @@ cl_int setupFFT() {
 clfftPlanHandle bake_2d_forward_32f(long N0, long N1, cl_context context, cl_command_queue commandQueue) {
 
   cl_int ret;
-
   // FFT library related declarations 
   clfftPlanHandle planHandleForward;
   clfftDim dim = CLFFT_2D;
@@ -195,6 +194,53 @@ clfftPlanHandle bake_2d_forward_32f(long N0, long N1, cl_context context, cl_com
 
 }
 
+clfftPlanHandle bake_2d_backward_32f(long N0, long N1, cl_context context, cl_command_queue commandQueue) {
+  cl_int ret;
+
+  // FFT library realted declarations 
+  clfftPlanHandle planHandleBackward;
+  clfftDim dim = CLFFT_2D;
+  size_t clLengths[2] = {N0, N1};
+  size_t inStride[3] = {1, N0/2+1};
+  // note each output row has N0/2+1 complex numbers 
+  size_t outStride[3] = {1,N0};
+
+  // Setup clFFT. 
+  clfftSetupData fftSetup;
+  ret = clfftInitSetupData(&fftSetup);
+  printf("clfft init %d\n", ret);
+  ret = clfftSetup(&fftSetup);
+
+  printf("clfft setup %d\n", ret);
+  
+  // Create a default plan for a complex FFT. 
+  ret = clfftCreateDefaultPlan(&planHandleBackward, context, dim, clLengths);
+
+  printf("Create Default Plan %d\n", ret);
+  
+  // Set plan parameters. 
+  ret = clfftSetPlanPrecision(planHandleBackward, CLFFT_SINGLE);
+  printf("clfft precision %d\n", ret);
+  ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
+  printf("clfft set layout real hermittian interveaved %d\n", ret);
+  ret = clfftSetResultLocation(planHandleBackward, CLFFT_OUTOFPLACE);
+  printf("clfft set result location %d\n", ret);
+  ret=clfftSetPlanInStride(planHandleBackward, dim, inStride);
+  printf("clfft set instride %d\n", ret);
+  ret=clfftSetPlanOutStride(planHandleBackward, dim, outStride);
+  printf("clfft set out stride %d\n", ret);
+
+  // Bake the plan.
+  ret = clfftBakePlan(planHandleBackward, 1, &commandQueue, NULL, NULL);
+
+  printf("Bake %d\n", ret);
+  ret = clFinish(commandQueue);
+  printf("Finish Command Queue %d\n", ret);
+
+  return planHandleBackward;
+
+}
+
 int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
   printf("input address %ld", d_image);
   printf("input address %lu", (unsigned long)d_image);
@@ -230,6 +276,7 @@ int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long 
 
    return 0; 
 }
+
 
 int fft2d(size_t N0, size_t N1, float *h_image, float * h_out) {
  
@@ -289,6 +336,43 @@ int fft2d(size_t N0, size_t N1, float *h_image, float * h_out) {
   return 0; 
 }
 
+int fftinv2d_long(long N0, long N1, long d_fft, long d_out, long l_context, long l_queue) {
+  printf("input address %ld", d_fft);
+  printf("input address %lu", (unsigned long)d_fft);
+ 
+	// cast long to context 
+	cl_context context = (cl_context)l_context;
+  
+	// cast long to queue 
+	cl_command_queue commandQueue = (cl_command_queue)l_queue;
+
+  cl_int ret = setupFFT();
+  cl_mem cl_mem_image=(cl_mem)d_fft;
+  cl_mem cl_mem_out=(cl_mem)d_out;
+ 
+  clfftPlanHandle planHandleBackward = bake_2d_backward_32f(N0, N1, context, commandQueue); 
+  
+  // number of elements in Hermitian (interleaved) output 
+  unsigned long nFreq=N1*(N0/2+1);
+
+  // Execute the plan.
+  ret = clfftEnqueueTransform(planHandleBackward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &cl_mem_image, &cl_mem_out, NULL);
+
+  printf("Backward FFT %d\n", ret);
+  ret = clFinish(commandQueue);
+  printf("Finish Command Queue for backward FFT %d\n", ret);
+ 
+   // Release the plan. 
+   ret = clfftDestroyPlan( &planHandleBackward);
+
+   clfftTeardown();
+   
+   printf("Backward FFT finished\n");
+
+   return 0; 
+}
+
+
 /*
 Inverse complex to real FFT 
 
@@ -323,76 +407,28 @@ int fftinv2d(size_t N0, size_t N1, float *h_fft, float * h_out) {
   unsigned long nFreq = (N0/2+1)*N1;
 	
   // declare FFT memory on GPU
-	cl_mem FFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2 *nFreq * sizeof(float), NULL, &ret);
+	cl_mem d_FFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2 *nFreq * sizeof(float), NULL, &ret);
   printf("\ncreate variable 1 %d\n", ret);
 	
   printf("\nallocated memory\n");
 
    // Copy fft to GPU
-	ret = clEnqueueWriteBuffer(commandQueue, FFT, CL_TRUE, 0, 2 * nFreq * sizeof(float), h_fft, 0, NULL, NULL);;
+	ret = clEnqueueWriteBuffer(commandQueue, d_FFT, CL_TRUE, 0, 2 * nFreq * sizeof(float), h_fft, 0, NULL, NULL);;
   printf("\ncopy to GPU  %d\n", ret);
 
   // create output buffer 
-  cl_mem img = clCreateBuffer(context, CL_MEM_READ_WRITE, N0*N1*sizeof(float), NULL, &ret);
+  cl_mem out = clCreateBuffer(context, CL_MEM_READ_WRITE, N0*N1*sizeof(float), NULL, &ret);
   printf("\ncreate img on GPU %d\n", ret);
-	 
-  // FFT library realted declarations 
-  clfftPlanHandle planHandleBackward;
-  clfftDim dim = CLFFT_2D;
-  size_t clLengths[2] = {N0, N1};
-  size_t inStride[3] = {1, N0/2+1};
-  // note each output row has N0/2+1 complex numbers 
-  size_t outStride[3] = {1,N0};
 
-  // Setup clFFT. 
-  clfftSetupData fftSetup;
-  ret = clfftInitSetupData(&fftSetup);
-  printf("clfft init %d\n", ret);
-  ret = clfftSetup(&fftSetup);
-
-  printf("clfft setup %d\n", ret);
-  
-  // Create a default plan for a complex FFT. 
-  ret = clfftCreateDefaultPlan(&planHandleBackward, context, dim, clLengths);
-
-  printf("Create Default Plan %d\n", ret);
-  
-  // Set plan parameters. 
-  ret = clfftSetPlanPrecision(planHandleBackward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleBackward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleBackward, dim, inStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleBackward, dim, outStride);
-  printf("clfft set out stride %d\n", ret);
-
-  // Bake the plan.
-  ret = clfftBakePlan(planHandleBackward, 1, &commandQueue, NULL, NULL);
-
-  printf("Bake %d\n", ret);
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue %d\n", ret);
-
-  // Execute the plan.
-  ret = clfftEnqueueTransform(planHandleBackward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &FFT, &img, NULL);
-
-  printf("Backward FFT %d\n", ret);
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue for forward FFT %d\n", ret);
+  fftinv2d_long(N0, N1, (long)d_FFT, (long)out, (long)context, (long)commandQueue);
   
   // transfer from device back to GPU
-  ret = clEnqueueReadBuffer( commandQueue, img, CL_TRUE, 0, N0*N1*sizeof(float), h_out, 0, NULL, NULL );
+  ret = clEnqueueReadBuffer( commandQueue, out, CL_TRUE, 0, N0*N1*sizeof(float), h_out, 0, NULL, NULL );
 
   // Release OpenCL memory objects. 
   
-  clReleaseMemObject( FFT );
-  clReleaseMemObject( img );
-
-   // Release the plan. 
-   ret = clfftDestroyPlan( &planHandleBackward );
+  clReleaseMemObject( d_FFT );
+  clReleaseMemObject( out );
 
    // Release clFFT library. 
    clfftTeardown( );
