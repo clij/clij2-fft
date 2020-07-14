@@ -64,11 +64,15 @@ int main() {
     unsigned int M1=size[1];
     unsigned long nFreq=M1*M0;
 
-    // memory for fft
+    // memory for fft and inverse fft
     float * fft = new float[nFreq*2];
+    float * invfft = new float[n];
 
     // call opencl fft
     fft2d(N0, N1, data, fft);
+
+    // call opencl inverse fft
+    fftinv2d(N0, N1, fft, invfft);
 
     float * abs = new float[nFreq];
 
@@ -81,16 +85,20 @@ int main() {
     }
 
     float * rescaled = new float[size[0]*size[1]];
+    float * rescaledinv = new float[n];
     float * rescaledabs = new float[nFreq];
     rescale(data, rescaled, 1., n);
-    //abs[0]=0;
     rescale(abs, rescaledabs, 1., nFreq);
+    rescale(invfft, rescaledinv, 1., n);
 
     Mat cvImg(size[0], size[1], CV_32F, rescaled);
     Mat cvAbs(M1, M0, CV_32F, rescaledabs);
+    Mat cvInv(N1, N0, CV_32F, rescaledinv);
+
     //namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
     imshow( "Img", cvImg);                   // Show our image inside it.
     imshow( "FFT Abs", cvAbs);                   // Show our image inside it.
+    imshow( "Inv FFT", cvInv);                   // Show our image inside it.
     waitKey(0);
 
     delete data;
