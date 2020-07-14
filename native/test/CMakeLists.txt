@@ -13,5 +13,7 @@ FIND_PATH(CLFFT_LIBRARY_DIR $ENV{CLFFT_LIBRARY_DIR} [DOC "CLFFT library path"])
 link_directories(${CLFFT_LIBRARY_DIR})
 
 add_executable(test test.cpp tifstack.cpp ../clij2fft/clij2fft.cpp)
+add_executable(deconvolutiontest deconvolutiontest.cpp tifstack.cpp ../clij2fft/clij2fft.cpp)
 
 target_link_libraries(test ${TIFF_LIBRARIES} ${OpenCV_LIBS} clFFT ${OpenCL_LIBRARY})
+target_link_libraries(deconvolutiontest ${TIFF_LIBRARIES} ${OpenCV_LIBS} clFFT ${OpenCL_LIBRARY})
