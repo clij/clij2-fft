@@ -194,6 +194,51 @@ clfftPlanHandle bake_2d_forward_32f(long N0, long N1, cl_context context, cl_com
 
 }
 
+clfftPlanHandle bake_3d_forward_32f(long N0, long N1, long N2, cl_context context, cl_command_queue commandQueue) {
+
+  cl_int ret;
+  // FFT library related declarations 
+  clfftPlanHandle planHandleForward;
+  clfftDim dim = CLFFT_3D;
+  size_t clLengths[3] = {N0, N1, N2};
+  size_t inStride[3] = {1, N0, N0*N1};
+  // note each output row has N0/2+1 complex numbers 
+  size_t outStride[3] = {1, N0/2+1, (N0/2+1)*N1};
+
+  printf("clfft setup %d\n", ret);
+  // Create a default plan for a complex FFT.
+  ret = clfftCreateDefaultPlan(&planHandleForward, context, dim, clLengths);
+
+  printf("Create Default Plan %d\n", ret);
+
+  clfftPrecision precision = CLFFT_SINGLE;
+  clfftLayout inLayout = CLFFT_REAL;
+  clfftLayout outLayout = CLFFT_HERMITIAN_INTERLEAVED;
+  clfftResultLocation resultLocation = CLFFT_OUTOFPLACE;
+  
+  // Set plan parameters. 
+  ret = clfftSetPlanPrecision(planHandleForward, precision);
+  printf("clfft precision %d\n", ret);
+  ret = clfftSetLayout(planHandleForward, inLayout, outLayout);
+  printf("clfft set layout real hermittian interveaved %d\n", ret);
+  ret = clfftSetResultLocation(planHandleForward, resultLocation);
+  printf("clfft set result location %d\n", ret);
+  ret=clfftSetPlanInStride(planHandleForward, dim, inStride);
+  printf("clfft set instride %d\n", ret);
+  ret=clfftSetPlanOutStride(planHandleForward, dim, outStride);
+  printf("clfft set out stride %d\n", ret);
+
+  // Bake the plan.
+  ret = clfftBakePlan(planHandleForward, 1, &commandQueue, NULL, NULL);
+
+  printf("Bake %d\n", ret);
+  ret = clFinish(commandQueue);
+  printf("Finish Command Queue %d\n", ret);
+
+  return planHandleForward;
+
+}
+
 clfftPlanHandle bake_2d_backward_32f(long N0, long N1, cl_context context, cl_command_queue commandQueue) {
   cl_int ret;
 
@@ -220,6 +265,49 @@ clfftPlanHandle bake_2d_backward_32f(long N0, long N1, cl_context context, cl_co
   
   // Set plan parameters. 
   ret = clfftSetPlanPrecision(planHandleBackward, CLFFT_SINGLE);
+  printf("clfft precision %d\n", ret);
+  ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
+  printf("clfft set layout real hermittian interveaved %d\n", ret);
+  ret = clfftSetResultLocation(planHandleBackward, CLFFT_OUTOFPLACE);
+  printf("clfft set result location %d\n", ret);
+  ret=clfftSetPlanInStride(planHandleBackward, dim, inStride);
+  printf("clfft set instride %d\n", ret);
+  ret=clfftSetPlanOutStride(planHandleBackward, dim, outStride);
+  printf("clfft set out stride %d\n", ret);
+
+  // Bake the plan.
+  ret = clfftBakePlan(planHandleBackward, 1, &commandQueue, NULL, NULL);
+
+  printf("Bake %d\n", ret);
+  ret = clFinish(commandQueue);
+  printf("Finish Command Queue %d\n", ret);
+
+  return planHandleBackward;
+
+}
+
+clfftPlanHandle bake_3d_backward_32f(long N0, long N1, long N2, cl_context context, cl_command_queue commandQueue) {
+
+  cl_int ret;
+  // FFT library related declarations 
+  clfftPlanHandle planHandleBackward;
+  clfftDim dim = CLFFT_3D;
+  size_t clLengths[3] = {N0, N1, N2};
+  size_t inStride[3] = {1, N0/2+1, (N0/2+1)*N1};
+  // note each output row has N0/2+1 complex numbers 
+  size_t outStride[3] = {1, N0, N0*N1};
+
+  printf("clfft setup %d\n", ret);
+  // Create a default plan for a complex FFT.
+  ret = clfftCreateDefaultPlan(&planHandleBackward, context, dim, clLengths);
+
+  printf("Create Default Plan %d\n", ret);
+
+  clfftPrecision precision = CLFFT_SINGLE;
+  clfftResultLocation resultLocation = CLFFT_OUTOFPLACE;
+  
+  // Set plan parameters. 
+  ret = clfftSetPlanPrecision(planHandleBackward, precision);
   printf("clfft precision %d\n", ret);
   ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
   printf("clfft set layout real hermittian interveaved %d\n", ret);
@@ -492,67 +580,10 @@ int conv_long(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l
 	// Create complex multiply kernel
 	cl_kernel kernelComplexMultiply = clCreateKernel(program, "vecComplexMultiply", &ret);
   printf("\ncreate KERNEL in GPU %d\n", ret);
-	
-  // FFT library related declarations
-  clfftPlanHandle planHandleForward;
-  clfftPlanHandle planHandleBackward;
+
+  clfftPlanHandle planHandleForward=bake_3d_forward_32f(N0, N1, N2, context, commandQueue);
+  clfftPlanHandle planHandleBackward=bake_3d_backward_32f(N0, N1, N2, context, commandQueue);
   
-  // specify a 3D FFT
-  clfftDim dim = CLFFT_3D;
-  
-  // size of input data
-  size_t clLengths[3] = {N0, N1, N2};
-
-  // strides of the input are distances between elements of first, second and third dimension
-  size_t imgStride[3] = {1, N0, N0*N1};
-  // strides of the FFT (consider that the redundant values in the first dimension are eliminated (google Hermitian symmetry))
-  size_t fftStride[3] = {1, (N0/2+1), (N0/2+1)*N1};
-
-  // Setup clFFT. 
-  clfftSetupData fftSetup;
-  ret = clfftInitSetupData(&fftSetup);
-  printf("clfft init %d\n", ret);
-  ret = clfftSetup(&fftSetup);
-  printf("clfft setup %d\n", ret);
-
-  // Create default forward and backward plans
-  ret = clfftCreateDefaultPlan(&planHandleForward, context, dim, clLengths);
-  ret = clfftCreateDefaultPlan(&planHandleBackward, context, dim, clLengths);
-
-  printf("Create Default Plan %d\n", ret);
-  
-  // Set plan parameters for forward plan
-  ret = clfftSetPlanPrecision(planHandleForward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleForward, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleForward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleForward, dim, imgStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleForward, dim, fftStride);
-  printf("clfft set out stride %d\n", ret);
-
-  // Set plan parameters for backward plan
-  ret = clfftSetPlanPrecision(planHandleBackward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleBackward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleBackward, dim, fftStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleBackward, dim, imgStride);
-  printf("clfft set out stride %d\n", ret);
-
-  // Bake the plans
-  ret = clfftBakePlan(planHandleForward, 1, &commandQueue, NULL, NULL);
-  printf("Bake forward plan %d\n", ret);
- // ret = clfftBakePlan(planHandleBackward, 1, &commandQueue, NULL, NULL);
- // printf("Bake backward plan %d\n", ret);
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue %d\n", ret);
-
   // compute item sizes 
   size_t localItemSize=64;
 	size_t globalItemSize= ceil((N2*N1*N0)/(float)localItemSize)*localItemSize;
@@ -589,7 +620,6 @@ int conv_long(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l
   return ret;
 }
 
-
 int conv(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out) {
 
   cl_platform_id platformId = NULL;
@@ -622,124 +652,13 @@ int conv(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h
   
   printf("\nallocated memory\n");
 
-   // Copy lists to memory buffers
+   // Copy to memory buffers
 	ret = clEnqueueWriteBuffer(commandQueue, d_image, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_image, 0, NULL, NULL);;
   printf("\ncopy to GPU  %d\n", ret);
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   printf("\ncopy to GPU  %d\n", ret);
-	
-  unsigned long nFreq=(N0/2+1)*N1*N2;
-  cl_mem psfFFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2*nFreq * sizeof(float), NULL, &ret);
-  printf("\ncreate PSF FFT %d\n", ret);
-	cl_mem estimateFFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2*nFreq * sizeof(float), NULL, &ret);
-  printf("\ncreate Object FFT %d\n", ret);
-	 
-  /* FFT library related declarations */
-  clfftPlanHandle planHandleForward;
-  clfftPlanHandle planHandleBackward;
-  clfftDim dim = CLFFT_3D;
-  size_t clLengths[3] = {N0, N1, N2};
-  size_t imgStride[3] = {1, N0, N0*N1};
-  size_t fftStride[3] = {1, (N0/2+1), (N0/2+1)*N1};
 
-  /* Setup clFFT. */
-  clfftSetupData fftSetup;
-  ret = clfftInitSetupData(&fftSetup);
-  printf("clfft init %d\n", ret);
-  ret = clfftSetup(&fftSetup);
-
-  printf("clfft setup %d\n", ret);
-  /* Create a default plan for a complex FFT. */
-  ret = clfftCreateDefaultPlan(&planHandleForward, context, dim, clLengths);
-  ret = clfftCreateDefaultPlan(&planHandleBackward, context, dim, clLengths);
-
-  printf("Create Default Plan %d\n", ret);
-  
-  /* Set plan parameters. */
-  ret = clfftSetPlanPrecision(planHandleForward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleForward, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleForward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleForward, dim, imgStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleForward, dim, fftStride);
-  printf("clfft set out stride %d\n", ret);
-
-  /* Set plan parameters. */
-  ret = clfftSetPlanPrecision(planHandleBackward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleBackward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleBackward, dim, fftStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleBackward, dim, imgStride);
-  printf("clfft set out stride %d\n", ret);
-
-  /* Bake the plan. */
-  ret = clfftBakePlan(planHandleForward, 1, &commandQueue, NULL, NULL);
-
-  printf("Bake %d\n", ret);
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue %d\n", ret);
-
-  /* Execute the plan. */
-  ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &d_image, &estimateFFT, NULL);
-  ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &d_psf, &psfFFT, NULL);
-
-  printf("Forward FFT %d\n", ret);
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue for forward FFT %d\n", ret);
-  
-  // complex multiply
- 	
-  // Create program from kernel source
-	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&programString, NULL, &ret);	
-
-  printf("\ncreate program %d\n", ret);
-	// Build program
-	ret = clBuildProgram(program, 1, &deviceID, NULL, NULL, NULL);
-
-  printf("\nbuild program %d\n", ret);
-
-  if (ret!=0) {
-    return ret;
-  }
-	// Create kernel
-	cl_kernel kernel = clCreateKernel(program, "vecComplexMultiply", &ret);
-  printf("\ncreate KERNEL in GPU %d\n", ret);
- 
-   // Set arguments for kernel
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&estimateFFT);	
-  printf("\nset variable 1 %d\n", ret);
-	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&psfFFT);	
-  printf("\nset variable 2 %d\n", ret);
-	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&estimateFFT);	
-  printf("\nset variable 3 %d\n", ret);
-  ret = clSetKernelArg(kernel, 3, sizeof(nFreq), &nFreq);	
-  printf("\nset variable 4 %d\n", ret);
-
-  size_t localItemSize=64;
- 	// Execute the kernel
-	size_t globalItemSize = ceil(((float)nFreq)/(float)localItemSize)*localItemSize;
-  printf("nFreq/globalItemSize %lu,%lu\n", nFreq, globalItemSize);
-  
-  ret = clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, &globalItemSize, &localItemSize, 0, NULL, NULL);	
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue %d\n", ret);
-
-  printf("\nexecute kernel %d\n", ret);
-
-  // Inverse 
-  ret = clfftEnqueueTransform(planHandleBackward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &estimateFFT, &d_out, NULL);
-
-  printf("Inverse FFT %d\n", ret);
-  // Wait for calculations to be finished. 
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue %d\n", ret);
+  conv_long(N0, N1, N2, (long)d_image, (long)d_psf, (long)d_out, 0, (long)context, (long)commandQueue, (long)deviceID);
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -810,58 +729,10 @@ int deconv_long(int iterations, size_t N0, size_t N1, size_t N2, long l_observed
   // Create multiply kernel
 	cl_kernel kernelMul = clCreateKernel(program, "vecMul", &ret);
   printf("\ncreate Divide KERNEL in GPU %d\n", ret);
-  
-  // FFT library related declarations 
-  clfftPlanHandle planHandleForward;
-  clfftPlanHandle planHandleBackward;
-  clfftDim dim = CLFFT_3D;
-  size_t clLengths[3] = {N0, N1, N2};
-  size_t imgStride[3] = {1, N0, N0*N1};
-  size_t fftStride[3] = {1, (N0/2+1), (N0/2+1)*N1};
 
-  // Setup clFFT
-  clfftSetupData fftSetup;
-  ret = clfftInitSetupData(&fftSetup);
-  printf("clfft init %d\n", ret);
-  ret = clfftSetup(&fftSetup);
-  printf("clfft setup %d\n", ret);
+  clfftPlanHandle planHandleForward=bake_3d_forward_32f(N0, N1, N2, context, commandQueue);
   
-  // Create default plans for forward and backward FFT 
-  ret = clfftCreateDefaultPlan(&planHandleForward, context, dim, clLengths);
-  ret = clfftCreateDefaultPlan(&planHandleBackward, context, dim, clLengths);
-
-  printf("Create Default Plan %d\n", ret);
-  
-  // Set plan parameters for forward FFT
-  ret = clfftSetPlanPrecision(planHandleForward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleForward, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleForward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleForward, dim, imgStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleForward, dim, fftStride);
-  printf("clfft set out stride %d\n", ret);
-
-  // Set plan parameters for backward FFT
-  ret = clfftSetPlanPrecision(planHandleBackward, CLFFT_SINGLE);
-  printf("clfft precision %d\n", ret);
-  ret = clfftSetLayout(planHandleBackward, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
-  printf("clfft set layout real hermittian interveaved %d\n", ret);
-  ret = clfftSetResultLocation(planHandleBackward, CLFFT_OUTOFPLACE);
-  printf("clfft set result location %d\n", ret);
-  ret=clfftSetPlanInStride(planHandleBackward, dim, fftStride);
-  printf("clfft set instride %d\n", ret);
-  ret=clfftSetPlanOutStride(planHandleBackward, dim, imgStride);
-  printf("clfft set out stride %d\n", ret);
- 
-  // Bake the plan. 
-  ret = clfftBakePlan(planHandleForward, 1, &commandQueue, NULL, NULL);
-  printf("Bake %d\n", ret);
-  
-  ret = clFinish(commandQueue);
-  printf("Finish Command Queue %d\n", ret);
+  clfftPlanHandle planHandleBackward=bake_3d_backward_32f(N0, N1, N2, context, commandQueue);
 
   // compute item sizes 
   size_t localItemSize=64;
@@ -925,7 +796,6 @@ int deconv_long(int iterations, size_t N0, size_t N1, size_t N2, long l_observed
 
    // Release clFFT library. 
    clfftTeardown( );
-
 
 }
 
