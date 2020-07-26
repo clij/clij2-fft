@@ -28,14 +28,14 @@ public class clij2fftWrapper {
 		Loader.load();
 	}
 
-	public static native long fft2d_long(long N1, long N2, long inPointer,
+	public static native long fft2d_32f_lp(long N1, long N2, long inPointer,
 		long outPointer, long contextPointer, long queuePointer);
 
-	public static native int conv_long(long N0, long N1, long N2, long l_image,
+	public static native int conv3d_32f_lp(long N0, long N1, long N2, long l_image,
 		long l_psf, long l_output, boolean correlate, long l_context, long l_queue,
 		long l_device);
 
-	public static native int deconv_long(int iterations, long N0, long N1,
+	public static native int deconv3d_32f_lp(int iterations, long N0, long N1,
 		long N2, long d_image, long d_psf, long d_update, long d_normal,
 		long l_context, long l_queuee, long l_device);
 

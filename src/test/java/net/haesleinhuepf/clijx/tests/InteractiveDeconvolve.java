@@ -26,6 +26,7 @@ import net.imglib2.util.Intervals;
 import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 import net.imagej.ops.filter.pad.DefaultPadInputFFT;
+import net.imagej.ops.filter.pad.DefaultPadShiftKernelFFT;
 
 public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 
@@ -81,6 +82,15 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		RandomAccessibleInterval<FloatType> extended = (RandomAccessibleInterval) ij
 			.op().run(DefaultPadInputFFT.class, imgF, extendedDimensions, false,
 				new OutOfBoundsMirrorFactory(OutOfBoundsMirrorFactory.Boundary.SINGLE));
+		
+		// extend psf
+		RandomAccessibleInterval<FloatType> psfExtended = (RandomAccessibleInterval) ij
+			.op().run(DefaultPadShiftKernelFFT.class, psfF, extendedDimensions, false);
+
+		// show extended image and PSF
+		ij.ui().show("img ext", Views.zeroMin(extended));
+		ij.ui().show("psf ext", Views.zeroMin(psfExtended));
+	
  
 		// show image and PSF
 		ij.ui().show("img ", imgF);

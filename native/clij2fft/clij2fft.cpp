@@ -329,7 +329,7 @@ clfftPlanHandle bake_3d_backward_32f(long N0, long N1, long N2, cl_context conte
 
 }
 
-int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
+int fft2d_32f_lp(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
   printf("input address %ld", d_image);
   printf("input address %lu", (unsigned long)d_image);
  
@@ -337,7 +337,7 @@ int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long 
 	cl_context context = (cl_context)l_context;
   
 	// cast long to queue 
-	cl_command_queue commandQueue = (cl_command_queue)l_queue;
+	cl_command_queue commandQueue = (cl_command_queue)l_queue;  
 
   // number of elements in Hermitian (interleaved) output 
   unsigned long nFreq=N1*(N0/2+1);
@@ -366,7 +366,7 @@ int fft2d_long(long N0, long N1, long d_image, long d_out, long l_context, long 
 }
 
 
-int fft2d(size_t N0, size_t N1, float *h_image, float * h_out) {
+int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
  
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
@@ -406,7 +406,7 @@ int fft2d(size_t N0, size_t N1, float *h_image, float * h_out) {
   cl_mem FFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2*nFreq*sizeof(float), NULL, &ret);
   printf("\ncreate FFT %d\n", ret);
 	 
-  ret = fft2d_long(N0, N1, (long)aMemObj, (long)FFT, (long)context, (long)commandQueue);
+  ret = fft2d_32f_lp(N0, N1, (long)aMemObj, (long)FFT, (long)context, (long)commandQueue);
   printf("FFT refactored\n");
   
   // transfer from device back to GPU
@@ -469,7 +469,7 @@ N1 - real height
 h_fft - a complex Hermitian interleaved FFT of size (N0/2+1) by N1 
 h_out - a (contiguous) N0 by N1 float array
 */
-int fftinv2d(size_t N0, size_t N1, float *h_fft, float * h_out) {
+int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
  
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
@@ -529,7 +529,7 @@ int fftinv2d(size_t N0, size_t N1, float *h_fft, float * h_out) {
 
 }
 
-int conv_long(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l_output, bool correlate, long l_context, long l_queue, long l_device) {
+int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l_output, bool correlate, long l_context, long l_queue, long l_device) {
 
   printf("enter convolve");
 
@@ -620,7 +620,7 @@ int conv_long(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l
   return ret;
 }
 
-int conv(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out) {
+int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out) {
 
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
@@ -658,7 +658,7 @@ int conv(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   printf("\ncopy to GPU  %d\n", ret);
 
-  conv_long(N0, N1, N2, (long)d_image, (long)d_psf, (long)d_out, 0, (long)context, (long)commandQueue, (long)deviceID);
+  conv3d_32f_lp(N0, N1, N2, (long)d_image, (long)d_psf, (long)d_out, 0, (long)context, (long)commandQueue, (long)deviceID);
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -666,7 +666,7 @@ int conv(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h
   return 0;
 }
 
-int deconv_long(int iterations, size_t N0, size_t N1, size_t N2, long l_observed, long l_psf, long l_estimate, long l_normal, long l_context, long l_queue, long l_device) {
+int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_observed, long l_psf, long l_estimate, long l_normal, long l_context, long l_queue, long l_device) {
 
   cl_int ret;
   
@@ -799,7 +799,7 @@ int deconv_long(int iterations, size_t N0, size_t N1, size_t N2, long l_observed
 
 }
 
-int deconv(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
+int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
 
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
@@ -840,9 +840,9 @@ int deconv(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, floa
 
   unsigned long n = N0*N1*N2;
   unsigned long nFreq=(N0/2+1)*N1*N2;
-
+     
   printf("Call deconv with long pointers\n\n");
-  deconv_long(iterations, N0, N1, N2, (long)d_observed, (long)d_psf, (long)d_estimate, (long)0, (long)context, (long)commandQueue, (long)deviceID); 
+  deconv3d_32f_lp(iterations, N0, N1, N2, (long)d_observed, (long)d_psf, (long)d_estimate, (long)0, (long)context, (long)commandQueue, (long)deviceID); 
     
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );

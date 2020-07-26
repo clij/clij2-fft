@@ -69,10 +69,10 @@ int main() {
     float * invfft = new float[n];
 
     // call opencl fft
-    fft2d(N0, N1, data, fft);
+    fft2d_32f(N0, N1, data, fft);
 
     // call opencl inverse fft
-    fftinv2d(N0, N1, fft, invfft);
+    fftinv2d_32f(N0, N1, fft, invfft);
 
     float * abs = new float[nFreq];
 

@@ -155,7 +155,7 @@ public class OpenCLFFTUtility {
 			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
 
 		// call the native code that runs the FFT
-		clij2fftWrapper.fft2d_long((long) (gpuImg.getWidth()), gpuImg.getHeight(),
+		clij2fftWrapper.fft2d_32f_lp((long) (gpuImg.getWidth()), gpuImg.getHeight(),
 			l_in, l_out, l_context, l_queue);
 
 		return gpuFFT;
@@ -194,7 +194,7 @@ public class OpenCLFFTUtility {
 			.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (100 iterations of RL)
-		clij2fftWrapper.deconv_long(100, gpuImg.getDimensions()[0], gpuImg
+		clij2fftWrapper.deconv3d_32f_lp(100, gpuImg.getDimensions()[0], gpuImg
 			.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 			longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
 			l_device);
@@ -251,7 +251,7 @@ public class OpenCLFFTUtility {
 			.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (100 iterations of RL)
-		clij2fftWrapper.deconv_long(100, gpuImg.getDimensions()[0], gpuImg
+		clij2fftWrapper.deconv3d_32f_lp(100, gpuImg.getDimensions()[0], gpuImg
 			.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 			longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
 			l_device);
@@ -295,7 +295,7 @@ public class OpenCLFFTUtility {
 			.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (100 iterations of RL)
-		clij2fftWrapper.conv_long(gpuImg.getDimensions()[0], gpuImg
+		clij2fftWrapper.conv3d_32f_lp(gpuImg.getDimensions()[0], gpuImg
 			.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 			longPointerPSF, longPointerOutput, true, l_context, l_queue,
 			l_device);
