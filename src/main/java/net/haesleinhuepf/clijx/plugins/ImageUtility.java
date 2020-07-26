@@ -64,22 +64,6 @@ public class ImageUtility {
 
 	}
 
-	static public <T extends ComplexType<T>> ImgPlus<T> createMultiChannelImgPlus(
-		DatasetService data, RandomAccessibleInterval<T>... rais)
-	{
-		ArrayList<RandomAccessibleInterval<T>> channelList = new ArrayList<>();
 
-		for (RandomAccessibleInterval<T> rai : rais) {
-			channelList.add(rai);
-		}
-
-		AxisType[] axisTypes = new AxisType[] { Axes.X, Axes.Y, Axes.Z,
-			Axes.CHANNEL };
-
-		RandomAccessibleInterval stack = Views.stack(channelList);
-
-		return new ImgPlus(data.create(stack), "image", axisTypes);
-
-	}
 
 }
