@@ -3,30 +3,25 @@ package net.haesleinhuepf.clijx.tests;
 
 import java.io.IOException;
 
-import net.haesleinhuepf.clij.CLIJ;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.plugins.DeconvolveFFT;
 import net.haesleinhuepf.clijx.plugins.ImageUtility;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
-import net.imagej.ops.OpService;
 import net.imagej.ops.Ops;
+import net.imagej.ops.filter.pad.DefaultPadInputFFT;
+import net.imagej.ops.filter.pad.DefaultPadShiftKernelFFT;
 import net.imglib2.FinalDimensions;
-import net.imglib2.FinalInterval;
 import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.outofbounds.OutOfBoundsMirrorFactory;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
-import net.imglib2.util.Util;
 import net.imglib2.view.Views;
-import net.imagej.ops.filter.pad.DefaultPadInputFFT;
-import net.imagej.ops.filter.pad.DefaultPadShiftKernelFFT;
 
 public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 
