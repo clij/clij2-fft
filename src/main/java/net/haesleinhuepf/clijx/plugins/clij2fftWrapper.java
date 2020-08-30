@@ -11,8 +11,7 @@ import org.bytedeco.javacpp.annotation.Properties;
 					"clFFT" }), 
 	@Platform(value = "windows-x86_64", 
 		linkpath = {
-			"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/lib/x64/",
-			"C:/OpenCL/clFFT-2.12.2-Windows-x64/lib64/import/"
+			"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/lib/x64/"
 		}, 
 		preloadpath = {
 			"C:/OpenCL/clFFT-2.12.2-Windows-x64/bin/" }, 
