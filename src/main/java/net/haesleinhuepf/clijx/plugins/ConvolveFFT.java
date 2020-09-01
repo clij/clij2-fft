@@ -47,7 +47,9 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 			clij2.copy(convolution_kernel, convolution_kernel_float);
 		}
 
-		ClearCLBuffer extendedKernel_float = pad(clij2, convolution_kernel_float);
+
+		ClearCLBuffer extendedKernel_float = clij2.create(input_float);
+		pad(clij2, convolution_kernel_float, extendedKernel_float);
 
 		runConvolve(clij2, input_float, extendedKernel_float, destination);
 

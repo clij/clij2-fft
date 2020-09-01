@@ -118,8 +118,8 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		ClearCLBuffer input_float = input;
 		ClearCLBuffer convolution_kernel_float = convolution_kernel;
 
-		ClearCLBuffer extendedKernel_float = pad(clij2, convolution_kernel_float);
-		//clij2.show(extendedKernel_float, "Extd kernel");
+		ClearCLBuffer extendedKernel_float = clij2.create(input_float);
+		pad(clij2, convolution_kernel_float, extendedKernel_float);
 
 		runDecon(clij2, input_float, extendedKernel_float, destination, 10);
 		//System.out.println(clij2.reportMemory());
@@ -143,7 +143,6 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	public static ClearCLBuffer runDecon(CLIJ2 clij2, ClearCLBuffer gpuImg,
 										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations)
 	{
-
 		long start = System.currentTimeMillis();
 
 		// copy the image to use as the initial value
