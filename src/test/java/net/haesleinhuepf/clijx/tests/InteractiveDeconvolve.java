@@ -7,6 +7,7 @@ import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.plugins.DeconvolveFFT;
 import net.haesleinhuepf.clijx.plugins.ImageUtility;
+import net.haesleinhuepf.clijx.plugins.Normalize;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imagej.ops.Ops;
@@ -36,12 +37,23 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		// launch IJ so we can interact with the inputs and outputs
 		ij.launch(args);
 
-	
-	// test names
+
+		CLIJ2 clij2=null;
+		// get clij
+		try {
+			clij2 = CLIJ2.getInstance("RTX");
+		}
+		catch(Exception e) {
+			System.out.println(e);
+		}
+
+
+
+		// test names
 			Dataset testData = (Dataset) ij.io().open(
-				"/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+					"C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
 			Dataset psf = (Dataset) ij.io().open(
-				"/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
+					"C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
 		
 		// open the test data
 		RandomAccessibleInterval<FloatType> imgF = (RandomAccessibleInterval) (ij
@@ -58,11 +70,23 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		
 		ij.ui().show(Views.zeroMin(psfF));
 
+		/*
 		// subtract min from PSF		
 		psfF = Views.zeroMin(ImageUtility.subtractMin(psfF, ij.op()));
 
 		// normalize PSF
 		psfF = Views.zeroMin(ImageUtility.normalize(psfF, ij.op()));
+		*/
+
+		
+		ClearCLBuffer gpu_psf = clij2.push(psfF);
+		ClearCLBuffer gpu_psf_normalized = clij2.create(gpu_psf);
+
+		Normalize.normalize(clij2, gpu_psf, gpu_psf_normalized);
+
+		psfF = clij2.pullRAI(gpu_psf_normalized);
+
+
 
 		// compute extended dimensions based on image and PSF dimensions
 		long[] extendedSize = new long[imgF.numDimensions()];
@@ -90,15 +114,6 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		// show image and PSF
 		ij.ui().show("img ", imgF);
 		ij.ui().show("psf ", psfF);
-		
-		CLIJ2 clij2=null;
-		// get clij
-		try {
-			clij2 = CLIJ2.getInstance("RTX");
-		}
-		catch(Exception e) {
-			System.out.println(e);
-		}
 
 		// push extended image and psf to GPU
 		ClearCLBuffer inputGPU = clij2.push(extended);
@@ -111,7 +126,7 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		
 		if (deconvolve) {
 			// deconvolve
-			DeconvolveFFT.deconvolveFFT(clij2, inputGPU, psfGPU, output);
+			DeconvolveFFT.deconvolveFFT(clij2, inputGPU, psfGPU, output,100);
 		}
 		else {
 			// convolve
