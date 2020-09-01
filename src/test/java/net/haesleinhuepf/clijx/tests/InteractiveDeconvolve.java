@@ -2,11 +2,12 @@
 package net.haesleinhuepf.clijx.tests;
 
 import java.io.IOException;
+import java.util.Random;
 
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.plugins.DeconvolveFFT;
-import net.haesleinhuepf.clijx.plugins.ImageUtility;
+import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.haesleinhuepf.clijx.plugins.Normalize;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
@@ -84,8 +85,13 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 
 		Normalize.normalize(clij2, gpu_psf, gpu_psf_normalized);
 
-		psfF = clij2.pullRAI(gpu_psf_normalized);
 
+		ClearCLBuffer gpu_image = clij2.push(imgF);
+		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image);
+
+		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf_normalized, gpu_deconvolved, 10);
+/*
+		psfF = clij2.pullRAI(gpu_psf_normalized);
 
 
 		// compute extended dimensions based on image and PSF dimensions
@@ -101,7 +107,7 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		RandomAccessibleInterval<FloatType> extended = (RandomAccessibleInterval) ij
 			.op().run(DefaultPadInputFFT.class, imgF, extendedDimensions, false,
 				new OutOfBoundsMirrorFactory(OutOfBoundsMirrorFactory.Boundary.SINGLE));
-		
+
 		// extend psf
 		RandomAccessibleInterval<FloatType> psfExtended = (RandomAccessibleInterval) ij
 			.op().run(DefaultPadShiftKernelFFT.class, psfF, extendedDimensions, false);
@@ -109,8 +115,7 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		// show extended image and PSF
 		ij.ui().show("img ext", Views.zeroMin(extended));
 		ij.ui().show("psf ext", Views.zeroMin(psfExtended));
-	
- 
+
 		// show image and PSF
 		ij.ui().show("img ", imgF);
 		ij.ui().show("psf ", psfF);
@@ -121,9 +126,9 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 
 		// create output
 		ClearCLBuffer output = clij2.create(inputGPU);
-	
+
 		boolean deconvolve = true;
-		
+
 		if (deconvolve) {
 			// deconvolve
 			DeconvolveFFT.deconvolveFFT(clij2, inputGPU, psfGPU, output,100);
@@ -132,24 +137,26 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 			// convolve
 			DeconvolveFFT.convolveFFT(clij2, inputGPU, psfGPU, output);
 		}
-		
-		
+
+
 		// get deconvolved as an RAI
 		RandomAccessibleInterval deconv=clij2.pullRAI(output);
-		
+
 		// create unpadding interval
 		Interval interval = Intervals.createMinMax(-extended.min(0), -extended
 			.min(1), -extended.min(2), -extended.min(0) + imgF.dimension(0) -
 				1, -extended.min(1) + imgF.dimension(1) - 1, -extended.min(2) +
 					imgF.dimension(2) - 1);
 
-		// create an RAI for the output... we could just use a View to unpad, but performance for slicing is slow 
+		// create an RAI for the output... we could just use a View to unpad, but performance for slicing is slow
 		RandomAccessibleInterval outputRAI=ij.op().create().img(imgF);
-		
+
 		// copy the unpadded interval back to original size
 		ij.op().run(Ops.Copy.RAI.class, outputRAI, Views.zeroMin(Views.interval(deconv,
-			interval)));
-		
+			interval)));*/
+
+		RandomAccessibleInterval outputRAI = clij2.pullRAI(gpu_deconvolved);
+
 		//clij2.show(output, "output");
 		ij.ui().show("output", outputRAI);
 
