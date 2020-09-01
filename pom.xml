@@ -13,8 +13,8 @@
 	</parent>
 
 	<groupId>net.haesleinhuepf</groupId>
-	<artifactId>clij2-fft</artifactId>
-	<version>2.1.1.10</version>
+	<artifactId>clij2-fft_</artifactId>
+	<version>2.1.1.10-BETA</version>
 
 	<name>clij2-fft</name>
 	<description>clij2 fft</description>
