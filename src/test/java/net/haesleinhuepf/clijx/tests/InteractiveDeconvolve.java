@@ -6,7 +6,6 @@ import java.util.Random;
 
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij2.CLIJ2;
-import net.haesleinhuepf.clijx.plugins.DeconvolveFFT;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.haesleinhuepf.clijx.plugins.Normalize;
 import net.imagej.Dataset;
@@ -48,20 +47,20 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 			System.out.println(e);
 		}
 
-
-
-		// test names
-			Dataset testData = (Dataset) ij.io().open(
-					"C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
-			Dataset psf = (Dataset) ij.io().open(
-					"C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
+		// load data
+		Dataset testData = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
+		Dataset psf = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
 		
-		// open the test data
+		// convert input data to float
 		RandomAccessibleInterval<FloatType> imgF = (RandomAccessibleInterval) (ij
 			.op().convert().float32((Img) testData.getImgPlus().getImg()));
 		
 		RandomAccessibleInterval<FloatType> psfF = (RandomAccessibleInterval) (ij
 			.op().convert().float32((Img) psf.getImgPlus()));
+
+		// show image and PSF
+		clij2.show(imgF, "img ");
+		clij2.show(psfF, "psf ");
 
 		// crop PSF - the image will be extended using PSF size
 		// if the PSF size is too large it will explode image size, memory needed and processing speed
@@ -70,90 +69,18 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 	//			new long[] { 64, 64, 41 }, ij.op());
 		
 		ij.ui().show(Views.zeroMin(psfF));
-
-		/*
-		// subtract min from PSF		
-		psfF = Views.zeroMin(ImageUtility.subtractMin(psfF, ij.op()));
-
-		// normalize PSF
-		psfF = Views.zeroMin(ImageUtility.normalize(psfF, ij.op()));
-		*/
-
 		
 		ClearCLBuffer gpu_psf = clij2.push(psfF);
 		ClearCLBuffer gpu_psf_normalized = clij2.create(gpu_psf);
 
+		// noremalize PSF so that its values are between 0 and 1
 		Normalize.normalize(clij2, gpu_psf, gpu_psf_normalized);
-
 
 		ClearCLBuffer gpu_image = clij2.push(imgF);
 		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image);
 
+		// deconvolve the image
 		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf_normalized, gpu_deconvolved, 10);
-/*
-		psfF = clij2.pullRAI(gpu_psf_normalized);
-
-
-		// compute extended dimensions based on image and PSF dimensions
-		long[] extendedSize = new long[imgF.numDimensions()];
-
-		for (int d = 0; d < imgF.numDimensions(); d++) {
-			extendedSize[d] = imgF.dimension(d) + psfF.dimension(d);
-		}
-
-		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
-
-		// extend image
-		RandomAccessibleInterval<FloatType> extended = (RandomAccessibleInterval) ij
-			.op().run(DefaultPadInputFFT.class, imgF, extendedDimensions, false,
-				new OutOfBoundsMirrorFactory(OutOfBoundsMirrorFactory.Boundary.SINGLE));
-
-		// extend psf
-		RandomAccessibleInterval<FloatType> psfExtended = (RandomAccessibleInterval) ij
-			.op().run(DefaultPadShiftKernelFFT.class, psfF, extendedDimensions, false);
-
-		// show extended image and PSF
-		ij.ui().show("img ext", Views.zeroMin(extended));
-		ij.ui().show("psf ext", Views.zeroMin(psfExtended));
-
-		// show image and PSF
-		ij.ui().show("img ", imgF);
-		ij.ui().show("psf ", psfF);
-
-		// push extended image and psf to GPU
-		ClearCLBuffer inputGPU = clij2.push(extended);
-		ClearCLBuffer psfGPU = clij2.push(psfF);
-
-		// create output
-		ClearCLBuffer output = clij2.create(inputGPU);
-
-		boolean deconvolve = true;
-
-		if (deconvolve) {
-			// deconvolve
-			DeconvolveFFT.deconvolveFFT(clij2, inputGPU, psfGPU, output,100);
-		}
-		else {
-			// convolve
-			DeconvolveFFT.convolveFFT(clij2, inputGPU, psfGPU, output);
-		}
-
-
-		// get deconvolved as an RAI
-		RandomAccessibleInterval deconv=clij2.pullRAI(output);
-
-		// create unpadding interval
-		Interval interval = Intervals.createMinMax(-extended.min(0), -extended
-			.min(1), -extended.min(2), -extended.min(0) + imgF.dimension(0) -
-				1, -extended.min(1) + imgF.dimension(1) - 1, -extended.min(2) +
-					imgF.dimension(2) - 1);
-
-		// create an RAI for the output... we could just use a View to unpad, but performance for slicing is slow
-		RandomAccessibleInterval outputRAI=ij.op().create().img(imgF);
-
-		// copy the unpadded interval back to original size
-		ij.op().run(Ops.Copy.RAI.class, outputRAI, Views.zeroMin(Views.interval(deconv,
-			interval)));*/
 
 		RandomAccessibleInterval outputRAI = clij2.pullRAI(gpu_deconvolved);
 

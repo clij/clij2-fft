@@ -10,24 +10,20 @@ import net.haesleinhuepf.clij.macro.documentation.OffersDocumentation;
 import net.haesleinhuepf.clij2.AbstractCLIJ2Plugin;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clij2.utilities.HasAuthor;
-import net.imagej.Dataset;
 import net.imagej.ops.OpService;
-import net.imagej.ops.Ops;
 import net.imagej.ops.filter.pad.DefaultPadInputFFT;
 import net.imagej.ops.filter.pad.DefaultPadShiftKernelFFT;
 import net.imglib2.FinalDimensions;
-import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.outofbounds.OutOfBoundsMirrorFactory;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
+import org.jocl.NativePointerObject;
 import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
 
-import static net.haesleinhuepf.clijx.plugins.DeconvolveFFT.pad;
-import static net.haesleinhuepf.clijx.plugins.DeconvolveFFT.runDecon;
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.pad;
 
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_deconvolveRichardsonLucyFFT")
 public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
@@ -69,6 +65,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		}
 		clij2.show(convolution_kernel, "convolution_kernel");
 
+
 		RandomAccessibleInterval imgF = clij2.pullRAI(input);
 		RandomAccessibleInterval psfF = clij2.pullRAI(convolution_kernel_float);
 
@@ -89,12 +86,12 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		RandomAccessibleInterval<FloatType> psfExtended = (RandomAccessibleInterval) ops.run(DefaultPadShiftKernelFFT.class, psfF, extendedDimensions, false);
 
 		// show extended image and PSF
-		clij2.show(Views.zeroMin(extended), "img ext");
-		clij2.show(Views.zeroMin(psfExtended), "psf ext");
+		//clij2.show(Views.zeroMin(extended), "img ext");
+		//clij2.show(Views.zeroMin(psfExtended), "psf ext");
 
 		// show image and PSF
-		clij2.show(imgF, "img ");
-		clij2.show(psfF, "psf ");
+		//clij2.show(imgF, "img ");
+		//clij2.show(psfF, "psf ");
 
 		// push extended image and psf to GPU
 		ClearCLBuffer inputGPU = clij2.push(extended);
@@ -103,34 +100,16 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		// create output
 		ClearCLBuffer output = clij2.create(inputGPU);
 
-		boolean deconvolve = true;
-
 		// deconvolve
 		deconvolveFFT(clij2, inputGPU, psfGPU, output,100);
 
 		// crop the result from the extended result
 		clij2.crop(output, destination, -extended.min(0), -extended.min(1), -extended.min(2));
 
-		/*
-		// get deconvolved as an RAI
-		RandomAccessibleInterval deconv=clij2.pullRAI(output);
-
-		// create unpadding interval
-		Interval interval = Intervals.createMinMax(-extended.min(0), -extended
-				.min(1), -extended.min(2), -extended.min(0) + imgF.dimension(0) -
-				1, -extended.min(1) + imgF.dimension(1) - 1, -extended.min(2) +
-				imgF.dimension(2) - 1);
-
-		// create an RAI for the output... we could just use a View to unpad, but performance for slicing is slow
-		RandomAccessibleInterval outputRAI = ops.create().img(imgF);
-
-		// copy the unpadded interval back to original size
-		ops.run(Ops.Copy.RAI.class, outputRAI, Views.zeroMin(Views.interval(deconv,
-				interval)));
-*/
-
 		return true;
 	}
+
+
 
 	private static boolean deconvolveFFT(CLIJ2 clij2, ClearCLBuffer input,
 										ClearCLBuffer convolution_kernel, ClearCLBuffer destination, int num_iterations)
@@ -140,24 +119,63 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		ClearCLBuffer convolution_kernel_float = convolution_kernel;
 
 		ClearCLBuffer extendedKernel_float = pad(clij2, convolution_kernel_float);
-		clij2.show(extendedKernel_float, "Extd kernel");
-
-		System.out.println("RUN DECON");
-		System.out.println(input_float);
-		System.out.println(extendedKernel_float);
-		System.out.println(destination);
-		System.out.println(10);
-
+		//clij2.show(extendedKernel_float, "Extd kernel");
 
 		runDecon(clij2, input_float, extendedKernel_float, destination, 10);
 		//System.out.println(clij2.reportMemory());
-		clij2.show(destination, "Destination");
+		//clij2.show(destination, "Destination");
 
 		clij2.release(extendedKernel_float);
 
 		return true;
 	}
 
+
+	/**
+	 * run Richardson Lucy deconvolution
+	 *
+	 * @param gpuImg - need to prepad to supported FFT size (see
+	 *          padInputFFTAndPush)
+	 * @param gpuPSF - need to prepad to supported FFT size (see
+	 *          padKernelFFTAndPush)
+	 * @return
+	 */
+	public static ClearCLBuffer runDecon(CLIJ2 clij2, ClearCLBuffer gpuImg,
+										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations)
+	{
+
+		long start = System.currentTimeMillis();
+
+		// copy the image to use as the initial value
+		ClearCLBuffer gpuEstimate = output;
+		clij2.copy(gpuImg, gpuEstimate);
+
+		// Get the CL Buffers, context, queue and device as long native pointers
+		long longPointerImg = ((NativePointerObject) (gpuImg.getPeerPointer()
+				.getPointer())).getNativePointer();
+		long longPointerPSF = ((NativePointerObject) (gpuPSF.getPeerPointer()
+				.getPointer())).getNativePointer();
+		long longPointerEstimate = ((NativePointerObject) (gpuEstimate
+				.getPeerPointer().getPointer())).getNativePointer();
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+				.getPeerPointer().getPointer())).getNativePointer();
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+				.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
+		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
+				.getDevice().getPeerPointer().getPointer()).getNativePointer();
+
+		// call the decon wrapper (100 iterations of RL)
+		clij2fftWrapper.deconv3d_32f_lp(num_iterations, gpuImg.getDimensions()[0], gpuImg
+						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
+				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
+				l_device);
+
+		long finish = System.currentTimeMillis();
+
+		System.out.println("OpenCL Decon time " + (finish - start));
+
+		return gpuEstimate;
+	}
 
 	@Override
 	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
@@ -177,7 +195,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getAvailableForDimensions() {
-		return "2D, 3D";
+		return "3D";
 	}
 
 	@Override

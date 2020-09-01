@@ -172,4 +172,47 @@ public class OpenCLFFTUtility {
 		return ArrayImgs.complexFloats(temp, new long[] { in.dimension(0) / 2, in
 			.dimension(1) });
 	}
+
+	public static ClearCLBuffer pad(CLIJ2 clij2, ClearCLBuffer convolution_kernel)
+	{
+		ClearCLBuffer extendedKernel = clij2.create(convolution_kernel);
+
+		long psfHalfWidth = convolution_kernel.getWidth() / 2;
+		long psfHalfHeight = convolution_kernel.getHeight() / 2;
+		long psfHalfDepth = convolution_kernel.getDepth() / 2;
+
+		clij2.set(extendedKernel, 0);
+
+		ClearCLBuffer temp = clij2.create(psfHalfWidth, psfHalfHeight,
+				psfHalfDepth);
+
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 0);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 1);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 0);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 1);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 0);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 1);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 0);
+		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 1);
+
+		clij2.release(temp);
+
+		return extendedKernel;
+	}
+
+	/**
+	 * Moves a quadrant of an image stack in a corner by mirroring it
+	 */
+	private static void moveCorner(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
+								   ClearCLBuffer temp, ClearCLBuffer extendedKernel, int factorX, int factorY,
+								   int factorZ)
+	{
+		clij2.crop(convolution_kernel, temp, temp.getWidth() * factorX, temp
+				.getHeight() * factorY, temp.getDepth() * factorZ);
+		clij2.paste(temp, extendedKernel, (extendedKernel.getWidth() - temp
+				.getWidth()) * (1.0 - factorX), (extendedKernel.getHeight() - temp
+				.getHeight()) * (1.0 - factorY), (extendedKernel.getDepth() - temp
+				.getDepth()) * (1.0 - factorZ));
+	}
+
 }
