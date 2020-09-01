@@ -64,8 +64,10 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			clij2.copy(convolution_kernel, convolution_kernel_float);
 		}
 
-		RandomAccessibleInterval imgF = clij2.pullRAI(input);
+		RandomAccessibleInterval imgF = clij2.pullRAI(input_float);
 		RandomAccessibleInterval psfF = clij2.pullRAI(convolution_kernel_float);
+
+		convolution_kernel_float.close();
 
 		// compute extended dimensions based on image and PSF dimensions
 		long[] extendedSize = new long[imgF.numDimensions()];
@@ -101,8 +103,13 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		// deconvolve
 		deconvolveFFT(clij2, inputGPU, psfGPU, output,100);
 
+		inputGPU.close();
+		psfGPU.close();
+
 		// crop the result from the extended result
 		clij2.crop(output, destination, -extended.min(0), -extended.min(1), -extended.min(2));
+
+		output.close();
 
 		return true;
 	}
