@@ -118,7 +118,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getParameterHelpText() {
-		return "Image input, Image convolution_kernel, Image destination";
+		return "Image input, Image convolution_kernel, ByRef Image destination";
 	}
 
 	@Override

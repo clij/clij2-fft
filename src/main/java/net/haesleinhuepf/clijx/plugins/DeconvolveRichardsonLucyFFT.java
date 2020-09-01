@@ -185,7 +185,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getParameterHelpText() {
-		return "Image input, Image convolution_kernel, Image destination, Integer num_iterations";
+		return "Image input, Image convolution_kernel, ByRef Image destination, Number num_iterations";
 	}
 
 	@Override
