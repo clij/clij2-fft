@@ -46,7 +46,7 @@ public class OpenCLFFTUtility {
 		ClearCLBuffer gpuInput = clij2.push(img);
 
 		// run FFT
-		ClearCLBuffer fft = runFFT(gpuInput);
+		ClearCLBuffer fft = runFFT(clij2, gpuInput);
 
 		// pull result from GPU
 		RandomAccessibleInterval<FloatType> result =
@@ -78,7 +78,7 @@ public class OpenCLFFTUtility {
 	 *          this big, but may be bigger if the next supported FFT size is
 	 *          bigger)
 	 * @param ops
-	 * @param clij
+	 * @param clij2
 	 * @return
 	 */
 	public static ClearCLBuffer padInputFFTAndPush(
@@ -105,7 +105,7 @@ public class OpenCLFFTUtility {
 	 *          this big, but may be bigger if the next supported FFT size is
 	 *          bigger)
 	 * @param ops
-	 * @param clij
+	 * @param clij2
 	 * @return
 	 */
 	public static ClearCLBuffer padKernelFFTAndPush(
@@ -134,9 +134,7 @@ public class OpenCLFFTUtility {
 	 *          size this can be done by using the padInputAndPush function)
 	 * @return - output FFT as CLBuffer
 	 */
-	public static ClearCLBuffer runFFT(ClearCLBuffer gpuImg) {
-		CLIJ2 clij2 = CLIJ2.getInstance();
-
+	public static ClearCLBuffer runFFT(CLIJ2 clij2, ClearCLBuffer gpuImg) {
 		// compute complex FFT dimension assuming Hermitian interleaved
 		long[] fftDim = new long[] { (gpuImg.getWidth() / 2 + 1) * 2, gpuImg
 			.getHeight() };
