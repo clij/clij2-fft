@@ -63,8 +63,6 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 					.getDimensions(), NativeTypeEnum.Float);
 			clij2.copy(convolution_kernel, convolution_kernel_float);
 		}
-		clij2.show(convolution_kernel, "convolution_kernel");
-
 
 		RandomAccessibleInterval imgF = clij2.pullRAI(input);
 		RandomAccessibleInterval psfF = clij2.pullRAI(convolution_kernel_float);
