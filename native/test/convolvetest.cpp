@@ -74,7 +74,7 @@ int main() {
         convolved[i]=img[i];
     }
 
-    conv(N0, N1, N2, img, psf, convolved);
+    conv3d_32f(N0, N1, N2, img, psf, convolved);
 
     // rescale for visualization
     rescale(img, rescaled, 1., n);
