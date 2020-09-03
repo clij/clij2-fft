@@ -51,6 +51,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 													  ClearCLBuffer convolution_kernel, ClearCLBuffer destination, int num_iterations)
 	{
 
+		
 		ClearCLBuffer input_float = input;
 		if (input_float.getNativeType() != NativeTypeEnum.Float) {
 			input_float = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
@@ -67,15 +68,12 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long start = System.currentTimeMillis();
 		
 		RandomAccessibleInterval imgF = clij2.pullRAI(input_float);
-		RandomAccessibleInterval psfF = clij2.pullRAI(convolution_kernel_float);
-
-		convolution_kernel_float.close();
 
 		// compute extended dimensions based on image and PSF dimensions
 		long[] extendedSize = new long[imgF.numDimensions()];
 
 		for (int d = 0; d < imgF.numDimensions(); d++) {
-			extendedSize[d] = imgF.dimension(d) + psfF.dimension(d);
+			extendedSize[d] = imgF.dimension(d) + convolution_kernel.getDimensions()[d];
 		}
 
 		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
@@ -83,10 +81,6 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		// extend image
 		RandomAccessibleInterval<FloatType> extended = (RandomAccessibleInterval) ops.run(DefaultPadInputFFT.class, imgF, extendedDimensions, false,
 						new OutOfBoundsMirrorFactory(OutOfBoundsMirrorFactory.Boundary.SINGLE));
-
-		// extend psf
-		RandomAccessibleInterval<FloatType> psfExtended = (RandomAccessibleInterval) ops.run(DefaultPadShiftKernelFFT.class, psfF, extendedDimensions, false);
-
 		// show extended image and PSF
 		//clij2.show(Views.zeroMin(extended), "img ext");
 		//clij2.show(Views.zeroMin(psfExtended), "psf ext");
@@ -97,7 +91,6 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 		// push extended image and psf to GPU
 		ClearCLBuffer inputGPU = clij2.push(extended);
-		ClearCLBuffer psfGPU = clij2.push(psfF);
 		
 		long end = System.currentTimeMillis();
 		
@@ -109,14 +102,14 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		start= System.currentTimeMillis();
 		
 		// deconvolve
-		deconvolveFFT(clij2, inputGPU, psfGPU, output, num_iterations);
+		deconvolveFFT(clij2, inputGPU, convolution_kernel_float, output, num_iterations);
 
 		end = System.currentTimeMillis();
 		
 		System.out.println("Deconvolve time "+(end-start));
 
+		convolution_kernel_float.close();
 		inputGPU.close();
-		psfGPU.close();
 
 		// crop the result from the extended result
 		clij2.crop(output, destination, -extended.min(0), -extended.min(1), -extended.min(2));
