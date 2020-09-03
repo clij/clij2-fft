@@ -64,6 +64,8 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			clij2.copy(convolution_kernel, convolution_kernel_float);
 		}
 
+		long start = System.currentTimeMillis();
+		
 		RandomAccessibleInterval imgF = clij2.pullRAI(input_float);
 		RandomAccessibleInterval psfF = clij2.pullRAI(convolution_kernel_float);
 
@@ -96,12 +98,22 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		// push extended image and psf to GPU
 		ClearCLBuffer inputGPU = clij2.push(extended);
 		ClearCLBuffer psfGPU = clij2.push(psfF);
+		
+		long end = System.currentTimeMillis();
+		
+		System.out.println("Extension time "+(end-start));
 
 		// create output
 		ClearCLBuffer output = clij2.create(inputGPU);
 
+		start= System.currentTimeMillis();
+		
 		// deconvolve
 		deconvolveFFT(clij2, inputGPU, psfGPU, output,100);
+
+		end = System.currentTimeMillis();
+		
+		System.out.println("Deconvolve time "+(end-start));
 
 		inputGPU.close();
 		psfGPU.close();
