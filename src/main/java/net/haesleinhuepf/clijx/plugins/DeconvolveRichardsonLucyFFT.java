@@ -23,7 +23,7 @@ import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
 
-import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.pad;
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padShiftFFTKernel;
 
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_deconvolveRichardsonLucyFFT")
 public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
@@ -129,7 +129,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		ClearCLBuffer convolution_kernel_float = convolution_kernel;
 
 		ClearCLBuffer extendedKernel_float = clij2.create(input_float);
-		pad(clij2, convolution_kernel_float, extendedKernel_float);
+		padShiftFFTKernel(clij2, convolution_kernel_float, extendedKernel_float);
 
 		runDecon(clij2, input_float, extendedKernel_float, destination, num_iterations);
 		//System.out.println(clij2.reportMemory());

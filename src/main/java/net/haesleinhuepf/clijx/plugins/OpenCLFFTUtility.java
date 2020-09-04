@@ -173,7 +173,7 @@ public class OpenCLFFTUtility {
 			.dimension(1) });
 	}
 
-	public static ClearCLBuffer pad(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
+	public static ClearCLBuffer padShiftFFTKernel(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
 									ClearCLBuffer extendedKernel)
 	{
 		long psfHalfWidth = convolution_kernel.getWidth() / 2;

@@ -16,7 +16,7 @@ import org.scijava.plugin.Plugin;
 import ij.IJ;
 import ij.ImagePlus;
 
-import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.pad;
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padShiftFFTKernel;
 
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_convolveFFT")
 public class ConvolveFFT extends AbstractCLIJ2Plugin implements
@@ -49,7 +49,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 
 
 		ClearCLBuffer extendedKernel_float = clij2.create(input_float);
-		pad(clij2, convolution_kernel_float, extendedKernel_float);
+		padShiftFFTKernel(clij2, convolution_kernel_float, extendedKernel_float);
 
 		runConvolve(clij2, input_float, extendedKernel_float, destination);
 
