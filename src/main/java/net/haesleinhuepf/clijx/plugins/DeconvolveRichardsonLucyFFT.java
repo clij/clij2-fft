@@ -1,7 +1,10 @@
 
 package net.haesleinhuepf.clijx.plugins;
 
-import ij.IJ;
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.cropExtended;
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padFFTInputMirror;
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padShiftFFTKernel;
+
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij.macro.CLIJMacroPlugin;
@@ -11,19 +14,13 @@ import net.haesleinhuepf.clij2.AbstractCLIJ2Plugin;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clij2.utilities.HasAuthor;
 import net.imagej.ops.OpService;
-import net.imagej.ops.filter.pad.DefaultPadInputFFT;
-import net.imagej.ops.filter.pad.DefaultPadShiftKernelFFT;
-import net.imglib2.FinalDimensions;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.outofbounds.OutOfBoundsMirrorFactory;
-import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.view.Views;
+
 import org.jocl.NativePointerObject;
 import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
 
-import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padShiftFFTKernel;
+import ij.IJ;
 
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_deconvolveRichardsonLucyFFT")
 public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
@@ -48,94 +45,75 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	}
 
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
-													  ClearCLBuffer convolution_kernel, ClearCLBuffer destination, int num_iterations)
+													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations)
 	{
-
-		
 		ClearCLBuffer input_float = input;
+		
+		boolean input_converted=false;
+		
 		if (input_float.getNativeType() != NativeTypeEnum.Float) {
 			input_float = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
 			clij2.copy(input, input_float);
+			input_converted=true;
 		}
 
-		ClearCLBuffer convolution_kernel_float = convolution_kernel;
-		if (convolution_kernel.getNativeType() != NativeTypeEnum.Float) {
-			convolution_kernel_float = clij2.create(convolution_kernel
+		boolean psf_converted=false;
+		ClearCLBuffer psf_float = psf;
+		if (psf.getNativeType() != NativeTypeEnum.Float) {
+			psf_float = clij2.create(psf
 					.getDimensions(), NativeTypeEnum.Float);
-			clij2.copy(convolution_kernel, convolution_kernel_float);
+			clij2.copy(psf, psf_float);
+			psf_converted=true;
 		}
 
+		// normalize PSF so that it's sum is one 
+		ClearCLBuffer psf_normalized = clij2.create(psf_float);
+		
+		OpenCLFFTUtility.normalize(clij2, psf_float, psf_normalized);
+		
 		long start = System.currentTimeMillis();
 		
-		RandomAccessibleInterval imgF = clij2.pullRAI(input_float);
-
-		// compute extended dimensions based on image and PSF dimensions
-		long[] extendedSize = new long[imgF.numDimensions()];
-
-		for (int d = 0; d < imgF.numDimensions(); d++) {
-			extendedSize[d] = imgF.dimension(d) + convolution_kernel.getDimensions()[d];
-		}
-
-		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
-
-		// extend image
-		RandomAccessibleInterval<FloatType> extended = (RandomAccessibleInterval) ops.run(DefaultPadInputFFT.class, imgF, extendedDimensions, false,
-						new OutOfBoundsMirrorFactory(OutOfBoundsMirrorFactory.Boundary.SINGLE));
-		// show extended image and PSF
-		//clij2.show(Views.zeroMin(extended), "img ext");
-		//clij2.show(Views.zeroMin(psfExtended), "psf ext");
-
-		// show image and PSF
-		//clij2.show(imgF, "img ");
-		//clij2.show(psfF, "psf ");
-
-		// push extended image and psf to GPU
-		ClearCLBuffer inputGPU = clij2.push(extended);
-		
-		long end = System.currentTimeMillis();
-		
-		System.out.println("Extension time "+(end-start));
-
-		// create output
-		ClearCLBuffer output = clij2.create(inputGPU);
-
-		start= System.currentTimeMillis();
-		
 		// deconvolve
-		deconvolveFFT(clij2, inputGPU, convolution_kernel_float, output, num_iterations);
+		deconvolveFFT(clij2, input, psf_normalized, deconvolved, num_iterations);
 
-		end = System.currentTimeMillis();
+		long end = System.currentTimeMillis();
 		
 		System.out.println("Deconvolve time "+(end-start));
 
-		convolution_kernel_float.close();
-		inputGPU.close();
-
-		// crop the result from the extended result
-		clij2.crop(output, destination, -extended.min(0), -extended.min(1), -extended.min(2));
-
-		output.close();
+		if (input_converted) {
+			input_float.close();
+		}
+		
+		if (psf_converted) {
+			psf_float.close();
+		}
+		
+		psf_normalized.close();
 
 		return true;
 	}
 
 
-
 	private static boolean deconvolveFFT(CLIJ2 clij2, ClearCLBuffer input,
-										ClearCLBuffer convolution_kernel, ClearCLBuffer destination, int num_iterations)
+										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations)
 	{
 
-		ClearCLBuffer input_float = input;
-		ClearCLBuffer convolution_kernel_float = convolution_kernel;
+		//ClearCLBuffer input_extended = padFFT(clij2, input, psf);
+		ClearCLBuffer input_extended = padFFTInputMirror(clij2, input, psf, ops);
+		ClearCLBuffer deconvolved_extended = clij2.create(input_extended);
+		ClearCLBuffer psf_extended = clij2.create(input_extended);
+		
+		clij2.copy(input_extended, deconvolved_extended);
+		
+		padShiftFFTKernel(clij2, psf, psf_extended);
+		
+		runDecon(clij2, input_extended, psf_extended, deconvolved_extended, 100);
 
-		ClearCLBuffer extendedKernel_float = clij2.create(input_float);
-		padShiftFFTKernel(clij2, convolution_kernel_float, extendedKernel_float);
-
-		runDecon(clij2, input_float, extendedKernel_float, destination, num_iterations);
-		//System.out.println(clij2.reportMemory());
-		//clij2.show(destination, "Destination");
-
-		clij2.release(extendedKernel_float);
+		cropExtended(clij2, deconvolved_extended, output);
+		
+		clij2.release(psf_extended);
+		clij2.release(input_extended);
+		clij2.release(deconvolved_extended);
 
 		return true;
 	}
@@ -153,11 +131,9 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	public static ClearCLBuffer runDecon(CLIJ2 clij2, ClearCLBuffer gpuImg,
 										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations)
 	{
-		long start = System.currentTimeMillis();
 
 		// copy the image to use as the initial value
 		ClearCLBuffer gpuEstimate = output;
-		clij2.copy(gpuImg, gpuEstimate);
 
 		// Get the CL Buffers, context, queue and device as long native pointers
 		long longPointerImg = ((NativePointerObject) (gpuImg.getPeerPointer()
@@ -178,10 +154,6 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
 				l_device);
-
-		long finish = System.currentTimeMillis();
-
-		System.out.println("OpenCL Decon time " + (finish - start));
 
 		return gpuEstimate;
 	}
@@ -209,7 +181,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getAuthorName() {
-		return "Brian Northon, Robert Haase";
+		return "Brian Northan, Robert Haase";
 	}
 
 }
