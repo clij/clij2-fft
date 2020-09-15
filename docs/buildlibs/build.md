@@ -2,6 +2,8 @@
 
 ## Build and install native libraries
 
+The c++ library 'clij2fft' implements several FFT based algorithms built on clFFT.  This library is indepentent of java. 
+
 ### Windows
 
 #### Pre-requisites
@@ -9,7 +11,7 @@
 [Visual Studio Community 2019 c++ compiler](https://visualstudio.microsoft.com/vs/community/)    
 [Git for Windows with Bash Terminal](https://gitforwindows.org/)  
 
-### Build Instruction
+#### Build Instructions 
 
 1.  From Start menu run 'x64 Native Tools Command Prompt for VS 2019'
 2.  From the Command Prompt start a bash shell “C:\Program Files\Git\bin\sh.exe”  
@@ -18,18 +20,20 @@
 
 ### Linux
 
-#### Pre-requisites  
+#### Linux Pre-requisites  
 
 [gcc](https://gcc.gnu.org/)
 
-### Build Instructions
+#### Linux Build Instructions
 
 2.  Run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
 3.  If step 3 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correction location.  
 
 ## Build Java Wrapper and Plugin
 
-Simply run 'mvn' from the command line or GUI.   The maven build is set up to build native wrappers using [javacpp](https://github.com/bytedeco/javacpp) and pack the wrapper in the jar. 
+1.  A 64 bit c++ compiler is needed to create the wrapper.  In windows from Start menu run ‘x64 Native Tools Command Prompt for VS 2019'.  In Linux/MacOsx make sure a 64 bit c++ compiler (ie gcc) is installed. 
+
+2. Simply run 'mvn' from the command line or GUI.   The maven build is set up to build native wrappers using [javacpp](https://github.com/bytedeco/javacpp) and pack the wrapper in the jar. 
 
 ## Build Plugin Only and Install in Fiji
 
