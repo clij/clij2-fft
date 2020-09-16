@@ -149,7 +149,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 				.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
-		// call the decon wrapper (100 iterations of RL)
+		// call the decon wrapper (n iterations of RL)
 		clij2fftWrapper.deconv3d_32f_lp(num_iterations, gpuImg.getDimensions()[0], gpuImg
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
