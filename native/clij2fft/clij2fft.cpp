@@ -1,5 +1,11 @@
 #include <stdio.h>
-#include "CL/cl.h"
+// #include "CL/cl.h"
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl.h>
+#endif
+
 #include "clFFT.h"
 #include <math.h>
 #include "clij2fft.h"
