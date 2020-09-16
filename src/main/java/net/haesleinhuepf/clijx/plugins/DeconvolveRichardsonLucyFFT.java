@@ -107,7 +107,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		padShiftFFTKernel(clij2, psf, psf_extended);
 		
-		runDecon(clij2, input_extended, psf_extended, deconvolved_extended, 100);
+		runDecon(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations);
 
 		cropExtended(clij2, deconvolved_extended, output);
 		
