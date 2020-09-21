@@ -1,8 +1,7 @@
-#@ OpService ops
-#@ UIService ui
-#@ Dataset data
-#@ Dataset psf
-
+#@OpService ops
+#@UIService ui
+#@Dataset img
+#@Dataset psf
 
 from java.lang import System
 
@@ -21,23 +20,22 @@ clij2.clear();
 
 print "Using GPU: " + clij2.getGPUName();
 
+imgF=ops.convert().float32(img);
+psfF=ops.convert().float32(psf);
+
 # transfer image to the GPU
-gpuImg = clij2.push(data);
-gpuPSF = clij2.push(psf);
+gpuImg = clij2.push(imgF);
+gpuPSF = clij2.push(psfF);
 
 # measure start time
 start = System.currentTimeMillis();
-
-# normalize PSF
-gpuPSF_normalized = clij2.create(gpuPSF);
-Normalize.normalize(clij2, gpuPSF, gpuPSF_normalized);
 
 # create memory for the output image first
 gpuEstimate = clij2.create(gpuImg.getDimensions(), clij2.Float);
 
 # submit deconvolution task
-num_iterations = 10;
-DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImg, gpuPSF_normalized, gpuEstimate, num_iterations);
+num_iterations = 100;
+DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImg, gpuPSF, gpuEstimate, num_iterations);
 
 # measure end time
 finish = System.currentTimeMillis();
