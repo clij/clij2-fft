@@ -74,7 +74,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long start = System.currentTimeMillis();
 		
 		// deconvolve
-		deconvolveFFT(clij2, input, psf_normalized, deconvolved, num_iterations);
+		deconvolveFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations);
 
 		long end = System.currentTimeMillis();
 		
