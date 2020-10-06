@@ -41,27 +41,21 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		}
 
 		// load data
-		//Dataset testData = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
-		//Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
-		Dataset testData = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
-		Dataset psf = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
+		Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
+		
+		//Dataset img = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
+		//Dataset psf = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
 
-		//Dataset testData = (Dataset) ij.io().open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images/Bars-G10-P15-stack-cropped.tif");
+		//Dataset img = (Dataset) ij.io().open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images/Bars-G10-P15-stack-cropped.tif");
 		//Dataset psf = (Dataset) ij.io().open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images/PSF-Bars-stack-cropped-64.tif");
 		
-		//Dataset testData = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
+		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
 		//Dataset psf = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3-cropped.tif");
+			// show image and PSF
 		
-		// convert input data to float
-		RandomAccessibleInterval<FloatType> imgF = (RandomAccessibleInterval) (ij
-			.op().convert().float32((Img) testData.getImgPlus().getImg()));
-		
-		RandomAccessibleInterval<FloatType> psfF = (RandomAccessibleInterval) (ij
-			.op().convert().float32((Img) psf.getImgPlus()));
-
-		// show image and PSF
-		clij2.show(imgF, "img ");
-		clij2.show(psfF, "psf ");
+		clij2.show(img, "img ");
+		clij2.show(psf, "psf ");
 
 		// crop PSF - the image will be extended using PSF size
 		// if the PSF size is too large it will explode image size, memory needed and processing speed
@@ -70,8 +64,9 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		//			new long[] { 64, 64, 41 }, ij.op());
 		// ij.ui().show(Views.zeroMin(psfF));
 		
-		ClearCLBuffer gpu_psf = clij2.push(psfF);
-		ClearCLBuffer gpu_image = clij2.push(imgF);
+		ClearCLBuffer gpu_psf = clij2.push(psf);
+		ClearCLBuffer gpu_image = clij2.push(img);
+		
 		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image);
 
 		// deconvolve the image

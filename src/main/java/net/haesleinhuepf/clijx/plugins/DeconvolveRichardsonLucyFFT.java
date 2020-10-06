@@ -74,7 +74,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long start = System.currentTimeMillis();
 		
 		// deconvolve
-		deconvolveFFT(clij2, input, psf_normalized, deconvolved, num_iterations);
+		deconvolveFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations);
 
 		long end = System.currentTimeMillis();
 		
@@ -107,7 +107,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		padShiftFFTKernel(clij2, psf, psf_extended);
 		
-		runDecon(clij2, input_extended, psf_extended, deconvolved_extended, 100);
+		runDecon(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations);
 
 		cropExtended(clij2, deconvolved_extended, output);
 		
@@ -149,7 +149,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 				.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
-		// call the decon wrapper (100 iterations of RL)
+		// call the decon wrapper (n iterations of RL)
 		clij2fftWrapper.deconv3d_32f_lp(num_iterations, gpuImg.getDimensions()[0], gpuImg
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
