@@ -57,7 +57,7 @@ public class InteractiveFFTFilter {
 		int N0=(int)gpu_img.getDimensions()[0];
 		int N1=(int)gpu_img.getDimensions()[1];
 		
-		// FFT size of real signal
+		// Complex FFT size of real input signal
 		int M0=N0/2+1;
 		int M1=N1;
 		
@@ -90,10 +90,12 @@ public class InteractiveFFTFilter {
 		
 		clij2.show(FFT, "FFT");
 
-		// apply a filter to the image
-		// Please note -- proper filter design will require proper handling of complex numbers and FFT symmetry
-		// this example is just to show a manipulation, but a useful filter requires more thought
-	  clij2.drawBox(filter, 0, 0, N0/2, N1/2);	
+		// apply a naive box filter to the image
+		// consider FFT is complex with N0/2+1 coefficients in X, and N1 in Y
+	  clij2.drawBox(filter, 0, 0, N0/8, N1/16);	
+	  clij2.drawBox(filter, 0, 15*N1/16, N0/8, N1/16);	
+	  
+	  clij2.show(filter, "filter");
 		clij2.multiplyImages(FFT, filter, FFT2);
 		
 		clij2fftWrapper.fft2dinv_32f_lp(N0, N1, longPointerFFT2, longPointerOut, l_context, l_queue);
