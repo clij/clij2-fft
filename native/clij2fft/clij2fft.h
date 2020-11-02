@@ -17,6 +17,7 @@ extern "C" {
   int fft2d_32f(size_t N1, size_t N2, float *h_image, float * h_out);
   int fft2d_32f_lp(long N1, long N2, long h_image, long h_out, long l_context, long l_queue);
   int fftinv2d_32f(size_t N1, size_t N2, float *h_fft, float * h_out);
+  int fft2dinv_32f_lp(long N1, long N2, long h_fft, long h_out, long l_context, long l_queue);
 }
 #endif
 

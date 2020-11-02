@@ -371,7 +371,6 @@ int fft2d_32f_lp(long N0, long N1, long d_image, long d_out, long l_context, lon
    return 0; 
 }
 
-
 int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
  
   cl_platform_id platformId = NULL;
@@ -430,7 +429,7 @@ int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
   return 0; 
 }
 
-int fftinv2d_long(long N0, long N1, long d_fft, long d_out, long l_context, long l_queue) {
+int fft2dinv_32f_lp(long N0, long N1, long d_fft, long d_out, long l_context, long l_queue) {
   printf("input address %ld", d_fft);
   printf("input address %lu", (unsigned long)d_fft);
  
@@ -514,7 +513,7 @@ int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
   cl_mem out = clCreateBuffer(context, CL_MEM_READ_WRITE, N0*N1*sizeof(float), NULL, &ret);
   printf("\ncreate img on GPU %d\n", ret);
 
-  fftinv2d_long(N0, N1, (long)d_FFT, (long)out, (long)context, (long)commandQueue);
+  fft2dinv_32f_lp(N0, N1, (long)d_FFT, (long)out, (long)context, (long)commandQueue);
   
   // transfer from device back to GPU
   ret = clEnqueueReadBuffer( commandQueue, out, CL_TRUE, 0, N0*N1*sizeof(float), h_out, 0, NULL, NULL );
