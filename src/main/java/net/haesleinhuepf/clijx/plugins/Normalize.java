@@ -12,6 +12,8 @@ import net.haesleinhuepf.clij.macro.documentation.OffersDocumentation;
 import net.haesleinhuepf.clij2.AbstractCLIJ2Plugin;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clij2.utilities.HasAuthor;
+import net.haesleinhuepf.clij2.utilities.HasClassifiedInputOutput;
+import net.haesleinhuepf.clij2.utilities.IsCategorized;
 import net.imagej.ops.OpService;
 import net.imagej.ops.filter.fftSize.NextPowerOfTwo;
 import org.jocl.NativePointerObject;
@@ -21,7 +23,7 @@ import org.scijava.plugin.Plugin;
 
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_normalize")
 public class Normalize extends AbstractCLIJ2Plugin implements
-	CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor
+	CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassifiedInputOutput, IsCategorized
 {
 	@Override
 	public boolean executeCL() {
@@ -69,5 +71,20 @@ public class Normalize extends AbstractCLIJ2Plugin implements
 	@Override
 	public String getAuthorName() {
 		return "Robert Haase";
+	}
+
+	@Override
+	public String getInputType() {
+		return "Image";
+	}
+
+	@Override
+	public String getOutputType() {
+		return "Image";
+	}
+
+	@Override
+	public String getCategories() {
+		return "Filter";
 	}
 }
