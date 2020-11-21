@@ -74,7 +74,7 @@ int main() {
         decon[i]=img[i];
     }
 
-    deconv(50, N0, N1, N2, img, psf, decon, NULL);
+    deconv3d_32f(50, N0, N1, N2, img, psf, decon, NULL);
 
     // rescale for visualization
     rescale(img, rescaled, 1., n);

@@ -47,7 +47,7 @@ int main() {
 
     unsigned int size[3];
 
-    float * data = read3DTiff("../../../images/bridge32f.tif", size);
+    float * data = read3DTiff("/home/bnorthan/code/images/bridge32f.tif", size);
 
     if (data==NULL) {
         cout<<"File not found\n"<<flush;

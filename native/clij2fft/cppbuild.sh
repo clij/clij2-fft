@@ -21,7 +21,14 @@ case $PLATFORM in
         make install
         ;;
     macosx-*)
-        echo "TODO"
+        # the following line might not be necessary if make would be properly installed in the path
+        CMAKE=/Applications/CMake.app/Contents/bin/cmake
+        
+        $CMAKE -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX="../../../lib/macosx/" \
+               -DCMAKE_CXX_COMPILER="g++" \
+               -DCMAKE_CUDA_HOST_COMPILER="g++" \
+		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clfft-2.12.2-h83d4a3d_1/lib" ..
         ;;
     windows-x86_64)
         $CMAKE -G"NMake Makefiles" \

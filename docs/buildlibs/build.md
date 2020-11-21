@@ -24,9 +24,9 @@ The c++ library 'clij2fft' implements several FFT based algorithms built on clFF
 
 [gcc](https://gcc.gnu.org/)
 
-#### Linux Build Instructions
+#### Linux/MacOSX Build Instructions
 
-2.  Run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
+2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
 3.  If step 3 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correction location.  
 
 ## Build Java Wrapper and Plugin
