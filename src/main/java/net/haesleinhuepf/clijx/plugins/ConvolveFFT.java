@@ -1,6 +1,8 @@
 
 package net.haesleinhuepf.clijx.plugins;
 
+import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padShiftFFTKernel;
+
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij.macro.CLIJMacroPlugin;
@@ -9,16 +11,11 @@ import net.haesleinhuepf.clij.macro.documentation.OffersDocumentation;
 import net.haesleinhuepf.clij2.AbstractCLIJ2Plugin;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clij2.utilities.HasAuthor;
-
 import net.haesleinhuepf.clij2.utilities.HasClassifiedInputOutput;
 import net.haesleinhuepf.clij2.utilities.IsCategorized;
+
 import org.jocl.NativePointerObject;
 import org.scijava.plugin.Plugin;
-
-import ij.IJ;
-import ij.ImagePlus;
-
-import static net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility.padShiftFFTKernel;
 
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_convolveFFT")
 public class ConvolveFFT extends AbstractCLIJ2Plugin implements
