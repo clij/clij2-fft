@@ -45,7 +45,18 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]));
 		return result;
 	}
-
+ 
+	/**
+	 * Convert images to float (if not already float), normalize PSF and call Richardson Lucy 
+	 * 
+	 * @param clij2
+	 * @param input
+	 * @param psf
+	 * @param deconvolved
+	 * @param num_iterations
+	 * 
+	 * @return true if successful
+	 */
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations)
 	{
@@ -76,7 +87,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long start = System.currentTimeMillis();
 		
 		// deconvolve
-		deconvolveFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations);
+		extendAndDeconvolveRichardsonLucyFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations);
 
 		long end = System.currentTimeMillis();
 		
@@ -95,8 +106,20 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		return true;
 	}
 
-
-	private static boolean deconvolveFFT(CLIJ2 clij2, ClearCLBuffer input,
+  /**
+   * Extend image and PSF to next supported FFT size and call Richardson Lucy
+   * 
+   * @param clij2
+   * @param input
+   * @param psf
+   * @param output
+   * @param num_iterations
+   * 
+   * @return true if successful
+   * 
+   * TODO error handling
+   */
+	private static boolean extendAndDeconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations)
 	{
 
@@ -109,7 +132,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		padShiftFFTKernel(clij2, psf, psf_extended);
 		
-		runDecon(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations);
+		runRichardsonLucyGPU(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations);
 
 		cropExtended(clij2, deconvolved_extended, output);
 		
@@ -123,14 +146,17 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	/**
 	 * run Richardson Lucy deconvolution
-	 *
-	 * @param gpuImg - need to prepad to supported FFT size (see
-	 *          padInputFFTAndPush)
-	 * @param gpuPSF - need to prepad to supported FFT size (see
-	 *          padKernelFFTAndPush)
-	 * @return
+	 * 
+	 * @param clij2
+	 * @param gpuImg
+	 * @param gpuPSF
+	 * @param output
+	 * @param num_iterations
+	 * 
+	 * @return Deconvolved CLBuffer
+	 * TODO proper error handling
 	 */
-	public static ClearCLBuffer runDecon(CLIJ2 clij2, ClearCLBuffer gpuImg,
+	public static boolean runRichardsonLucyGPU(CLIJ2 clij2, ClearCLBuffer gpuImg,
 										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations)
 	{
 
@@ -157,7 +183,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
 				l_device);
 
-		return gpuEstimate;
+		return true;
 	}
 
 	@Override
