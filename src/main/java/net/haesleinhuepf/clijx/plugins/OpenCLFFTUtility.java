@@ -72,62 +72,7 @@ public class OpenCLFFTUtility {
 
 		return resultComplex;
 	}
-
-	/**
-	 * @param in - RAI to pad
-	 * @param paddedDimensions - dimensions to pad to (dimensions will be at least
-	 *          this big, but may be bigger if the next supported FFT size is
-	 *          bigger)
-	 * @param ops
-	 * @param clij2
-	 * @return
-	 */
-	public static ClearCLBuffer padInputFFTAndPush(
-		RandomAccessibleInterval<FloatType> in, Dimensions paddedDimensions,
-		OpService ops, CLIJ2 clij2)
-	{
-		System.out.println(in.dimension(0) + " " + in.dimension(1) + " " + in
-			.dimension(2));
-
-		RandomAccessibleInterval<FloatType> extended =
-			(RandomAccessibleInterval<FloatType>) ops.run(DefaultPadInputFFT.class,
-				in, paddedDimensions, false);
-
-		System.out.println(extended.dimension(0) + " " + extended.dimension(1) +
-			" " + extended.dimension(2));
-
-		return clij2.push(extended);
-
-	}
-
-	/**
-	 * @param psf
-	 * @param paddedDimensions - dimensions to pad to (dimensions will be at least
-	 *          this big, but may be bigger if the next supported FFT size is
-	 *          bigger)
-	 * @param ops
-	 * @param clij2
-	 * @return
-	 */
-	public static ClearCLBuffer padKernelFFTAndPush(
-		RandomAccessibleInterval<FloatType> psf, Dimensions paddedDimensions,
-		OpService ops, CLIJ2 clij2)
-	{
-
-		// extend and shift the PSF
-		RandomAccessibleInterval<FloatType> extendedPSF = Views.zeroMin(ops.filter()
-			.padShiftFFTKernel(psf, paddedDimensions));
-
-		System.out.println("Extended PSF " + extendedPSF.dimension(0) + " " +
-			extendedPSF.dimension(1) + " " + extendedPSF.dimension(2));
-
-		long start = System.currentTimeMillis();
-
-		// transfer PSF to the GPU and return
-		return clij2.push(extendedPSF);
-
-	}
-
+	
 	/**
 	 * Run FFT on a CLBuffer
 	 * 
@@ -159,7 +104,6 @@ public class OpenCLFFTUtility {
 
 		return gpuFFT;
 	}
-
 
 	static Img<ComplexFloatType> copyAsComplex(
 		RandomAccessibleInterval<FloatType> in)
@@ -209,39 +153,6 @@ public class OpenCLFFTUtility {
 		return  clij2.push(extended);
 		
 	}
-	
-	/**
-	 * Pad a GPU image to the next supported FFT size using zero padding
-	 * @param clij2
-	 * @param input
-	 * @param psf
-	 * @return
-	 */
-	public static ClearCLBuffer padFFTInputZeros(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer psf)
-	{
-		
-		// calculate the next supported FFT size
-		int[] paddedForFFTSize = new int[3];
-		
-		for (int i = 0; i < 3; i++) {
-			long temp = input.getDimensions()[i]+psf.getDimensions()[i];
-			paddedForFFTSize[i] = NextSmoothNumber.nextSmooth((int)temp);
-		}
-		
-		ClearCLBuffer padded = clij2.create(paddedForFFTSize[0], paddedForFFTSize[1], paddedForFFTSize[2]);
-		
-		int startX = (paddedForFFTSize[0]-(int)input.getDimensions()[0])/2;
-		int startY = (paddedForFFTSize[1]-(int)input.getDimensions()[1])/2;
-		int startZ = (paddedForFFTSize[2]-(int)input.getDimensions()[2])/2;
-	
-		double average = clij2.getMeanOfAllPixels(input);
-		
-		clij2.set(padded, 1.);
-		clij2.paste(input, padded, startX, startY, startZ);
-		
-		return padded;
-	}
-	
 
 	/**
 	 * crop an image that has been extended for FFT back to original size
