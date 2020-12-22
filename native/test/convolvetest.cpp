@@ -51,8 +51,8 @@ int main() {
     // 1.  PSF and image extended to supported OpenCL FFT size
     // 2.  PSF and image saved as 32 bit float.
     // 3.  PSF center translated to 0,0,0.  
-    float * img = read3DTiff("../../../images/barsext32f.tif", size);
-    float * psf = read3DTiff("../../../images/barspsfext32f.tif", size);
+    float * img = read3DTiff("/home/bnorthan/code/images/barsext32f.tif", size);
+    float * psf = read3DTiff("/home/bnorthan/code/images/barspsfext32f.tif", size);
 
     if (img==NULL) {
         cout<<"File not found\n"<<flush;
