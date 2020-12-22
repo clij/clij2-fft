@@ -52,7 +52,13 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), regularizationFactor);
 		return result;
 	}
- 
+ 	
+	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
+							ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations) 
+	{
+		return deconvolveRichardsonLucyFFT(clij2, input, psf, deconvolved, num_iterations, 0.0f); 
+	}
+	
 	/**
 	 * Convert images to float (if not already float), normalize PSF and call Richardson Lucy 
 	 * 
