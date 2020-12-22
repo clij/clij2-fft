@@ -41,8 +41,15 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public boolean executeCL() {
+		
+		float regularizationFactor = 0.0f;
+		
+		if (args.length==5) {
+			regularizationFactor = (float)args[5];
+		}
+		
 		boolean result = deconvolveRichardsonLucyFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
-			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), 0.0f);
+			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), regularizationFactor);
 		return result;
 	}
  
