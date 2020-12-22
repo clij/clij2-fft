@@ -4,6 +4,7 @@ package net.haesleinhuepf.clijx.tests;
 import java.io.IOException;
 
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
+import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.haesleinhuepf.clijx.plugins.Normalize;
@@ -11,6 +12,7 @@ import net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.ChannelARGBConverter.Channel;
 import net.imglib2.img.Img;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -67,14 +69,18 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		ClearCLBuffer gpu_psf = clij2.push(psf);
 		ClearCLBuffer gpu_image = clij2.push(img);
 		
-		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image);
+		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
+		ClearCLBuffer gpu_deconvolved_tv = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 
 		// deconvolve the image
-		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100);
+		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f);
+		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.002f);
 
 		RandomAccessibleInterval deconvolvedRAI = clij2.pullRAI(gpu_deconvolved);
+		RandomAccessibleInterval deconvolvedRAI_tv = clij2.pullRAI(gpu_deconvolved_tv);
 
 		clij2.show(deconvolvedRAI, "deconvolved");
+		clij2.show(deconvolvedRAI_tv, "deconvolved tv");
 		//ij.ui().show("deconvolved", deconvolvedRAI);
 
 	}

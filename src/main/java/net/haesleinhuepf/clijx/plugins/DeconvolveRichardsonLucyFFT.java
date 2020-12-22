@@ -42,7 +42,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	@Override
 	public boolean executeCL() {
 		boolean result = deconvolveRichardsonLucyFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
-			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]));
+			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), 0.0f);
 		return result;
 	}
  
@@ -58,7 +58,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	 * @return true if successful
 	 */
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
-													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations)
+													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, float regularizationFactor)
 	{
 		ClearCLBuffer input_float = input;
 		
@@ -87,7 +87,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long start = System.currentTimeMillis();
 		
 		// deconvolve
-		extendAndDeconvolveRichardsonLucyFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations);
+		extendAndDeconvolveRichardsonLucyFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations, regularizationFactor);
 
 		long end = System.currentTimeMillis();
 		
@@ -120,7 +120,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
    * TODO error handling
    */
 	private static boolean extendAndDeconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
-										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations)
+										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations, float regularizationFactor)
 	{
 
 		//ClearCLBuffer input_extended = padFFT(clij2, input, psf);
@@ -132,7 +132,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		padShiftFFTKernel(clij2, psf, psf_extended);
 		
-		runRichardsonLucyGPU(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations);
+		runRichardsonLucyGPU(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations, regularizationFactor);
 
 		cropExtended(clij2, deconvolved_extended, output);
 		
@@ -157,7 +157,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	 * TODO proper error handling
 	 */
 	public static boolean runRichardsonLucyGPU(CLIJ2 clij2, ClearCLBuffer gpuImg,
-										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations)
+										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations, float regularizationFactor)
 	{
 
 		// copy the image to use as the initial value
@@ -178,7 +178,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 				.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
 		// call the decon wrapper (n iterations of RL)
-		clij2fftWrapper.deconv3d_32f_lp(num_iterations, gpuImg.getDimensions()[0], gpuImg
+		clij2fftWrapper.deconv3d_32f_lp_tv(num_iterations, regularizationFactor, gpuImg.getDimensions()[0], gpuImg
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
 				l_device);
