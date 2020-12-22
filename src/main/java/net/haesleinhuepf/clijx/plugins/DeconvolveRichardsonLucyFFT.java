@@ -45,7 +45,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		float regularizationFactor = 0.0f;
 		
 		if (args.length==5) {
-			regularizationFactor = (float)args[5];
+			regularizationFactor = (float)args[4];
 		}
 		
 		boolean result = deconvolveRichardsonLucyFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
