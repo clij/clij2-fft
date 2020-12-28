@@ -1,4 +1,13 @@
 #include <stdio.h>
+
+#ifdef _WIN64
+#include <direct.h>
+#define GetCurrentDir _getcwd
+#else
+#include <unistd.h>
+#define GetCurrentDir getcwd
+#endif
+
 // #include "CL/cl.h"
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
@@ -132,11 +141,11 @@ size_t getFileSize(const char * fileName) {
  * getFileSize first 
  * */
 int getProgramFromFile(const char* fileName, char * program_str, size_t program_size) {
-  printf("get program from fiel %s\n",fileName);
+  printf("get program from file %s\n",fileName);
 
   FILE *fp;
 
-  fp = fopen("/home/bnorthan/code/imagej/clij2-fft/native/clij2fft/totalvariationterm.cl", "r");
+  fp = fopen(fileName, "r");
   if (!fp) {
       printf("Failed to load kernel\n");
       return -1;
@@ -1117,4 +1126,28 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   clReleaseContext( context );
   
   return ret;
+}
+
+int diagnostic() {
+
+  std::cout<<"FFT Test\n"<<std::flush;
+
+  char buff[FILENAME_MAX];
+  GetCurrentDir( buff, FILENAME_MAX );
+  std::cout<<"Current working dir: "<<buff<<"\n"<<std::flush;
+
+  std::cout<<"diagnostic\n"<<std::flush;
+
+  const char * fileName = "./totalvariationterm.cl";
+  
+  size_t sizer=getFileSize(fileName);
+  
+  std::cout<<"size is "<<sizer<<"\n";
+
+  char * program_str = (char*)malloc(sizer);
+
+  getProgramFromFile(fileName, program_str, sizer);
+
+  std::cout<<program_str<<"\n"<<std::flush;
+ 
 }

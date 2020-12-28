@@ -44,6 +44,8 @@ public class clij2fftWrapper {
 	public static native int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, 
 		long N0, long N1, long N2, long d_image, long d_psf, long d_update, long d_normal,
 		long l_context, long l_queuee, long l_device);
+	
+	public static native int diagnostic();
 
 
 	public static void load() {

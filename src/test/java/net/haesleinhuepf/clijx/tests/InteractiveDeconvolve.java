@@ -9,6 +9,7 @@ import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.haesleinhuepf.clijx.plugins.Normalize;
 import net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility;
+import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
@@ -28,6 +29,9 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 	{
 		// check the library path, can be useful for debugging
 		System.out.println(System.getProperty("java.library.path"));
+		
+		clij2fftWrapper.diagnostic();
+		
 
 		// launch IJ so we can interact with the inputs and outputs
 		ij.launch(args);
