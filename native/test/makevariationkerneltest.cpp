@@ -16,6 +16,11 @@
 
 #include "../clij2fft/clij2fft.h"
 
+size_t getFileSize(const char* fileName);
+int getProgramFromFile(const char* fileName, char * programString, size_t programLength);
+cl_program makeProgram(cl_context context, cl_device_id deviceID, char * programString);
+
+
 using namespace std;
 
 /**
