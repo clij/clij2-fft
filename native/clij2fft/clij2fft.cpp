@@ -122,7 +122,7 @@ size_t getFileSize(const char * fileName) {
     char *source_str;
     size_t source_size, program_size;
 
-    fp = fopen("/home/bnorthan/code/imagej/clij2-fft/native/clij2fft/totalvariationterm.cl", "r");
+    fp = fopen(fileName, "r");
     if (!fp) {
         printf("Failed to load kernel\n");
         return -1;
@@ -958,7 +958,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   cl_kernel kernelTV;
 
   if (tv==true) {
-    const char * fileName = "/home/bnorthan/code/imagej/clij2-fft/native/clij2fft/totalvariationterm.cl";
+    const char * fileName = "./totalvariationterm.cl";
     size_t sizer=getFileSize(fileName);
     std::cout<<"size is "<<sizer<<"\n";
 
@@ -1064,7 +1064,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
 int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
 
-  deconv3d_32f_tv(iterations, 0.0, N0, N1,N2, h_image, h_psf, h_out, normal);
+  return deconv3d_32f_tv(iterations, 0.0, N0, N1,N2, h_image, h_psf, h_out, normal);
 
 }
 
@@ -1130,7 +1130,6 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
 
 int diagnostic() {
 
-  std::cout<<"FFT Test\n"<<std::flush;
 
   char buff[FILENAME_MAX];
   GetCurrentDir( buff, FILENAME_MAX );
@@ -1142,12 +1141,14 @@ int diagnostic() {
   
   size_t sizer=getFileSize(fileName);
   
-  std::cout<<"size is "<<sizer<<"\n";
+  std::cout<<"size is "<<sizer<<"\n"<<std::flush;
 
   char * program_str = (char*)malloc(sizer);
 
   getProgramFromFile(fileName, program_str, sizer);
 
   std::cout<<program_str<<"\n"<<std::flush;
+
+  return 0;
  
 }
