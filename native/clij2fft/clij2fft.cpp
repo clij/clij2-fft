@@ -958,7 +958,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   cl_kernel kernelTV;
 
   if (tv==true) {
-    const char * fileName = "./totalvariationterm.cl";
+    const char * fileName = "./lib/totalvariationterm.cl";
     size_t sizer=getFileSize(fileName);
     std::cout<<"size is "<<sizer<<"\n";
 
@@ -1137,7 +1137,7 @@ int diagnostic() {
 
   std::cout<<"diagnostic\n"<<std::flush;
 
-  const char * fileName = "./totalvariationterm.cl";
+  const char * fileName = "./lib/totalvariationterm.cl";
   
   size_t sizer=getFileSize(fileName);
   
