@@ -45,7 +45,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		float regularizationFactor = 0.0f;
 		
 		if (args.length==5) {
-			regularizationFactor = (float)args[4];
+			regularizationFactor = ((Double)(args[4])).floatValue();
 		}
 		
 		boolean result = deconvolveRichardsonLucyFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
@@ -207,7 +207,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getParameterHelpText() {
-		return "Image input, Image convolution_kernel, ByRef Image destination, Number num_iterations";
+		return "Image input, Image convolution_kernel, ByRef Image destination, Number num_iterations, Number Regularization_Factor";
 	}
 
 	@Override
