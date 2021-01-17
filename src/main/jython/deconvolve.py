@@ -35,7 +35,7 @@ gpuEstimate = clij2.create(gpuImg.getDimensions(), clij2.Float);
 
 # submit deconvolution task
 num_iterations = 100;
-DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImg, gpuPSF, gpuEstimate, num_iterations);
+DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImg, gpuPSF, gpuEstimate, num_iterations, 0);
 
 # measure end time
 finish = System.currentTimeMillis();
