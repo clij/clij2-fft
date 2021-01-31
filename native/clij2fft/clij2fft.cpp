@@ -534,9 +534,9 @@ clfftPlanHandle bake_3d_backward_32f(long N0, long N1, long N2, cl_context conte
 
 }
 
-int fft2d_32f_lp(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
+int fft2d_32f_lp(long long N0, long long N1, long long d_image, long long d_out, long long l_context, long long l_queue) {
   printf("input address %ld", d_image);
-  printf("input address %lu", (unsigned long)d_image);
+  printf("input address %lu", (unsigned long long)d_image);
  
 	// cast long to context 
 	cl_context context = (cl_context)l_context;
@@ -610,7 +610,7 @@ int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
   cl_mem FFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2*nFreq*sizeof(float), NULL, &ret);
   printf("\ncreate FFT %d\n", ret);
 	 
-  ret = fft2d_32f_lp(N0, N1, (long)aMemObj, (long)FFT, (long)context, (long)commandQueue);
+  ret = fft2d_32f_lp(N0, N1, (long long)aMemObj, (long long)FFT, (long long)context, (long long)commandQueue);
   printf("FFT refactored\n");
   
   // transfer from device back to GPU
@@ -628,14 +628,14 @@ int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
   return 0; 
 }
 
-int fft2dinv_32f_lp(long N0, long N1, long d_fft, long d_out, long l_context, long l_queue) {
+int fft2dinv_32f_lp(long long N0, long long N1, long long d_fft, long long d_out, long long l_context, long long l_queue) {
   printf("input address %ld", d_fft);
-  printf("input address %lu", (unsigned long)d_fft);
+  printf("input address %lu", (unsigned long long)d_fft);
  
-	// cast long to context 
+	// cast long long to context 
 	cl_context context = (cl_context)l_context;
   
-	// cast long to queue 
+	// cast long long to queue 
 	cl_command_queue commandQueue = (cl_command_queue)l_queue;
 
   cl_int ret = setupFFT();
@@ -712,7 +712,7 @@ int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
   cl_mem out = clCreateBuffer(context, CL_MEM_READ_WRITE, N0*N1*sizeof(float), NULL, &ret);
   printf("\ncreate img on GPU %d\n", ret);
 
-  fft2dinv_32f_lp(N0, N1, (long)d_FFT, (long)out, (long)context, (long)commandQueue);
+  fft2dinv_32f_lp(N0, N1, (long long)d_FFT, (long long)out, (long long)context, (long long)commandQueue);
   
   // transfer from device back to GPU
   ret = clEnqueueReadBuffer( commandQueue, out, CL_TRUE, 0, N0*N1*sizeof(float), h_out, 0, NULL, NULL );
@@ -733,24 +733,24 @@ int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
 
 }
 
-int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l_output, bool correlate, long l_context, long l_queue, long l_device) {
+int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long l_psf,  long long l_output, bool correlate, long long l_context, long long l_queue, long long l_device) {
 
   printf("enter convolve");
 
   cl_int ret;
 
-  // most of the inputs are long pointers we'll need to cast them to the right cl types
+  // most of the inputs are long long pointers we'll need to cast them to the right cl types
 
-	// cast long to context 
+	// cast long long to context 
 	cl_context context = (cl_context)l_context;
   
-	// cast long to queue 
+	// cast long long to queue 
 	cl_command_queue commandQueue = (cl_command_queue)l_queue;
 	
-  // and long to deviceID
+  // and long long to deviceID
   cl_device_id deviceID = (cl_device_id)l_device;
   
-  // cast long pointers to cl_mem 
+  // cast long long pointers to cl_mem 
 	cl_mem d_image = (cl_mem)l_image;
 	cl_mem d_psf =  (cl_mem)l_psf;
 	cl_mem d_output = (cl_mem)l_output;
@@ -862,7 +862,7 @@ int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, fl
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   printf("\ncopy to GPU  %d\n", ret);
 
-  conv3d_32f_lp(N0, N1, N2, (long)d_image, (long)d_psf, (long)d_out, 0, (long)context, (long)commandQueue, (long)deviceID);
+  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, 0, (long long)context, (long long)commandQueue, (long long)deviceID);
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -870,13 +870,13 @@ int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, fl
   return 0;
 }
 
-int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_observed, long l_psf, long l_estimate, long l_normal, long l_context, long l_queue, long l_device) {
+int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long long l_observed, long long l_psf, long long l_estimate, long long l_normal, long long l_context, long long l_queue, long long l_device) {
 
   return deconv3d_32f_lp_tv(iterations, 0., N0, N1, N2, l_observed, l_psf, l_estimate, l_normal, l_context, l_queue, l_device);  
 
 }
 
-int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, long l_observed, long l_psf, long l_estimate, long l_normal, long l_context, long l_queue, long l_device) {
+int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, long long l_observed, long long l_psf, long long l_estimate, long long l_normal, long long l_context, long long l_queue, long long l_device) {
 
   cl_int ret;
   
@@ -886,13 +886,13 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
     tv=true;
   }
 	
-  // cast long to context 
+  // cast long long to context 
 	cl_context context = (cl_context)l_context;
   
-	// cast long to queue 
+	// cast long long to queue 
 	cl_command_queue commandQueue = (cl_command_queue)l_queue;
 	
-  // cast long pointers to cl_mem 
+  // cast long long pointers to cl_mem 
 	cl_mem d_observed = (cl_mem)l_observed;
 	cl_mem d_psf =  (cl_mem)l_psf;
 	cl_mem d_estimate = (cl_mem)l_estimate; 
@@ -1110,7 +1110,7 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   unsigned long n = N0*N1*N2;
   unsigned long nFreq=(N0/2+1)*N1*N2;
      
-  printf("Call deconv with long pointers\n\n");
+  printf("Call deconv with long long pointers\n\n");
   deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long)d_observed, (long)d_psf, (long)d_estimate, (long)0, (long)context, (long)commandQueue, (long)deviceID); 
     
   // copy back to host 
