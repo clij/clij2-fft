@@ -16,11 +16,21 @@ import net.haesleinhuepf.clij2.utilities.HasAuthor;
 import net.haesleinhuepf.clij2.utilities.HasClassifiedInputOutput;
 import net.haesleinhuepf.clij2.utilities.IsCategorized;
 import net.imagej.ops.OpService;
+import net.imglib2.Dimensions;
+import net.imglib2.FinalDimensions;
+import net.imglib2.FinalInterval;
+import net.imglib2.Interval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.Img;
+import net.imglib2.loops.LoopBuilder;
 
 import org.jocl.NativePointerObject;
 import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
+
+import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.Views;
 
 import ij.IJ;
 
@@ -48,15 +58,21 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			regularizationFactor = ((Double)(args[4])).floatValue();
 		}
 		
+		boolean nonCirculant = false;
+		
+		if (args.length==6) {
+			nonCirculant = (boolean)((args[5]));
+		}
+		
 		boolean result = deconvolveRichardsonLucyFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
-			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), regularizationFactor);
+			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), regularizationFactor, nonCirculant);
 		return result;
 	}
  	
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 							ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations) 
 	{
-		return deconvolveRichardsonLucyFFT(clij2, input, psf, deconvolved, num_iterations, 0.0f); 
+		return deconvolveRichardsonLucyFFT(clij2, input, psf, deconvolved, num_iterations, 0.0f, false); 
 	}
 	
 	/**
@@ -71,7 +87,8 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	 * @return true if successful
 	 */
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
-													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, float regularizationFactor)
+													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, 
+													  float regularizationFactor, boolean nonCirculant)
 	{
 		ClearCLBuffer input_float = input;
 		
@@ -100,7 +117,8 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long start = System.currentTimeMillis();
 		
 		// deconvolve
-		extendAndDeconvolveRichardsonLucyFFT(clij2, input_float, psf_normalized, deconvolved, num_iterations, regularizationFactor);
+		extendAndDeconvolveRichardsonLucyFFT(clij2, input_float, 
+			psf_normalized, deconvolved, num_iterations, regularizationFactor, nonCirculant);
 
 		long end = System.currentTimeMillis();
 		
@@ -133,7 +151,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
    * TODO error handling
    */
 	private static boolean extendAndDeconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
-										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations, float regularizationFactor)
+										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations, float regularizationFactor, boolean nonCirculant)
 	{
 
 		//ClearCLBuffer input_extended = padFFT(clij2, input, psf);
@@ -145,7 +163,16 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		padShiftFFTKernel(clij2, psf, psf_extended);
 		
-		runRichardsonLucyGPU(clij2, input_extended, psf_extended, deconvolved_extended, num_iterations, regularizationFactor);
+		long[] extendedDims = input_extended.getDimensions();
+		long[] originalDims = input.getDimensions();
+	
+		ClearCLBuffer normalization_factor=null;
+		
+		if (nonCirculant) {
+			normalization_factor = createNormalizationFactor(clij2, new FinalDimensions(extendedDims[0],extendedDims[1],extendedDims[2]),  
+				new FinalDimensions(originalDims[0],originalDims[1],originalDims[2]), psf_extended);
+		}
+		runRichardsonLucyGPU(clij2, input_extended, psf_extended, deconvolved_extended, normalization_factor, num_iterations, regularizationFactor);
 
 		cropExtended(clij2, deconvolved_extended, output);
 		
@@ -170,7 +197,8 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	 * TODO proper error handling
 	 */
 	public static boolean runRichardsonLucyGPU(CLIJ2 clij2, ClearCLBuffer gpuImg,
-										 ClearCLBuffer gpuPSF, ClearCLBuffer output, int num_iterations, float regularizationFactor)
+										 ClearCLBuffer gpuPSF, ClearCLBuffer output, ClearCLBuffer gpuNormal, 
+										 int num_iterations, float regularizationFactor)
 	{
 
 		// copy the image to use as the initial value
@@ -183,6 +211,13 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 				.getPointer())).getNativePointer();
 		long longPointerEstimate = ((NativePointerObject) (gpuEstimate
 				.getPeerPointer().getPointer())).getNativePointer();
+		long longPointerNormal=0;
+		
+		if (gpuNormal!=null) {
+		 longPointerNormal = ((NativePointerObject) (gpuNormal
+				.getPeerPointer().getPointer())).getNativePointer();
+		}
+		
 		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 				.getPeerPointer().getPointer())).getNativePointer();
 		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
@@ -193,10 +228,62 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		// call the decon wrapper (n iterations of RL)
 		clij2fftWrapper.deconv3d_32f_lp_tv(num_iterations, regularizationFactor, gpuImg.getDimensions()[0], gpuImg
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
-				longPointerPSF, longPointerEstimate, longPointerImg, l_context, l_queue,
+				longPointerPSF, longPointerEstimate, longPointerNormal, l_context, l_queue,
 				l_device);
 
 		return true;
+	}
+	
+	private static ClearCLBuffer createNormalizationFactor(CLIJ2 clij2, final Dimensions paddedDimensions,
+		final Dimensions originalDimensions, ClearCLBuffer psf) {
+		
+		// diagnostic
+		System.out.println("CreateNormalizationFactor for dimensions " +
+			paddedDimensions.dimension(0) + " " + paddedDimensions.dimension(1) +
+			" " + paddedDimensions.dimension(2));
+
+		// compute convolution interval
+		final long[] start = new long[paddedDimensions.numDimensions()];
+		final long[] end = new long[paddedDimensions.numDimensions()];
+
+		for (int d = 0; d < originalDimensions.numDimensions(); d++) {
+			final long offset = (paddedDimensions.dimension(d) - originalDimensions
+				.dimension(d)) / 2;
+			start[d] = offset;
+			end[d] = start[d] + originalDimensions.dimension(d) - 1;
+			
+		}
+		
+		final Interval convolutionInterval = new FinalInterval(start, end);
+		
+	long starttime, endtime;	
+	starttime = System.currentTimeMillis();
+
+		final Img<FloatType> normal = ops.create().img(paddedDimensions,
+			new FloatType());
+
+		endtime = System.currentTimeMillis();
+		//System.out.println("create " + (endtime - starttime));
+		starttime = System.currentTimeMillis();
+
+		final RandomAccessibleInterval<FloatType> temp = Views.interval(Views
+			.zeroMin(normal), convolutionInterval);
+
+		LoopBuilder.setImages(temp).multiThreaded().forEachPixel(a -> a.setOne());
+
+		endtime = System.currentTimeMillis();
+		//System.out.println("set ones " + (endtime - starttime));
+		starttime = System.currentTimeMillis();
+
+		// convert to ClearBufferCl
+		ClearCLBuffer cube = clij2.push(normal);
+	  ClearCLBuffer gpunormal = clij2.create(cube);	
+		ConvolveFFT.runConvolve(clij2, cube, psf, gpunormal, true);
+
+//		clij2.show(gpunormal, "gpunormal");
+		return gpunormal;
+	
+		
 	}
 
 	@Override

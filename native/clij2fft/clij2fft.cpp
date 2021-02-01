@@ -896,6 +896,13 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 	cl_mem d_observed = (cl_mem)l_observed;
 	cl_mem d_psf =  (cl_mem)l_psf;
 	cl_mem d_estimate = (cl_mem)l_estimate; 
+
+  cl_mem d_normal = NULL;
+
+  if (l_normal!=0) {
+    d_normal = (cl_mem)l_normal;
+  }
+
   cl_device_id deviceID = (cl_device_id)l_device;
 
   // size in spatial domain
@@ -1025,7 +1032,6 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
       
       // Inverse FFT to get update factor 
       ret = clfftEnqueueTransform(planHandleBackward, CLFFT_BACKWARD, 1, &commandQueue, 0, NULL, NULL, &estimateFFT, &d_reblurred, NULL);
-
      
       // if using total variation multiply by variation factor
       if (tv) {
@@ -1038,6 +1044,12 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
         ret = callKernel(kernelMul, d_estimate, d_reblurred, d_estimate, n, commandQueue, globalItemSize, localItemSize);
         //printf("update %d\n", ret);
       }
+
+      if (d_normal!=NULL) {
+        // divide estimate by normal
+        ret = callKernel(kernelDiv, d_estimate, d_normal, d_normal, n, commandQueue, globalItemSize, localItemSize);
+        printf("divide by normal returned %d\n", ret);
+      }      
 
       ret = clFinish(commandQueue);
 
