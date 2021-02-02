@@ -171,6 +171,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		else {
 			input_extended = padFFTInputZeros(clij2, input, psf, ops);
 		}
+		
 		ClearCLBuffer deconvolved_extended = clij2.create(input_extended);
 		ClearCLBuffer psf_extended = clij2.create(input_extended);
 		
@@ -302,7 +303,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getParameterHelpText() {
-		return "Image input, Image convolution_kernel, ByRef Image destination, Number num_iterations, Number Regularization_Factor";
+		return "Image input, Image convolution_kernel, ByRef Image destination, Number num_iterations, Number Regularization_Factor, Boolean non_circulant";
 	}
 
 	@Override
