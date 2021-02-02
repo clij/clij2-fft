@@ -286,7 +286,6 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	  ConvolveFFT.runConvolve(clij2, gpuvalidregion, psf, gpunormal, true);
 	
 		return gpunormal;
-		
 	}
 
 	@Override
