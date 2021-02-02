@@ -80,16 +80,12 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 
 		long start = System.currentTimeMillis();
 
-		// create another copy of the image to use as the initial value
-		ClearCLBuffer gpuEstimate = output;
-		clij2.copy(gpuImg, gpuEstimate);
-
 		// Get the CL Buffers, context, queue and device as long native pointers
 		long longPointerImg = ((NativePointerObject) (gpuImg.getPeerPointer()
 			.getPointer())).getNativePointer();
 		long longPointerPSF = ((NativePointerObject) (gpuPSF.getPeerPointer()
 			.getPointer())).getNativePointer();
-		long longPointerOutput = ((NativePointerObject) (gpuEstimate
+		long longPointerOutput = ((NativePointerObject) (output
 			.getPeerPointer().getPointer())).getNativePointer();
 		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getPeerPointer().getPointer())).getNativePointer();
@@ -107,7 +103,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 
 		System.out.println("OpenCL Convolution time " + (finish - start));
 
-		return gpuEstimate;
+		return output;
 	}
 
 

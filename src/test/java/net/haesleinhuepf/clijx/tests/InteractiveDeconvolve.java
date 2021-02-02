@@ -62,7 +62,7 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		
 		clij2.show(img, "img ");
 		clij2.show(psf, "psf ");
-
+		
 		// crop PSF - the image will be extended using PSF size
 		// if the PSF size is too large it will explode image size, memory needed and processing speed
 		// so crop just small enough to capture significant signal of PSF 
@@ -77,8 +77,8 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		ClearCLBuffer gpu_deconvolved_tv = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 
 		// deconvolve the image
-		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f);
-		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.002f);
+		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f, false);
+		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.0f, true);
 
 		RandomAccessibleInterval deconvolvedRAI = clij2.pullRAI(gpu_deconvolved);
 		RandomAccessibleInterval deconvolvedRAI_tv = clij2.pullRAI(gpu_deconvolved_tv);

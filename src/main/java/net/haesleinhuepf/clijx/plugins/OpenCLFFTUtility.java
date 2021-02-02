@@ -13,11 +13,13 @@ import net.imglib2.Interval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.outofbounds.OutOfBoundsConstantValueFactory;
 import net.imglib2.outofbounds.OutOfBoundsMirrorFactory;
 import net.imglib2.outofbounds.OutOfBoundsMirrorFactory.Boundary;
 import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
+import net.imglib2.util.Util;
 import net.imglib2.view.Views;
 
 import org.jocl.NativePointerObject;
@@ -148,6 +150,41 @@ public class OpenCLFFTUtility {
 		// extend image
 		RandomAccessibleInterval extended = (RandomAccessibleInterval) ops.run(DefaultPadInputFFT.class, img, extendedDimensions, false,
 						new OutOfBoundsMirrorFactory(OutOfBoundsMirrorFactory.Boundary.SINGLE));
+	
+		// push extended image and psf to GPU
+		return  clij2.push(extended);
+		
+	}
+	
+	/**
+	 * Pad a GPU image to the next supported FFT size using zeros out of bounds strategy.  
+	 * Note.  This function is not fully implemented on the GPU, thus the image is pulled 
+	 * onto the CPU, extended, then pushed back to GPU
+	 *
+	 * TODO fully implement this on the GPU
+	 * 
+	 * @param clij2
+	 * @param input
+	 * @param psf
+	 * @param ops
+	 * @return
+	 */
+	public static ClearCLBuffer padFFTInputZeros(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer psf, OpService ops) {
+		
+		RandomAccessibleInterval img = clij2.pullRAI(input);
+
+		// compute extended dimensions based on image and PSF dimensions
+		long[] extendedSize = new long[img.numDimensions()];
+
+		for (int d = 0; d < img.numDimensions(); d++) {
+			extendedSize[d] = img.dimension(d) + psf.getDimensions()[d];
+		}
+
+		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
+
+		// extend image
+		RandomAccessibleInterval extended = (RandomAccessibleInterval) ops.run(DefaultPadInputFFT.class, img, extendedDimensions, false,
+			new OutOfBoundsConstantValueFactory<>(new FloatType(0)));
 	
 		// push extended image and psf to GPU
 		return  clij2.push(extended);

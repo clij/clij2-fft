@@ -108,6 +108,20 @@ const char * programString =                                       "\n" \
 "        c[id] = a[id]*b[id];        \n" \
 "        }                           \n" \
 "}                                                               \n" \
+ "#pragma OPENCL EXTENSION cl_khr_fp64 : enable                    \n" \
+"__kernel void removeSmallValues(  __global float *a,                       \n" \
+"                       const unsigned int n)                    \n" \
+"{                                                               \n" \
+"    //Get our global thread ID                                  \n" \
+"    int id = get_global_id(0);                                  \n" \
+"                                                                \n" \
+"    //Make sure we do not go out of bounds                      \n" \
+"    if (id < n)  {                                               \n" \
+"        if (a[id]<0.00001) {        \n" \
+"        a[id] = 1.0;        \n" \
+"       }                           \n" \
+"    }                           \n" \
+"}                                                               \n" \
  
 
 
@@ -191,6 +205,37 @@ cl_program makeProgram(cl_context context, cl_device_id deviceID, char * source_
   free(buildlog);
 
   return program;
+}
+
+/**
+ * Call a kernel on a vector (or an image stored contigously that can be treated as a vector)
+ * **/
+cl_int callInPlaceKernel(cl_kernel kernel, cl_mem in1, const unsigned int n, cl_command_queue commandQueue, size_t globalItemSize, size_t localItemSize) {
+   // Set arguments for kernel
+	cl_int ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in1);
+
+  if (ret!=0) {	
+    printf("\nset variable 1 %d\n", ret);
+    return ret;
+  }
+
+  ret = clSetKernelArg(kernel, 1, sizeof(unsigned int), &n);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 4 %d\n", ret);
+    return ret;
+  }
+ 
+  ret = clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, &globalItemSize, &localItemSize, 0, NULL, NULL);	
+  
+  if (ret!=0) {	
+    printf("\nEnqueue Kernel %d\n", ret);
+    return ret;
+  }
+
+  ret = clFinish(commandQueue);
+
+  return ret;
 }
 
 /**
@@ -734,7 +779,6 @@ int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
 }
 
 int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long l_psf,  long long l_output, bool correlate, long long l_context, long long l_queue, long long l_device) {
-
   printf("enter convolve");
 
   cl_int ret;
@@ -782,7 +826,15 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
   }
 
 	// Create complex multiply kernel
-	cl_kernel kernelComplexMultiply = clCreateKernel(program, "vecComplexMultiply", &ret);
+  cl_kernel kernel;
+
+  if (correlate==false) {
+  std::cout<<"it's convolve\n"<<std::flush;
+	  kernel = clCreateKernel(program, "vecComplexMultiply", &ret);
+  } else {
+  std::cout<<"it's coerrelate\n"<<std::flush;
+    kernel = clCreateKernel(program, "vecComplexConjugateMultiply", &ret);
+  }
   printf("\ncreate KERNEL in GPU %d\n", ret);
 
   clfftPlanHandle planHandleForward=bake_3d_forward_32f(N0, N1, N2, context, commandQueue);
@@ -803,7 +855,7 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
   printf("fft estimate %d\n", ret);
 
   // complex multipy estimate FFT and PSF FFT
-  ret = callKernel(kernelComplexMultiply, estimateFFT, psfFFT, estimateFFT, nFreq, commandQueue, globalItemSizeFreq, localItemSize);
+  ret = callKernel(kernel, estimateFFT, psfFFT, estimateFFT, nFreq, commandQueue, globalItemSizeFreq, localItemSize);
   printf("kernel complex %d\n", ret);
   
   // Inverse to get convolved
@@ -896,6 +948,13 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 	cl_mem d_observed = (cl_mem)l_observed;
 	cl_mem d_psf =  (cl_mem)l_psf;
 	cl_mem d_estimate = (cl_mem)l_estimate; 
+
+  cl_mem d_normal = NULL;
+
+  if (l_normal!=0) {
+    d_normal = (cl_mem)l_normal;
+  }
+
   cl_device_id deviceID = (cl_device_id)l_device;
 
   // size in spatial domain
@@ -955,6 +1014,10 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 	cl_kernel kernelMul = clCreateKernel(program, "vecMul", &ret);
   printf("\ncreate Divide KERNEL in GPU %d\n", ret);
 
+  // Create remove small values kernel
+	cl_kernel kernelRemoveSamllValues = clCreateKernel(program, "removeSmallValues", &ret);
+  printf("\ncreate remove small values kernel %d\n", ret);
+
   cl_kernel kernelTV;
 
   if (tv==true) {
@@ -995,6 +1058,11 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
   printf("FFT of PSF %d\n", ret);
 
+  if (d_normal!=NULL) {
+    ret = callInPlaceKernel(kernelRemoveSamllValues, d_normal, n, commandQueue, globalItemSize, localItemSize);
+    printf("\ncall remove small values kernel %d\n", ret);
+  }
+
   for (int i=0;i<iterations;i++) {
       // FFT of estimate
       ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &d_estimate, &estimateFFT, NULL);
@@ -1025,7 +1093,6 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
       
       // Inverse FFT to get update factor 
       ret = clfftEnqueueTransform(planHandleBackward, CLFFT_BACKWARD, 1, &commandQueue, 0, NULL, NULL, &estimateFFT, &d_reblurred, NULL);
-
      
       // if using total variation multiply by variation factor
       if (tv) {
@@ -1036,8 +1103,13 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
       else {
         // multiply estimate by update factor 
         ret = callKernel(kernelMul, d_estimate, d_reblurred, d_estimate, n, commandQueue, globalItemSize, localItemSize);
-        //printf("update %d\n", ret);
       }
+
+      if (d_normal!=NULL) {
+        // divide estimate by normal
+        ret = callKernel(kernelDiv, d_estimate, d_normal, d_estimate, n, commandQueue, globalItemSize, localItemSize);
+        printf("divide by normal returned %d\n", ret);
+      }      
 
       ret = clFinish(commandQueue);
 
