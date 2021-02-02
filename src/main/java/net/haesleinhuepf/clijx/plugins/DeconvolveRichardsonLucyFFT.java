@@ -55,13 +55,13 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		float regularizationFactor = 0.0f;
 		
-		if (args.length==5) {
+		if (args.length>=5) {
 			regularizationFactor = ((Double)(args[4])).floatValue();
 		}
 		
 		boolean nonCirculant = false;
 		
-		if (args.length==6) {
+		if (args.length>=6) {
 			nonCirculant = (boolean)((args[5]));
 		}
 		
@@ -74,6 +74,12 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 							ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations) 
 	{
 		return deconvolveRichardsonLucyFFT(clij2, input, psf, deconvolved, num_iterations, 0.0f, false); 
+	}
+	
+	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
+		ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, float regularizationFactor) 
+	{
+			return deconvolveRichardsonLucyFFT(clij2, input, psf, deconvolved, num_iterations, regularizationFactor, false); 
 	}
 	
 	/**
