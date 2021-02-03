@@ -62,7 +62,9 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		boolean nonCirculant = false;
 		
 		if (args.length>=6) {
-			nonCirculant = (boolean)((args[5]));
+			if ((Double)(args[4])>0) {
+			nonCirculant = true;
+			}
 		}
 		
 		boolean result = deconvolveRichardsonLucyFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
