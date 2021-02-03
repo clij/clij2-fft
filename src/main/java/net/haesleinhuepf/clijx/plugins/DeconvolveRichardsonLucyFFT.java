@@ -296,11 +296,17 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	
 		return gpunormal;
 	}
+	
 
 	@Override
 	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
 		ClearCLBuffer in = (ClearCLBuffer) args[0];
 		return getCLIJ2().create(in.getDimensions(), NativeTypeEnum.Float);
+	}
+
+	@Override
+	public Object[] getDefaultValues() {
+		return new Object[] {null, null, null, 100, 0, 0};
 	}
 
 	@Override
