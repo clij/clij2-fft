@@ -50,7 +50,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		ClearCLBuffer extendedKernel_float = clij2.create(input_float);
 		padShiftFFTKernel(clij2, convolution_kernel_float, extendedKernel_float);
 
-		runConvolve(clij2, input_float, extendedKernel_float, destination);
+		runConvolve(clij2, input_float, extendedKernel_float, destination, false);
 
 		clij2.release(extendedKernel_float);
 
@@ -75,21 +75,17 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	 * @return
 	 */
 	public static ClearCLBuffer runConvolve(CLIJ2 clij2, ClearCLBuffer gpuImg,
-		ClearCLBuffer gpuPSF, ClearCLBuffer output)
+		ClearCLBuffer gpuPSF, ClearCLBuffer output, boolean correlate)
 	{
 
 		long start = System.currentTimeMillis();
-
-		// create another copy of the image to use as the initial value
-		ClearCLBuffer gpuEstimate = output;
-		clij2.copy(gpuImg, gpuEstimate);
 
 		// Get the CL Buffers, context, queue and device as long native pointers
 		long longPointerImg = ((NativePointerObject) (gpuImg.getPeerPointer()
 			.getPointer())).getNativePointer();
 		long longPointerPSF = ((NativePointerObject) (gpuPSF.getPeerPointer()
 			.getPointer())).getNativePointer();
-		long longPointerOutput = ((NativePointerObject) (gpuEstimate
+		long longPointerOutput = ((NativePointerObject) (output
 			.getPeerPointer().getPointer())).getNativePointer();
 		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
 			.getPeerPointer().getPointer())).getNativePointer();
@@ -101,13 +97,13 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		// call the decon wrapper (100 iterations of RL)
 		clij2fftWrapper.conv3d_32f_lp(gpuImg.getDimensions()[0], gpuImg
 			.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
-			longPointerPSF, longPointerOutput, true, l_context, l_queue, l_device);
+			longPointerPSF, longPointerOutput, correlate, l_context, l_queue, l_device);
 
 		long finish = System.currentTimeMillis();
 
 		System.out.println("OpenCL Convolution time " + (finish - start));
 
-		return gpuEstimate;
+		return output;
 	}
 
 

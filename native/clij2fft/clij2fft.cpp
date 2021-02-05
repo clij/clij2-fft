@@ -1,4 +1,13 @@
 #include <stdio.h>
+
+#ifdef _WIN64
+#include <direct.h>
+#define GetCurrentDir _getcwd
+#else
+#include <unistd.h>
+#define GetCurrentDir getcwd
+#endif
+
 // #include "CL/cl.h"
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
@@ -99,11 +108,139 @@ const char * programString =                                       "\n" \
 "        c[id] = a[id]*b[id];        \n" \
 "        }                           \n" \
 "}                                                               \n" \
+ "#pragma OPENCL EXTENSION cl_khr_fp64 : enable                    \n" \
+"__kernel void removeSmallValues(  __global float *a,                       \n" \
+"                       const unsigned int n)                    \n" \
+"{                                                               \n" \
+"    //Get our global thread ID                                  \n" \
+"    int id = get_global_id(0);                                  \n" \
+"                                                                \n" \
+"    //Make sure we do not go out of bounds                      \n" \
+"    if (id < n)  {                                               \n" \
+"        if (a[id]<0.00001) {        \n" \
+"        a[id] = 1.0;        \n" \
+"       }                           \n" \
+"    }                           \n" \
+"}                                                               \n" \
  
 
 
-                                                                "\n" ;
 
+/**
+ * Get fileSize.  Ussually called before reading a kernel from a .cl file
+ * 
+ * **/                                                                "\n" ;
+size_t getFileSize(const char * fileName) {
+
+    FILE *fp;
+    char *source_str;
+    size_t source_size, program_size;
+
+    fp = fopen(fileName, "r");
+    if (!fp) {
+        printf("Failed to load kernel\n");
+        return -1;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    program_size = ftell(fp);
+    
+    fclose(fp);
+
+    return program_size;
+}
+
+/**
+ * Get a .cl program from a file.  program_str needs to be pre-allocated.  Call
+ * getFileSize first 
+ * */
+int getProgramFromFile(const char* fileName, char * program_str, size_t program_size) {
+  printf("get program from file %s\n",fileName);
+
+  FILE *fp;
+
+  fp = fopen(fileName, "r");
+  if (!fp) {
+      printf("Failed to load kernel\n");
+      return -1;
+  }
+
+  program_str[program_size] = '\0';
+  fread(program_str, sizeof(char), program_size, fp);
+  fclose(fp);
+
+}
+
+/**
+ * Compile a cl_program from source_str
+ * */
+cl_program makeProgram(cl_context context, cl_device_id deviceID, char * source_str) {
+  printf("make program\n");
+
+  int ret;
+
+  // Create program from kernel source
+	//cl_program program = clCreateProgramWithSource(context, 1, (const char **)source_str, NULL, &ret);	
+	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, NULL, &ret);	
+
+  std::cout<<"Create program "<<ret<<"\n";
+
+	ret = clBuildProgram(program, 1, &deviceID, NULL, NULL, NULL);
+
+  printf("\nbuild program %d\n", ret);
+
+  size_t size;
+	// get size of build log
+  ret = clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG ,0,NULL,&size);
+    
+  std::cout<<"Get program build info "<<ret<<" size "<<size<<"\n";
+  
+  // allocate and get build log
+  char *buildlog=(char*)malloc(size);
+  clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG ,size,buildlog,NULL);
+
+  // print build log   
+  printf("\n\nBuildlog:   %s\n\n",buildlog);
+  
+  free(buildlog);
+
+  return program;
+}
+
+/**
+ * Call a kernel on a vector (or an image stored contigously that can be treated as a vector)
+ * **/
+cl_int callInPlaceKernel(cl_kernel kernel, cl_mem in1, const unsigned int n, cl_command_queue commandQueue, size_t globalItemSize, size_t localItemSize) {
+   // Set arguments for kernel
+	cl_int ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in1);
+
+  if (ret!=0) {	
+    printf("\nset variable 1 %d\n", ret);
+    return ret;
+  }
+
+  ret = clSetKernelArg(kernel, 1, sizeof(unsigned int), &n);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 4 %d\n", ret);
+    return ret;
+  }
+ 
+  ret = clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, &globalItemSize, &localItemSize, 0, NULL, NULL);	
+  
+  if (ret!=0) {	
+    printf("\nEnqueue Kernel %d\n", ret);
+    return ret;
+  }
+
+  ret = clFinish(commandQueue);
+
+  return ret;
+}
+
+/**
+ * Call a kernel on a vector (or an image stored contigously that can be treated as a vector)
+ * **/
 cl_int callKernel(cl_kernel kernel, cl_mem in1, cl_mem in2, cl_mem out, const unsigned int n, cl_command_queue commandQueue, size_t globalItemSize, size_t localItemSize) {
    // Set arguments for kernel
 	cl_int ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in1);
@@ -132,7 +269,7 @@ cl_int callKernel(cl_kernel kernel, cl_mem in1, cl_mem in2, cl_mem out, const un
     printf("\nset variable 4 %d\n", ret);
     return ret;
   }
-  
+ 
   ret = clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, &globalItemSize, &localItemSize, 0, NULL, NULL);	
   
   if (ret!=0) {	
@@ -144,6 +281,113 @@ cl_int callKernel(cl_kernel kernel, cl_mem in1, cl_mem in2, cl_mem out, const un
 
   return ret;
 }
+
+/**
+ * Call the total variation kernel
+ * */
+cl_int callVariationKernel(cl_kernel kernel, cl_mem in, cl_mem correction, cl_mem out, const unsigned int Nx, const unsigned int Ny, const unsigned int Nz,
+                    float hx, float hy, float hz, float regularizationFactor, cl_command_queue commandQueue, size_t globalItemSize, size_t localItemSize) {
+
+   // Set arguments for kernel
+	cl_int ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in);
+
+  if (ret!=0) {	
+    printf("\nset variable 0 %d\n", ret);
+    return ret;
+  }
+
+	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&correction);	
+  if (ret!=0) {	
+    printf("\nset variable 1 %d\n", ret);
+    return ret;
+  }
+
+	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&out);	
+  if (ret!=0) {	
+    printf("\nset variable 2 %d\n", ret);
+    return ret;
+  }
+
+  ret = clSetKernelArg(kernel, 3, sizeof(unsigned int), &Nx);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 3 %d\n", ret);
+    return ret;
+  }
+  
+  ret = clSetKernelArg(kernel, 4, sizeof(unsigned int), &Ny);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 4 %d\n", ret);
+    return ret;
+  }
+  
+  ret = clSetKernelArg(kernel, 5, sizeof(unsigned int), &Nz);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 5 %d\n", ret);
+    return ret;
+  }
+
+  ret = clSetKernelArg(kernel, 6, sizeof(float), &hx);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 6 %d\n", ret);
+    return ret;
+  }
+ 
+  ret = clSetKernelArg(kernel, 7, sizeof(float), &hy);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 7 %d\n", ret);
+    return ret;
+  }
+ 
+  ret = clSetKernelArg(kernel, 8, sizeof(float), &hz);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 8 %d\n", ret);
+    return ret;
+  }
+ 
+  ret = clSetKernelArg(kernel, 9, sizeof(float), &regularizationFactor);	
+  
+  if (ret!=0) {	
+    printf("\nset variable 8 %d\n", ret);
+    return ret;
+  }
+ 
+  size_t * global = (size_t*)malloc(sizeof(size_t)*3);
+  size_t * local = (size_t*)malloc(sizeof(size_t)*3);
+
+  global[0]=Nx;
+  global[1]=Ny;
+  global[2]=Nz;
+
+  local[0]=512;
+  local[1]=512;
+  local[2]=64;
+
+  ret = clEnqueueNDRangeKernel(commandQueue, kernel, 3, NULL, global, NULL, 0, NULL, NULL);	
+  
+  if (ret!=0) {	
+    printf("\nEnqueue Kernel %d\n", ret);
+    return ret;
+  }
+
+  ret = clFinish(commandQueue);
+
+  if (ret!=0) {	
+    printf("\nFinish %d\n", ret);
+    return ret;
+  }
+
+  free(global);
+  free(local);
+ 
+  return ret;
+} 
+
 
 cl_int setupFFT() {
    // Setup clFFT
@@ -161,10 +405,10 @@ clfftPlanHandle bake_2d_forward_32f(long N0, long N1, cl_context context, cl_com
   // FFT library related declarations 
   clfftPlanHandle planHandleForward;
   clfftDim dim = CLFFT_2D;
-  size_t clLengths[2] = {N0, N1};
-  size_t inStride[3] = {1, N0};
+  size_t clLengths[2] = {(size_t)N0, (size_t)N1};
+  size_t inStride[3] = {1, (size_t)N0};
   // note each output row has N0/2+1 complex numbers 
-  size_t outStride[3] = {1,N0/2+1};
+  size_t outStride[3] = {1,(size_t)N0/2+1};
 
   printf("clfft setup %d\n", ret);
   // Create a default plan for a complex FFT.
@@ -206,10 +450,10 @@ clfftPlanHandle bake_3d_forward_32f(long N0, long N1, long N2, cl_context contex
   // FFT library related declarations 
   clfftPlanHandle planHandleForward;
   clfftDim dim = CLFFT_3D;
-  size_t clLengths[3] = {N0, N1, N2};
-  size_t inStride[3] = {1, N0, N0*N1};
+  size_t clLengths[3] = {(size_t)N0, (size_t)N1, (size_t)N2};
+  size_t inStride[3] = {1, (size_t)N0, (size_t)N0*(size_t)N1};
   // note each output row has N0/2+1 complex numbers 
-  size_t outStride[3] = {1, N0/2+1, (N0/2+1)*N1};
+  size_t outStride[3] = {1, (size_t)N0/2+1, ((size_t)N0/2+1)*(size_t)N1};
 
   printf("clfft setup %d\n", ret);
   // Create a default plan for a complex FFT.
@@ -251,10 +495,10 @@ clfftPlanHandle bake_2d_backward_32f(long N0, long N1, cl_context context, cl_co
   // FFT library realted declarations 
   clfftPlanHandle planHandleBackward;
   clfftDim dim = CLFFT_2D;
-  size_t clLengths[2] = {N0, N1};
-  size_t inStride[3] = {1, N0/2+1};
+  size_t clLengths[2] = {(size_t)N0, (size_t)N1};
+  size_t inStride[3] = {1, (size_t)N0/2+1};
   // note each output row has N0/2+1 complex numbers 
-  size_t outStride[3] = {1,N0};
+  size_t outStride[3] = {1,(size_t)N0};
 
   // Setup clFFT. 
   clfftSetupData fftSetup;
@@ -298,10 +542,10 @@ clfftPlanHandle bake_3d_backward_32f(long N0, long N1, long N2, cl_context conte
   // FFT library related declarations 
   clfftPlanHandle planHandleBackward;
   clfftDim dim = CLFFT_3D;
-  size_t clLengths[3] = {N0, N1, N2};
-  size_t inStride[3] = {1, N0/2+1, (N0/2+1)*N1};
+  size_t clLengths[3] = {(size_t)N0, (size_t)N1, (size_t)N2};
+  size_t inStride[3] = {1, (size_t)N0/2+1, ((size_t)N0/2+1)*(size_t)N1};
   // note each output row has N0/2+1 complex numbers 
-  size_t outStride[3] = {1, N0, N0*N1};
+  size_t outStride[3] = {1, (size_t)N0, (size_t)N0*(size_t)N1};
 
   printf("clfft setup %d\n", ret);
   // Create a default plan for a complex FFT.
@@ -335,9 +579,9 @@ clfftPlanHandle bake_3d_backward_32f(long N0, long N1, long N2, cl_context conte
 
 }
 
-int fft2d_32f_lp(long N0, long N1, long d_image, long d_out, long l_context, long l_queue) {
+int fft2d_32f_lp(long long N0, long long N1, long long d_image, long long d_out, long long l_context, long long l_queue) {
   printf("input address %ld", d_image);
-  printf("input address %lu", (unsigned long)d_image);
+  printf("input address %lu", (unsigned long long)d_image);
  
 	// cast long to context 
 	cl_context context = (cl_context)l_context;
@@ -411,7 +655,7 @@ int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
   cl_mem FFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2*nFreq*sizeof(float), NULL, &ret);
   printf("\ncreate FFT %d\n", ret);
 	 
-  ret = fft2d_32f_lp(N0, N1, (long)aMemObj, (long)FFT, (long)context, (long)commandQueue);
+  ret = fft2d_32f_lp(N0, N1, (long long)aMemObj, (long long)FFT, (long long)context, (long long)commandQueue);
   printf("FFT refactored\n");
   
   // transfer from device back to GPU
@@ -429,14 +673,14 @@ int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
   return 0; 
 }
 
-int fft2dinv_32f_lp(long N0, long N1, long d_fft, long d_out, long l_context, long l_queue) {
+int fft2dinv_32f_lp(long long N0, long long N1, long long d_fft, long long d_out, long long l_context, long long l_queue) {
   printf("input address %ld", d_fft);
-  printf("input address %lu", (unsigned long)d_fft);
+  printf("input address %lu", (unsigned long long)d_fft);
  
-	// cast long to context 
+	// cast long long to context 
 	cl_context context = (cl_context)l_context;
   
-	// cast long to queue 
+	// cast long long to queue 
 	cl_command_queue commandQueue = (cl_command_queue)l_queue;
 
   cl_int ret = setupFFT();
@@ -513,7 +757,7 @@ int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
   cl_mem out = clCreateBuffer(context, CL_MEM_READ_WRITE, N0*N1*sizeof(float), NULL, &ret);
   printf("\ncreate img on GPU %d\n", ret);
 
-  fft2dinv_32f_lp(N0, N1, (long)d_FFT, (long)out, (long)context, (long)commandQueue);
+  fft2dinv_32f_lp(N0, N1, (long long)d_FFT, (long long)out, (long long)context, (long long)commandQueue);
   
   // transfer from device back to GPU
   ret = clEnqueueReadBuffer( commandQueue, out, CL_TRUE, 0, N0*N1*sizeof(float), h_out, 0, NULL, NULL );
@@ -534,24 +778,23 @@ int fftinv2d_32f(size_t N0, size_t N1, float *h_fft, float * h_out) {
 
 }
 
-int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  long l_output, bool correlate, long l_context, long l_queue, long l_device) {
-
+int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long l_psf,  long long l_output, bool correlate, long long l_context, long long l_queue, long long l_device) {
   printf("enter convolve");
 
   cl_int ret;
 
-  // most of the inputs are long pointers we'll need to cast them to the right cl types
+  // most of the inputs are long long pointers we'll need to cast them to the right cl types
 
-	// cast long to context 
+	// cast long long to context 
 	cl_context context = (cl_context)l_context;
   
-	// cast long to queue 
+	// cast long long to queue 
 	cl_command_queue commandQueue = (cl_command_queue)l_queue;
 	
-  // and long to deviceID
+  // and long long to deviceID
   cl_device_id deviceID = (cl_device_id)l_device;
   
-  // cast long pointers to cl_mem 
+  // cast long long pointers to cl_mem 
 	cl_mem d_image = (cl_mem)l_image;
 	cl_mem d_psf =  (cl_mem)l_psf;
 	cl_mem d_output = (cl_mem)l_output;
@@ -583,7 +826,15 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  lo
   }
 
 	// Create complex multiply kernel
-	cl_kernel kernelComplexMultiply = clCreateKernel(program, "vecComplexMultiply", &ret);
+  cl_kernel kernel;
+
+  if (correlate==false) {
+  std::cout<<"it's convolve\n"<<std::flush;
+	  kernel = clCreateKernel(program, "vecComplexMultiply", &ret);
+  } else {
+  std::cout<<"it's coerrelate\n"<<std::flush;
+    kernel = clCreateKernel(program, "vecComplexConjugateMultiply", &ret);
+  }
   printf("\ncreate KERNEL in GPU %d\n", ret);
 
   clfftPlanHandle planHandleForward=bake_3d_forward_32f(N0, N1, N2, context, commandQueue);
@@ -604,7 +855,7 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long l_image, long l_psf,  lo
   printf("fft estimate %d\n", ret);
 
   // complex multipy estimate FFT and PSF FFT
-  ret = callKernel(kernelComplexMultiply, estimateFFT, psfFFT, estimateFFT, nFreq, commandQueue, globalItemSizeFreq, localItemSize);
+  ret = callKernel(kernel, estimateFFT, psfFFT, estimateFFT, nFreq, commandQueue, globalItemSizeFreq, localItemSize);
   printf("kernel complex %d\n", ret);
   
   // Inverse to get convolved
@@ -663,7 +914,7 @@ int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, fl
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   printf("\ncopy to GPU  %d\n", ret);
 
-  conv3d_32f_lp(N0, N1, N2, (long)d_image, (long)d_psf, (long)d_out, 0, (long)context, (long)commandQueue, (long)deviceID);
+  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, 0, (long long)context, (long long)commandQueue, (long long)deviceID);
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -671,20 +922,39 @@ int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, fl
   return 0;
 }
 
-int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_observed, long l_psf, long l_estimate, long l_normal, long l_context, long l_queue, long l_device) {
+int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long long l_observed, long long l_psf, long long l_estimate, long long l_normal, long long l_context, long long l_queue, long long l_device) {
+
+  return deconv3d_32f_lp_tv(iterations, 0., N0, N1, N2, l_observed, l_psf, l_estimate, l_normal, l_context, l_queue, l_device);  
+
+}
+
+int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, long long l_observed, long long l_psf, long long l_estimate, long long l_normal, long long l_context, long long l_queue, long long l_device) {
 
   cl_int ret;
   
-	// cast long to context 
+  bool tv=false;
+
+  if (regularizationFactor>0) {
+    tv=true;
+  }
+	
+  // cast long long to context 
 	cl_context context = (cl_context)l_context;
   
-	// cast long to queue 
+	// cast long long to queue 
 	cl_command_queue commandQueue = (cl_command_queue)l_queue;
 	
-  // cast long pointers to cl_mem 
+  // cast long long pointers to cl_mem 
 	cl_mem d_observed = (cl_mem)l_observed;
 	cl_mem d_psf =  (cl_mem)l_psf;
 	cl_mem d_estimate = (cl_mem)l_estimate; 
+
+  cl_mem d_normal = NULL;
+
+  if (l_normal!=0) {
+    d_normal = (cl_mem)l_normal;
+  }
+
   cl_device_id deviceID = (cl_device_id)l_device;
 
   // size in spatial domain
@@ -703,6 +973,15 @@ int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_obse
  
   cl_mem psfFFT = clCreateBuffer(context, CL_MEM_READ_WRITE, 2*nFreq * sizeof(float), NULL, &ret);
   printf("\ncreate Object FFT %d\n", ret);
+
+  cl_mem d_variation;
+
+  if (tv==true) {
+    d_variation = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
+  }
+  else {
+    d_variation = NULL;
+  }
 	
   // Create kernels 	
   // Create program from kernel source
@@ -735,6 +1014,35 @@ int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_obse
 	cl_kernel kernelMul = clCreateKernel(program, "vecMul", &ret);
   printf("\ncreate Divide KERNEL in GPU %d\n", ret);
 
+  // Create remove small values kernel
+	cl_kernel kernelRemoveSamllValues = clCreateKernel(program, "removeSmallValues", &ret);
+  printf("\ncreate remove small values kernel %d\n", ret);
+
+  cl_kernel kernelTV;
+
+  if (tv==true) {
+    const char * fileName = "./lib/totalvariationterm.cl";
+    size_t sizer=getFileSize(fileName);
+    std::cout<<"size is "<<sizer<<"\n";
+
+    char * program_str = (char*)malloc(sizer);
+
+    getProgramFromFile(fileName, program_str, sizer);
+
+    std::cout<<program_str<<"\n";
+    
+    cl_program program2 = makeProgram(context, deviceID, program_str);
+
+    kernelTV = clCreateKernel(program2, "totalVariationTerm", &ret);
+
+    printf("\ncreate total variaton KERNEL in GPU %d\n", ret);
+
+    free(program_str);
+  }
+  else {
+    kernelTV=NULL;
+  }
+
   clfftPlanHandle planHandleForward=bake_3d_forward_32f(N0, N1, N2, context, commandQueue);
   
   clfftPlanHandle planHandleBackward=bake_3d_backward_32f(N0, N1, N2, context, commandQueue);
@@ -749,6 +1057,11 @@ int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_obse
   ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &d_psf, &psfFFT, NULL);
 
   printf("FFT of PSF %d\n", ret);
+
+  if (d_normal!=NULL) {
+    ret = callInPlaceKernel(kernelRemoveSamllValues, d_normal, n, commandQueue, globalItemSize, localItemSize);
+    printf("\ncall remove small values kernel %d\n", ret);
+  }
 
   for (int i=0;i<iterations;i++) {
       // FFT of estimate
@@ -780,11 +1093,24 @@ int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_obse
       
       // Inverse FFT to get update factor 
       ret = clfftEnqueueTransform(planHandleBackward, CLFFT_BACKWARD, 1, &commandQueue, 0, NULL, NULL, &estimateFFT, &d_reblurred, NULL);
+     
+      // if using total variation multiply by variation factor
+      if (tv) {
+        ret = callVariationKernel(kernelTV, d_estimate, d_reblurred, d_variation, N0, N1, N2, 1.0, 1.0, 3.0, regularizationFactor, commandQueue, globalItemSize, localItemSize);
 
-      // multiply estimate by update factor 
-      ret = callKernel(kernelMul, d_estimate, d_reblurred, d_estimate, n, commandQueue, globalItemSize, localItemSize);
-      //printf("update %d\n", ret);
-      
+        ret = callKernel(kernelMul, d_estimate, d_variation, d_estimate, n, commandQueue, globalItemSize, localItemSize);
+      }
+      else {
+        // multiply estimate by update factor 
+        ret = callKernel(kernelMul, d_estimate, d_reblurred, d_estimate, n, commandQueue, globalItemSize, localItemSize);
+      }
+
+      if (d_normal!=NULL) {
+        // divide estimate by normal
+        ret = callKernel(kernelDiv, d_estimate, d_normal, d_estimate, n, commandQueue, globalItemSize, localItemSize);
+        printf("divide by normal returned %d\n", ret);
+      }      
+
       ret = clFinish(commandQueue);
 
       printf("Finished iteration %d\n",i);
@@ -796,6 +1122,10 @@ int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_obse
   clReleaseMemObject( psfFFT );
   clReleaseMemObject( estimateFFT );
 
+  if (tv=true) {
+    clReleaseMemObject(d_variation);
+  }
+
    // Release the plan. 
    ret = clfftDestroyPlan( &planHandleBackward );
 
@@ -806,6 +1136,12 @@ int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long l_obse
 
 int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
 
+  return deconv3d_32f_tv(iterations, 0.0, N0, N1,N2, h_image, h_psf, h_out, normal);
+
+}
+
+int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
+  
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
 	cl_uint retNumDevices;
@@ -846,8 +1182,8 @@ int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image
   unsigned long n = N0*N1*N2;
   unsigned long nFreq=(N0/2+1)*N1*N2;
      
-  printf("Call deconv with long pointers\n\n");
-  deconv3d_32f_lp(iterations, N0, N1, N2, (long)d_observed, (long)d_psf, (long)d_estimate, (long)0, (long)context, (long)commandQueue, (long)deviceID); 
+  printf("Call deconv with long long pointers\n\n");
+  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long)d_observed, (long)d_psf, (long)d_estimate, (long)0, (long)context, (long)commandQueue, (long)deviceID); 
     
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -857,9 +1193,34 @@ int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image
   clReleaseMemObject( d_observed );
   clReleaseMemObject( d_psf);
 
-   // Release OpenCL working objects.
-   clReleaseCommandQueue( commandQueue );
-   clReleaseContext( context );
+  // Release OpenCL working objects.
+  clReleaseCommandQueue( commandQueue );
+  clReleaseContext( context );
   
   return ret;
+}
+
+int diagnostic() {
+
+
+  char buff[FILENAME_MAX];
+  GetCurrentDir( buff, FILENAME_MAX );
+  std::cout<<"Current working dir: "<<buff<<"\n"<<std::flush;
+
+  std::cout<<"diagnostic\n"<<std::flush;
+
+  const char * fileName = "./lib/totalvariationterm.cl";
+  
+  size_t sizer=getFileSize(fileName);
+  
+  std::cout<<"size is "<<sizer<<"\n"<<std::flush;
+
+  char * program_str = (char*)malloc(sizer);
+
+  getProgramFromFile(fileName, program_str, sizer);
+
+  std::cout<<program_str<<"\n"<<std::flush;
+
+  return 0;
+ 
 }

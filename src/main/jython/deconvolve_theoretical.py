@@ -1,7 +1,6 @@
 #@OpService ops
 #@UIService ui
 #@Dataset img
-#@Dataset psf
 
 from java.lang import System
 
@@ -10,6 +9,26 @@ from net.haesleinhuepf.clij import CLIJ;
 from net.haesleinhuepf.clij2 import CLIJ2;
 from net.haesleinhuepf.clijx.plugins import Normalize;
 from net.haesleinhuepf.clijx.plugins import DeconvolveRichardsonLucyFFT;
+from net.imglib2.type.numeric.real import FloatType;
+from net.imglib2 import FinalDimensions
+
+numericalAperture = 0.95
+wavelength = 461E-9
+riSample = 1.33
+riImmersion = 1.00
+xySpacing = 108E-9
+zSpacing = 1000E-9
+depth = 0.0
+psfDims = FinalDimensions([64, 64, 40]);
+confocal = True;
+
+psf =  ops.create().kernelDiffraction(psfDims, numericalAperture, wavelength, riSample, riImmersion, xySpacing,
+		zSpacing, depth, FloatType());
+
+if confocal:
+	ops.math().multiply(psf, psf, psf)
+
+ui.show(psf)
 
 # show installed OpenCL devices
 print CLIJ.getAvailableDeviceNames();
@@ -35,7 +54,7 @@ gpuEstimate = clij2.create(gpuImg.getDimensions(), clij2.Float);
 
 # submit deconvolution task
 num_iterations = 100;
-DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImg, gpuPSF, gpuEstimate, num_iterations, 0);
+DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImg, gpuPSF, gpuEstimate, num_iterations);
 
 # measure end time
 finish = System.currentTimeMillis();
