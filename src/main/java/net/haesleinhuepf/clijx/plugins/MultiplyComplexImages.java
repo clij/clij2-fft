@@ -70,7 +70,7 @@ public class MultiplyComplexImages extends AbstractCLIJ2Plugin implements CLIJMa
 
     @Override
     public String getDescription() {
-        return "Multiplies all pairs of pixel values from two complex images.\n\n";
+        return "Multiplies two complex images pixel by pixel.\n\n";
     }
 
     @Override
