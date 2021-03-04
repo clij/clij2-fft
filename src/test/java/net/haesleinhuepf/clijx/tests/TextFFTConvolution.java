@@ -89,78 +89,42 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 		// so for our 2D example we'll use ops
 		psf = (RandomAccessibleInterval)ij.op().filter().padShiftFFTKernel(psf, img);	
 		
-		ClearCLBuffer gpuImage= clij2.push(img);
+		ClearCLBuffer gpuImg= clij2.push(img);
 		ClearCLBuffer gpuPSF= clij2.push(psf);
-		ClearCLBuffer gpuConvolved= clij2.create(new long[] {gpuImage.getWidth(), gpuImage.getHeight()}, NativeTypeEnum.Float);
+		//ClearCLBuffer gpuConvolved= clij2.create(new long[] {gpuImg.getWidth(), gpuImg.getHeight()}, NativeTypeEnum.Float);
 		
 		clij2.show(psf, "psf");
 		clij2.show(gpuPSF, "gpu_psf");
-		clij2.show(gpuImage, "gpu_img ");
+		clij2.show(gpuImg, "gpu_img ");
 		
 		// compute FFT dimensions, FFTs of a real signal are conjugate symmetric so half of the data is discarded
-		long fftWidth = (gpuImage.getWidth() / 2 + 1);
-		long fftHeight = gpuImage.getHeight();
+		long fftWidth = (gpuImg.getWidth() / 2 + 1);
+		long fftHeight = gpuImg.getHeight();
 		
 		long[] fftDim = new long[] { fftWidth*2, fftHeight};
-
-		// create GPU memory for FFT
-		ClearCLBuffer gpuFFTImg= clij2.create(fftDim, NativeTypeEnum.Float);
-		ClearCLBuffer gpuFFTPSF = clij2.create(fftDim, NativeTypeEnum.Float);
 		
-		// TODO 4 now we want to run the FFT for the image and psf.  We could do it by calling
-		// https://github.com/clij/clij2-fft/blob/master/src/main/java/net/haesleinhuepf/clijx/plugins/OpenCLFFTUtility.java#L85
-		// this wraps the code that gets the pointers to the context, queue and GPU memory however right now only 2d float forward FFT 
-		// is wrapped in such a way.  We would need to at the very least also wrap 2d float inverse, and 3d float forward and inverse
-
-		// get the long pointers to in, out, context and queue.
-		long lContext = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
-			.getPeerPointer().getPointer())).getNativePointer();
-		long lQueue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
-			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
-
+		// run the forward FFT for image and PSF
+		ClearCLBuffer gpuFFTImg =OpenCLFFTUtility.runFFT(clij2, gpuImg);
+		ClearCLBuffer gpuFFTPSF=OpenCLFFTUtility.runFFT(clij2, gpuPSF);
 		
-		long lIn = ((NativePointerObject) (gpuImage.getPeerPointer()
-			.getPointer())).getNativePointer();
-		long lOut = ((NativePointerObject) (gpuFFTImg.getPeerPointer()
-			.getPointer())).getNativePointer();
-		// call the native code that runs the FFT
-		clij2fftWrapper.fft2d_32f_lp((long) (gpuImage.getWidth()), gpuImage.getHeight(),
-			lIn, lOut, lContext, lQueue);
-
-			// use a hack to get the long pointers to in, out, context and queue.
-		long lInPSF = ((NativePointerObject) (gpuPSF.getPeerPointer()
-			.getPointer())).getNativePointer();
-		long lOutPSF = ((NativePointerObject) (gpuFFTPSF.getPeerPointer()
-			.getPointer())).getNativePointer();
-	
-		// now FFT for the PSF
-		clij2fftWrapper.fft2d_32f_lp((long) (gpuPSF.getWidth()), gpuPSF.getHeight(),
-			lInPSF, lOutPSF, lContext, lQueue);
-
-		// TODO 5:  Now we show the FFT, however we don't have a nice way to show complex conjugate interleaved.  
+			// TODO 4:  Now we show the FFT, however we don't have a nice way to show complex conjugate interleaved.  
 		// Ideally we need utilities that can be used to show real, imaginary, phas and power (like in imglib2)
 		// Also we may want to center the power spectrum FFT and reflect it, as this is the format that ImageJ1 uses to show FFT
 		clij2.show(gpuFFTImg, "FFT image");
 		clij2.show(gpuFFTPSF, "FFT psf");
 		
-		// OK new we create a buffer for the FFT output
+		// now create a buffer for the complex output
 		ClearCLBuffer complexOutput = clij2.create(fftDim, NativeTypeEnum.Float);
 
-		// and mulitply in the frequency domain (see https://en.wikipedia.org/wiki/Convolution_theorem)
+		// Perform convolution by mulitplying in the frequency domain (see https://en.wikipedia.org/wiki/Convolution_theorem)
     MultiplyComplexImages.multiplyComplexImages(clij2, gpuFFTImg, gpuFFTPSF, complexOutput);
 	
     clij2.show(complexOutput, "FFTs multiplied");
-    
-    // use a hack to get the long pointers to in, out, context and queue.
-		long lComplexOutput = ((NativePointerObject) (complexOutput.getPeerPointer()
-			.getPointer())).getNativePointer();
-		long lConvolved = ((NativePointerObject) (gpuConvolved.getPeerPointer()
-			.getPointer())).getNativePointer();
-	
-		// now the inverse of FFT
-		clij2fftWrapper.fft2dinv_32f_lp(gpuConvolved.getWidth(), gpuConvolved.getHeight(), lComplexOutput, lConvolved, lContext, lQueue);
+
+		// now get convolved spatian signal by performing inverse 
+   	ClearCLBuffer gpuConvolved = OpenCLFFTUtility.runInverseFFT(clij2, complexOutput, (int)gpuImg.getWidth(), (int)gpuImg.getHeight());
 		
-		// and finally we can show our convolution
+   	// and finally we can show our convolution
 		clij2.show(gpuConvolved, "gpu_convolved");
 	
 	}
