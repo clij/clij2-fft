@@ -33,6 +33,12 @@ public class clij2fftWrapper {
 	public static native long fft2dinv_32f_lp(long N1, long N2, long inPointer,
 		long outPointer, long contextPointer, long queuePointer);
 	
+	public static native long fft3d_32f_lp(long N0, long N1, long N2, long inPointer,
+		long outPointer, long contextPointer, long queuePointer);
+		
+	public static native long fft3dinv_32f_lp(long N0, long N1, long N2, long inPointer,
+		long outPointer, long contextPointer, long queuePointer);
+	
 	public static native int conv3d_32f_lp(long N0, long N1, long N2, long l_image,
 		long l_psf, long l_output, boolean correlate, long l_context, long l_queue,
 		long l_device);
