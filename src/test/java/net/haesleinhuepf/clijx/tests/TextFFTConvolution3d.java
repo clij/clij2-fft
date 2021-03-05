@@ -74,7 +74,8 @@ public class TextFFTConvolution3d<T extends RealType<T> & NativeType<T>> {
 		System.out.println("note because of symmetrry FFT of real signal is apr. half of original size in first dimension");
 		
 		// now load data
-		Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
 			
 		// TODO 2 we need to convert to 32 because so far only 32 float FFT has been wrapped from clfft, 
 		// the dimensionality, dimensions and precision is defined by a 'plan' 
