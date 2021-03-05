@@ -69,7 +69,7 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 		long[][] nextFastFFTDimensions=ij.op().filter().fftSize(new FinalDimensions(widthToTry,heightToTry), false);
 		System.out.println("next fast image size size "+nextFastFFTDimensions[0][0]+" "+nextFastFFTDimensions[0][1]);
 		System.out.println("size of resulting complex FFT "+nextFastFFTDimensions[1][0]+" "+nextFastFFTDimensions[1][1]);
-		System.out.println("note because of symmetrry ");
+		System.out.println("note because of symmetrry FFT of real signal is apr. half of original size in first dimension");
 		
 		// now load data
 		Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/bridge.tif");
