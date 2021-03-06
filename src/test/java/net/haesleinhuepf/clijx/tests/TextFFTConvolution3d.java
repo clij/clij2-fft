@@ -120,14 +120,14 @@ public class TextFFTConvolution3d<T extends RealType<T> & NativeType<T>> {
 		ClearCLBuffer complexOutput = clij2.create(fftDim, NativeTypeEnum.Float);
 
 		// Perform convolution by mulitplying in the frequency domain (see https://en.wikipedia.org/wiki/Convolution_theorem)
-    MultiplyComplexImages.multiplyComplexImages(clij2, gpuFFTImg, gpuFFTPSF, complexOutput);
+    		MultiplyComplexImages.multiplyComplexImages(clij2, gpuFFTImg, gpuFFTPSF, complexOutput);
 	
-    clij2.show(complexOutput, "FFTs multiplied");
+    		clij2.show(complexOutput, "FFTs multiplied");
 
 		// now get convolved spatial signal by performing inverse 
-   	ClearCLBuffer gpuConvolved = OpenCLFFTUtility.run3dInverseFFT(clij2, complexOutput, (int)gpuImg.getWidth(), (int)gpuImg.getHeight(), (int)gpuImg.getDepth());
+   		ClearCLBuffer gpuConvolved = OpenCLFFTUtility.run3dInverseFFT(clij2, complexOutput, (int)gpuImg.getWidth(), (int)gpuImg.getHeight(), (int)gpuImg.getDepth());
 		
-   	// and finally we can show our convolution
+   		// and finally we can show our convolution
 		clij2.show(gpuConvolved, "gpu_convolved");
 	
 	}
