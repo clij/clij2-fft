@@ -615,6 +615,40 @@ int fft2d_32f_lp(long long N0, long long N1, long long d_image, long long d_out,
    return 0; 
 }
 
+int fft3d_32f_lp(long long N0, long long N1, long long N2, long long d_image, long long d_out, long long l_context, long long l_queue) {
+  
+	// cast long to context 
+	cl_context context = (cl_context)l_context;
+  
+	// cast long to queue 
+	cl_command_queue commandQueue = (cl_command_queue)l_queue;  
+
+  // number of elements in Hermitian (interleaved) output 
+  unsigned long nFreq=N2*N1*(N0/2+1);
+
+  clfftPlanHandle planHandleForward = bake_3d_forward_32f(N0, N1, N2, context, commandQueue); 
+
+  cl_int ret = setupFFT();
+  cl_mem cl_mem_image=(cl_mem)d_image;
+  cl_mem cl_mem_out=(cl_mem)d_out;
+  
+  // Execute the plan. 
+  ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &cl_mem_image, &cl_mem_out, NULL);
+  printf("Forward FFT %d\n", ret);
+  
+  ret = clFinish(commandQueue);
+  printf("Finish Command Queue for forward FFT %d\n", ret);
+  
+   // Release the plan. 
+   ret = clfftDestroyPlan( &planHandleForward );
+
+   clfftTeardown();
+   
+   printf("FFT finished\n");
+
+   return 0; 
+}
+
 int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
  
   cl_platform_id platformId = NULL;
@@ -691,6 +725,41 @@ int fft2dinv_32f_lp(long long N0, long long N1, long long d_fft, long long d_out
   
   // number of elements in Hermitian (interleaved) output 
   unsigned long nFreq=N1*(N0/2+1);
+
+  // Execute the plan.
+  ret = clfftEnqueueTransform(planHandleBackward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &cl_mem_image, &cl_mem_out, NULL);
+
+  printf("Backward FFT %d\n", ret);
+  ret = clFinish(commandQueue);
+  printf("Finish Command Queue for backward FFT %d\n", ret);
+ 
+   // Release the plan. 
+   ret = clfftDestroyPlan( &planHandleBackward);
+
+   clfftTeardown();
+   
+   printf("Backward FFT finished\n");
+
+   return 0; 
+}
+
+
+int fft3dinv_32f_lp(long long N0, long long N1, long long N2, long long d_fft, long long d_out, long long l_context, long long l_queue) {
+ 
+	// cast long long to context 
+	cl_context context = (cl_context)l_context;
+  
+	// cast long long to queue 
+	cl_command_queue commandQueue = (cl_command_queue)l_queue;
+
+  cl_int ret = setupFFT();
+  cl_mem cl_mem_image=(cl_mem)d_fft;
+  cl_mem cl_mem_out=(cl_mem)d_out;
+ 
+  clfftPlanHandle planHandleBackward = bake_3d_backward_32f(N0, N1, N2, context, commandQueue); 
+  
+  // number of elements in Hermitian (interleaved) output 
+  unsigned long nFreq=N2*N1*(N0/2+1);
 
   // Execute the plan.
   ret = clfftEnqueueTransform(planHandleBackward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &cl_mem_image, &cl_mem_out, NULL);

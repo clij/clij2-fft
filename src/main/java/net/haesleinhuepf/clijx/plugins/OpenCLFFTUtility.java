@@ -90,7 +90,7 @@ public class OpenCLFFTUtility {
 		// create GPU memory for FFT
 		ClearCLBuffer gpuFFT = clij2.create(fftDim, NativeTypeEnum.Float);
 
-		// use a hack to get the long pointers to in, out, context and queue.
+		// get the long pointers to in, out, context and queue.
 		long l_in = ((NativePointerObject) (gpuImg.getPeerPointer()
 			.getPointer())).getNativePointer();
 		long l_out = ((NativePointerObject) (gpuFFT.getPeerPointer()
@@ -105,6 +105,96 @@ public class OpenCLFFTUtility {
 			l_in, l_out, l_context, l_queue);
 
 		return gpuFFT;
+	}
+	
+	
+	/**
+	 * Run Inverse FFT on a CLBuffer
+	 * 
+	 * @param gpuFFT - the FFT that will be transformed back to the spatial domain
+	 *  
+	 * @return - output as CLBuffer
+	 */
+	public static ClearCLBuffer runInverseFFT(CLIJ2 clij2, ClearCLBuffer gpuFFT, int width, int height) {
+
+		// create GPU memory for FFT
+		ClearCLBuffer out = clij2.create(new long[] {width, height}, NativeTypeEnum.Float);
+
+		// get the long pointers to in, out, context and queue.
+		long l_in = ((NativePointerObject) (gpuFFT.getPeerPointer()
+			.getPointer())).getNativePointer();
+		long l_out = ((NativePointerObject) (out.getPeerPointer()
+			.getPointer())).getNativePointer();
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+			.getPeerPointer().getPointer())).getNativePointer();
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
+
+		// call the native code that runs the inverse FFT
+		clij2fftWrapper.fft2dinv_32f_lp(width, height, l_in, l_out, l_context, l_queue);
+
+		return out;
+	}
+
+	/**
+	 * Run FFT on a CLBuffer
+	 * 
+	 * @param gpuImg input CLBuffer (needs to be pre-extended to an FFT friendly
+	 *          size this can be done by using the padInputAndPush function)
+	 * @return - output FFT as CLBuffer
+	 */
+	public static ClearCLBuffer run3dFFT(CLIJ2 clij2, ClearCLBuffer gpuImg) {
+		// compute complex FFT dimension assuming Hermitian interleaved
+		long[] fftDim = new long[] { (gpuImg.getWidth() / 2 + 1) * 2, gpuImg
+			.getHeight(), gpuImg.getDepth() };
+
+		// create GPU memory for FFT
+		ClearCLBuffer gpuFFT = clij2.create(fftDim, NativeTypeEnum.Float);
+
+		// get the long pointers to in, out, context and queue.
+		long l_in = ((NativePointerObject) (gpuImg.getPeerPointer()
+			.getPointer())).getNativePointer();
+		long l_out = ((NativePointerObject) (gpuFFT.getPeerPointer()
+			.getPointer())).getNativePointer();
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+			.getPeerPointer().getPointer())).getNativePointer();
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
+
+		// call the native code that runs the FFT
+		clij2fftWrapper.fft3d_32f_lp((long) (gpuImg.getWidth()), gpuImg.getHeight(), gpuImg.getDepth(),
+			l_in, l_out, l_context, l_queue);
+
+		return gpuFFT;
+	}
+	
+	
+	/**
+	 * Run Inverse FFT on a CLBuffer
+	 * 
+	 * @param gpuFFT - the FFT that will be transformed back to the spatial domain
+	 *  
+	 * @return - output as CLBuffer
+	 */
+	public static ClearCLBuffer run3dInverseFFT(CLIJ2 clij2, ClearCLBuffer gpuFFT, int width, int height, int depth) {
+
+		// create GPU memory for FFT
+		ClearCLBuffer out = clij2.create(new long[] {width, height, depth}, NativeTypeEnum.Float);
+
+		// get the long pointers to in, out, context and queue.
+		long l_in = ((NativePointerObject) (gpuFFT.getPeerPointer()
+			.getPointer())).getNativePointer();
+		long l_out = ((NativePointerObject) (out.getPeerPointer()
+			.getPointer())).getNativePointer();
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+			.getPeerPointer().getPointer())).getNativePointer();
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
+
+		// call the native code that runs the inverse FFT
+		clij2fftWrapper.fft3dinv_32f_lp(width, height, depth, l_in, l_out, l_context, l_queue);
+
+		return out;
 	}
 
 	static Img<ComplexFloatType> copyAsComplex(
