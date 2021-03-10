@@ -111,12 +111,20 @@ public class OpenCLFFTUtility {
 	public static void cropExtended(CLIJ2 clij2, ClearCLBuffer extended, ClearCLBuffer cropped)
 	{
 		
-		long startX = (extended.getDimensions()[0]-(int)cropped.getDimensions()[0])/2;
-		long startY = (extended.getDimensions()[1]-(int)cropped.getDimensions()[1])/2;
-		long startZ = (extended.getDimensions()[2]-(int)cropped.getDimensions()[2])/2;
+		if (extended.getDimensions().length==3) {
 		
-	  clij2.crop(extended, cropped, startX, startY, startZ);	
+			long startX = (extended.getDimensions()[0]-(int)cropped.getDimensions()[0])/2;
+			long startY = (extended.getDimensions()[1]-(int)cropped.getDimensions()[1])/2;
+			long startZ = (extended.getDimensions()[2]-(int)cropped.getDimensions()[2])/2;
+			
+			clij2.crop(extended, cropped, startX, startY, startZ);	
+		} else if (extended.getDimensions().length==2) {
 		
+				long startX = (extended.getDimensions()[0]-(int)cropped.getDimensions()[0])/2;
+				long startY = (extended.getDimensions()[1]-(int)cropped.getDimensions()[1])/2;
+		
+				clij2.crop(extended, cropped, startX, startY);	
+		}
 	}
 	
 	/**
@@ -131,27 +139,47 @@ public class OpenCLFFTUtility {
 	public static ClearCLBuffer padShiftFFTKernel(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
 									ClearCLBuffer extendedKernel)
 	{
-		long psfHalfWidth = convolution_kernel.getWidth() / 2;
-		long psfHalfHeight = convolution_kernel.getHeight() / 2;
-		long psfHalfDepth = convolution_kernel.getDepth() / 2;
-
-		clij2.set(extendedKernel, 0);
-
-		ClearCLBuffer temp = clij2.create(psfHalfWidth, psfHalfHeight,
-				psfHalfDepth);
-
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 0);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 1);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 0);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 1);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 0);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 1);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 0);
-		moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 1);
-
-		clij2.release(temp);
-
-		return extendedKernel;
+		
+		if (convolution_kernel.getDimensions().length==3) {
+			long psfHalfWidth = convolution_kernel.getWidth() / 2;
+			long psfHalfHeight = convolution_kernel.getHeight() / 2;
+			long psfHalfDepth = convolution_kernel.getDepth() / 2;
+	
+			clij2.set(extendedKernel, 0);
+	
+			ClearCLBuffer temp = clij2.create(psfHalfWidth, psfHalfHeight,
+					psfHalfDepth);
+	
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 0);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 1);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 0);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 1);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 0);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 1);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 0);
+			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 1);
+	
+			clij2.release(temp);
+	
+			return extendedKernel;
+		} else if (convolution_kernel.getDimensions().length==2) {
+			long psfHalfWidth = convolution_kernel.getWidth() / 2;
+			long psfHalfHeight = convolution_kernel.getHeight() / 2;
+			
+			clij2.set(extendedKernel, 0);
+			ClearCLBuffer temp = clij2.create(psfHalfWidth, psfHalfHeight);
+	
+			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 0, 0);
+			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 0, 1);
+			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 1, 0);
+			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 1, 1);
+	
+			clij2.release(temp);
+	
+			return extendedKernel;
+		}
+		
+		return null;
 	}
 
 	/**
@@ -186,5 +214,19 @@ public class OpenCLFFTUtility {
 				.getHeight()) * (1.0 - factorY), (extendedKernel.getDepth() - temp
 				.getDepth()) * (1.0 - factorZ));
 	}
+
+	/**
+	 * Moves a quadrant of an image stack in a corner by mirroring it
+	 */
+	private static void moveCorner2D(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
+								   ClearCLBuffer temp, ClearCLBuffer extendedKernel, int factorX, int factorY)
+	{
+		clij2.crop(convolution_kernel, temp, temp.getWidth() * factorX, temp
+				.getHeight() * factorY);
+		clij2.paste(temp, extendedKernel, (extendedKernel.getWidth() - temp
+				.getWidth()) * (1.0 - factorX), (extendedKernel.getHeight() - temp
+				.getHeight()) * (1.0 - factorY));
+	}
+
 
 }
