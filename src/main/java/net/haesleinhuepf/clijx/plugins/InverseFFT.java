@@ -24,6 +24,17 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 		return result;
 	}
 	
+	public static ClearCLBuffer runInverseFFT(CLIJ2 clij2, ClearCLBuffer gpuFFT, long[] dims) {
+
+		// create GPU memory for FFT
+		ClearCLBuffer out = clij2.create(dims, NativeTypeEnum.Float);
+
+		runInverseFFT(clij2, gpuFFT, out);
+		
+		return out;
+	}
+
+	
 	/**
 	 * Run Inverse FFT on a CLBuffer
 	 * 

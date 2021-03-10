@@ -25,6 +25,19 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 		return result;
 	}
 	
+	public static ClearCLBuffer runFFT(CLIJ2 clij2, ClearCLBuffer gpuImg) {
+		
+		long[] dimensions = getFFTDimensions(gpuImg);
+
+		// create GPU memory for FFT
+		ClearCLBuffer gpuFFT = clij2.create(dimensions, NativeTypeEnum.Float);
+
+		boolean result = runFFT(clij2, gpuImg, gpuFFT);
+		
+		return gpuFFT;
+	}
+
+	
 	/**
 	 * Run FFT on a CLBuffer
 	 * 
@@ -75,10 +88,7 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 		return true;
 	}
 	
-	@Override
-	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
-		ClearCLBuffer in = (ClearCLBuffer) args[0];
-		
+	private static long[] getFFTDimensions(ClearCLBuffer in) {
 		long[] dimensions=new long[in.getDimensions().length];
 		
 		dimensions[0]=2*(in.getDimensions()[0]/2+1);
@@ -87,6 +97,15 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 			dimensions[d]=in.getDimensions()[d];
 		}
 		
+		return dimensions;
+	}
+	
+	@Override
+	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
+		ClearCLBuffer in = (ClearCLBuffer) args[0];
+		
+		long[] dimensions = getFFTDimensions(in);
+	
 		return getCLIJ2().create(dimensions, NativeTypeEnum.Float);
 	}
 
