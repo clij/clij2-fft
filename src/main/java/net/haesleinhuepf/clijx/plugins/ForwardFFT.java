@@ -116,7 +116,7 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 
 	@Override
 	public String getDescription() {
-		return "Performs forward FFT";
+		return "Performs forward FFT, currently only works on power of 2 or prime factorable numbers";
 	}
 
 	@Override

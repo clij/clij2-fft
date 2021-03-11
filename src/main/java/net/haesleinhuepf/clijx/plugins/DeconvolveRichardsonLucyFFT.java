@@ -316,7 +316,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getDescription() {
-		return "Applies Richardson-Lucy deconvolution using a Fast Fourier Transform using the clFFT library.";
+		return "Applies Richardson-Lucy deconvolution using a Fast Fourier Transform using the clFFT library.  Currently 3D images only";
 	}
 
 	@Override
