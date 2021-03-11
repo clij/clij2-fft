@@ -99,46 +99,46 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, 
 													  float regularizationFactor, boolean nonCirculant)
 	{
-		ClearCLBuffer input_float = input;
+		ClearCLBuffer inputFloat = input;
 		
-		boolean input_converted=false;
+		boolean inputConverted=false;
 		
-		if (input_float.getNativeType() != NativeTypeEnum.Float) {
-			input_float = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
-			clij2.copy(input, input_float);
-			input_converted=true;
+		if (inputFloat.getNativeType() != NativeTypeEnum.Float) {
+			inputFloat = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
+			clij2.copy(input, inputFloat);
+			inputConverted=true;
 		}
 
-		boolean psf_converted=false;
-		ClearCLBuffer psf_float = psf;
+		boolean psfConverted=false;
+		ClearCLBuffer psfFloat = psf;
 		if (psf.getNativeType() != NativeTypeEnum.Float) {
-			psf_float = clij2.create(psf
+			psfFloat = clij2.create(psf
 					.getDimensions(), NativeTypeEnum.Float);
-			clij2.copy(psf, psf_float);
-			psf_converted=true;
+			clij2.copy(psf, psfFloat);
+			psfConverted=true;
 		}
 
 		// normalize PSF so that it's sum is one 
-		ClearCLBuffer psf_normalized = clij2.create(psf_float);
+		ClearCLBuffer psf_normalized = clij2.create(psfFloat);
 		
-		OpenCLFFTUtility.normalize(clij2, psf_float, psf_normalized);
+		OpenCLFFTUtility.normalize(clij2, psfFloat, psf_normalized);
 		
 		long start = System.currentTimeMillis();
 		
 		// deconvolve
-		extendAndDeconvolveRichardsonLucyFFT(clij2, input_float, 
+		extendAndDeconvolveRichardsonLucyFFT(clij2, inputFloat, 
 			psf_normalized, deconvolved, num_iterations, regularizationFactor, nonCirculant);
 
 		long end = System.currentTimeMillis();
 		
 		System.out.println("Deconvolve time "+(end-start));
 
-		if (input_converted) {
-			input_float.close();
+		if (inputConverted) {
+			inputFloat.close();
 		}
 		
-		if (psf_converted) {
-			psf_float.close();
+		if (psfConverted) {
+			psfFloat.close();
 		}
 		
 		psf_normalized.close();
@@ -163,45 +163,45 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations, float regularizationFactor, boolean nonCirculant)
 	{
 
-		ClearCLBuffer input_extended;
+		ClearCLBuffer inpuExtended;
 		
 		// if NOT non-circulant mode pad and mirror
 		if (!nonCirculant) {
-			input_extended = padFFTInputMirror(clij2, input, psf, ops);
+			inpuExtended = padFFTInputMirror(clij2, input, psf, ops);
 		}
 		// if in non-circulant mode pad with zeros
 		else {
-			input_extended = padFFTInputZeros(clij2, input, psf, ops);
+			inpuExtended = padFFTInputZeros(clij2, input, psf, ops);
 		}
 		
-		ClearCLBuffer deconvolved_extended = clij2.create(input_extended);
-		ClearCLBuffer psf_extended = clij2.create(input_extended);
+		ClearCLBuffer deconvolvedExtended = clij2.create(inpuExtended);
+		ClearCLBuffer psfExtended = clij2.create(inpuExtended);
 		
-		clij2.copy(input_extended, deconvolved_extended);
+		clij2.copy(inpuExtended, deconvolvedExtended);
 		
-		padShiftFFTKernel(clij2, psf, psf_extended);
+		padShiftFFTKernel(clij2, psf, psfExtended);
 		
-		long[] extendedDims = input_extended.getDimensions();
+		long[] extendedDims = inpuExtended.getDimensions();
 		long[] originalDims = input.getDimensions();
 	
 		ClearCLBuffer normalization_factor=null;
 		
 		if (nonCirculant) {
 			normalization_factor = createNormalizationFactor(clij2, new FinalDimensions(extendedDims[0],extendedDims[1],extendedDims[2]),  
-				new FinalDimensions(originalDims[0],originalDims[1],originalDims[2]), psf_extended);
+				new FinalDimensions(originalDims[0],originalDims[1],originalDims[2]), psfExtended);
 		
 			// for the non-circulant case the first guess needs to be a flat sheet
-			double mean=clij2.meanOfAllPixels(input_extended);
-			clij2.set(deconvolved_extended, mean);
+			double mean=clij2.meanOfAllPixels(inpuExtended);
+			clij2.set(deconvolvedExtended, mean);
 		}
 		
-		runRichardsonLucyGPU(clij2, input_extended, psf_extended, deconvolved_extended, normalization_factor, num_iterations, regularizationFactor);
+		runRichardsonLucyGPU(clij2, inpuExtended, psfExtended, deconvolvedExtended, normalization_factor, num_iterations, regularizationFactor);
 
-		cropExtended(clij2, deconvolved_extended, output);
+		cropExtended(clij2, deconvolvedExtended, output);
 		
-		clij2.release(psf_extended);
-		clij2.release(input_extended);
-		clij2.release(deconvolved_extended);
+		clij2.release(psfExtended);
+		clij2.release(inpuExtended);
+		clij2.release(deconvolvedExtended);
 
 		return true;
 	}

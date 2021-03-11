@@ -48,71 +48,71 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	}
 
 	/**
-	 * Convert image to float if not already float, 
+	 * Convert image to float if not already float, extend, then convolve 
 	 * 
 	 * @param clij2
 	 * @param input
-	 * @param convolution_kernel
-	 * @param destination
+	 * @param psf
+	 * @param convolved
 	 * @return
 	 */
 	public static boolean convolveFFT(CLIJ2 clij2, ClearCLBuffer input,
-		ClearCLBuffer convolution_kernel, ClearCLBuffer destination)
+		ClearCLBuffer psf, ClearCLBuffer convolved)
 	{
 
-		ClearCLBuffer input_float = input;
+		ClearCLBuffer inpuFloat = input;
 		
-		boolean input_converted = false;
+		boolean inputConverted = false;
 		
-		if (input_float.getNativeType() != NativeTypeEnum.Float) {
-			input_float = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
-			clij2.copy(input, input_float);
-			input_converted=true;
+		if (inpuFloat.getNativeType() != NativeTypeEnum.Float) {
+			inpuFloat = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
+			clij2.copy(input, inpuFloat);
+			inputConverted=true;
 		}
 
-		boolean psf_converted=false;
-		ClearCLBuffer convolution_kernel_float = convolution_kernel;
-		if (convolution_kernel.getNativeType() != NativeTypeEnum.Float) {
-			convolution_kernel_float = clij2.create(convolution_kernel
+		boolean psfConverted=false;
+		ClearCLBuffer psfFloat = psf;
+		if (psf.getNativeType() != NativeTypeEnum.Float) {
+			psfFloat = clij2.create(psf
 				.getDimensions(), NativeTypeEnum.Float);
-			clij2.copy(convolution_kernel, convolution_kernel_float);
-			psf_converted=true;
+			clij2.copy(psf, psfFloat);
+			psfConverted=true;
 		}
 
 		// extended input
-		ClearCLBuffer input_extended = padFFTInputZeros(clij2, input, convolution_kernel, ops);
+		ClearCLBuffer inputExtended = padFFTInputZeros(clij2, input, psf, ops);
 		
 		// create memory for extended psf and convolved
-		ClearCLBuffer psf_extended = clij2.create(input_extended);
-		ClearCLBuffer convolved_extended = clij2.create(input_extended);
+		ClearCLBuffer psf_extended = clij2.create(inputExtended);
+		ClearCLBuffer convolvedExtended = clij2.create(inputExtended);
 		
 		// extend kernel
-		padShiftFFTKernel(clij2, convolution_kernel_float, psf_extended);
+		padShiftFFTKernel(clij2, psfFloat, psf_extended);
 		
-		runConvolve(clij2, input_extended, psf_extended, convolved_extended, false);
+		runConvolve(clij2, inputExtended, psf_extended, convolvedExtended, false);
 		
 		clij2.release(psf_extended);
 
-		if (input_float != input) {
-			clij2.release(input_float);
+		if (inpuFloat != input) {
+			clij2.release(inpuFloat);
 		}
 
-		if (convolution_kernel_float != convolution_kernel) {
-			clij2.release(convolution_kernel_float);
+		if (psfFloat != psf) {
+			clij2.release(psfFloat);
 		}
 		
-		OpenCLFFTUtility.cropExtended(clij2, convolved_extended, destination);
+		OpenCLFFTUtility.cropExtended(clij2, convolvedExtended, convolved);
 	
 		clij2.release(psf_extended);
-		clij2.release(input_extended);
-		clij2.release(convolved_extended);
+		clij2.release(inputExtended);
+		clij2.release(convolvedExtended);
 		
-		if (input_converted) {
-			input_float.close();
+		if (inputConverted) {
+			inpuFloat.close();
 		}
 		
-		if (psf_converted) {
-			convolution_kernel_float.close();
+		if (psfConverted) {
+			psfFloat.close();
 		}
 		
 		
