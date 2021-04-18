@@ -2,6 +2,7 @@
 package net.haesleinhuepf.clijx.plugins;
 
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
+import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.imagej.ops.OpService;
 import net.imagej.ops.filter.pad.DefaultPadInputFFT;
@@ -91,13 +92,17 @@ public class OpenCLFFTUtility {
 		}
 
 		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
-
-		// extend image
-		RandomAccessibleInterval extended = (RandomAccessibleInterval) ops.run(DefaultPadInputFFT.class, img, extendedDimensions, false,
-			new OutOfBoundsConstantValueFactory<>(new FloatType(0)));
-	
-		// push extended image and psf to GPU
-		return  clij2.push(extended);
+		
+		ClearCLBuffer extended = clij2.create(extendedSize, NativeTypeEnum.Float);
+		
+		if (input.getDimensions().length==3) {
+			clij2.paste(input, extended, psf.getDimensions()[0]/2, psf.getDimensions()[1]/2, psf.getDimensions()[2]/2);
+		}
+		else {
+			clij2.paste(input, extended, psf.getDimensions()[0]/2, psf.getDimensions()[1]/2);
+		}
+		
+		return extended;
 		
 	}
 
