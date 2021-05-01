@@ -1,10 +1,12 @@
 run("Close All");
 
-open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
+open("/Users/haase/Downloads/images/Bars-G10-P15-stack-cropped.tif");
+//open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
 run("32-bit");
 image = getTitle();
 
-open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
+open("/Users/haase/Downloads/images/PSF-Bars-stack-cropped-64.tif");
+//open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
 run("32-bit");
 psf = getTitle();
 

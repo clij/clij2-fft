@@ -28,13 +28,13 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/macosx/" \
                -DCMAKE_CXX_COMPILER="g++" \
                -DCMAKE_CUDA_HOST_COMPILER="g++" \
-		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clfft-2.12.2-h83d4a3d_1/lib" ..
+		-DCLFFT_LIBRARY_DIR="/Users/haase/Downloads/clfft-2.12.2-h83d4a3d_1/lib" ..
         ;;
     windows-x86_64)
         $CMAKE -G"NMake Makefiles" \
 		       -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX="../../../lib/win64/" \
-               -DOPENCL_INCLUDE_DIR="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.2/include/" \
+               -DOPENCL_INCLUDE_DIR="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/include/" \
 		       -DCLFFT_LIBRARY_DIR="C:/OpenCL/clFFT-2.12.2-Windows-x64/lib64/import/" .. 
         nmake
         nmake install
