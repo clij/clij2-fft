@@ -150,7 +150,7 @@
 			</plugin>
 			
 			<!-- Use JavaCpp to create wrappers to native libraries -->
-			<!--<plugin>
+			<plugin>
 				<groupId>org.bytedeco</groupId>
 				<artifactId>javacpp</artifactId>
 				<version>1.3</version>
@@ -181,7 +181,7 @@
 						</configuration>
 					</execution>
 				</executions>
-			</plugin>-->
+			</plugin>
 			
 		</plugins>
 	</build>
