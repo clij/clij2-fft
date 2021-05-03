@@ -1252,7 +1252,7 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   unsigned long nFreq=(N0/2+1)*N1*N2;
      
   printf("Call deconv with long long pointers\n\n");
-  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long)d_observed, (long)d_psf, (long)d_estimate, (long)0, (long)context, (long)commandQueue, (long)deviceID); 
+  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)0, (long long)context, (long long)commandQueue, (long long)deviceID); 
     
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
