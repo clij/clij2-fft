@@ -14,7 +14,7 @@
 
 	<groupId>net.haesleinhuepf</groupId>
 	<artifactId>clij2-fft_</artifactId>
-	<version>2.2.0.14</version>
+	<version>2.2.0.15</version>
 
 	<name>clij2-fft</name>
 	<description>clij2 fft</description>
@@ -77,8 +77,9 @@
 		<package-name>net.haesleinhuepf</package-name>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Robert Haase, MPI CBG</license.copyrightOwners>
-		<scijava.app.directory>C:/programs/fiji-win64/Fiji.app/</scijava.app.directory>
-		<!--<scijava.app.directory>/home/rhaase/programs/fiji/Fiji.app/</scijava.app.directory>-->
+		<!--<scijava.app.directory>C:/programs/fiji-win64/Fiji.app/</scijava.app.directory>
+		<scijava.app.directory>/home/rhaase/programs/fiji/Fiji.app/</scijava.app.directory>-->
+		<scijava.app.directory>/Applications/Fiji.app/</scijava.app.directory>
 	</properties>
 
 	<dependencies>
