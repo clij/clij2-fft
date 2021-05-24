@@ -32,7 +32,6 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		
 		clij2fftWrapper.diagnostic();
 		
-
 		// launch IJ so we can interact with the inputs and outputs
 		ij.launch(args);
 
@@ -45,13 +44,13 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 			System.out.println(e);
 			return;
 		}
-
-		// load data
-	//	Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
-	//	Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
 		
-		Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
-		Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
+		// load data
+		Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
+		
+//		Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
+//		Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
 	
 		
 		//Dataset img = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");

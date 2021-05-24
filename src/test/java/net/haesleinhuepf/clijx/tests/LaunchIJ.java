@@ -49,12 +49,15 @@ public class LaunchIJ<T extends RealType<T> & NativeType<T>> {
 			System.out.println(e);
 			return;
 		}
-
+		
+		
+		Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/support/imagejMacros/DeconvolutionDemos/C1-YeastTNA1_1516_conv_RG_26oC_003_256xcropSub100.tif");
+		Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/support/imagejMacros/DeconvolutionDemos/gpsf_3D_1514_a3_001_WF-sub105crop64_zcentred.tif");
+  
 		// bridge....
 		// Dataset dataset = (Dataset)
 		// ij.io().open("/home/bnorthan/code/images/bridge.tif");
-		 Dataset dataset = (Dataset) ij.io().open("D:\\images/images/bridge.tif"); //
-		// now load data
+		// Dataset dataset = (Dataset) ij.io().open("D:\\images/images/bridge.tif"); //
 
 		// bars....
 		// Dataset dataset = (Dataset)
@@ -62,8 +65,8 @@ public class LaunchIJ<T extends RealType<T> & NativeType<T>> {
 		//Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
 
 		// create a PSF to test convolution
-		RandomAccessibleInterval<T> psf = (Img) ij.op().create().kernelGauss(4., dataset.numDimensions(),
-				new FloatType());
+		//RandomAccessibleInterval<T> psf = (Img) ij.op().create().kernelGauss(4., dataset.numDimensions(),
+		//		new FloatType());
 
 		clij2.show(dataset, "data");
 		clij2.show(psf, "psf");
