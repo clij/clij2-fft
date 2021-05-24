@@ -169,6 +169,8 @@ int getProgramFromFile(const char* fileName, char * program_str, size_t program_
   fread(program_str, sizeof(char), program_size, fp);
   fclose(fp);
 
+  return 0;
+
 }
 
 /**
@@ -1200,6 +1202,8 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
    // Release clFFT library. 
    clfftTeardown( );
+
+   return 0;
 
 }
 
