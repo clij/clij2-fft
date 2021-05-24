@@ -16,6 +16,7 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/linux64/" \
                -DCMAKE_CXX_COMPILER="/usr/bin/g++" \
                -DCMAKE_CUDA_HOST_COMPILER="/usr/bin/g++" \
+               -DOPENCL_INCLUDE_DIR="/usr/local/cuda/include/" \
 		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clFFT-2.12.2-Linux-x64/lib64/" .. 
         make
         make install
