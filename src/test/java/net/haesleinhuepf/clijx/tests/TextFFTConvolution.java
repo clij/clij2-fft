@@ -71,8 +71,8 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 		//Dimensions dimsToTry = new FinalDimensions(512,512);
 		
 		// bars....
-		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
-		Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
+		Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		//Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
 		Dimensions dimsToTry = new FinalDimensions(215,215,64);
 	
 		// we can find the supported FFT size using ops.  So could re-use or re-implement this in CLIJ

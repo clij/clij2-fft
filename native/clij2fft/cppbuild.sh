@@ -16,6 +16,7 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/linux64/" \
                -DCMAKE_CXX_COMPILER="/usr/bin/g++" \
                -DCMAKE_CUDA_HOST_COMPILER="/usr/bin/g++" \
+               -DOPENCL_INCLUDE_DIR="/usr/local/cuda/include/" \
 		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clFFT-2.12.2-Linux-x64/lib64/" .. 
         make
         make install
@@ -28,7 +29,7 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/macosx/" \
                -DCMAKE_CXX_COMPILER="g++" \
                -DCMAKE_CUDA_HOST_COMPILER="g++" \
-		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clfft-2.12.2-h83d4a3d_1/lib" ..
+		-DCLFFT_LIBRARY_DIR="/Users/haase/Downloads/clfft-2.12.2-h83d4a3d_1/lib" ..
         ;;
     windows-x86_64)
         $CMAKE -G"NMake Makefiles" \

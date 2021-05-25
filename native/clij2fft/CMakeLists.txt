@@ -1,6 +1,6 @@
 find_package(OpenCL)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+if (UNIX OR WIN32 AND NOT APPLE)
     FIND_PATH(OPENCL_INCLUDE_DIR ENV{OPENCL_INCLUDE_DIR} [DOC "Open CL include path"])
     include_directories( ${OPENCL_INCLUDE_DIR} )
 endif()

@@ -25,8 +25,8 @@ public class InteractiveFFT {
 		System.out.println(System.getProperty("java.library.path"));
 
 		// load the dataset
-//		Dataset dataset = (Dataset) ij.io().open("../../images/bridge.tif");
-		Dataset dataset = (Dataset) ij.io().open("D:\\images/images/bridge.tif");
+		Dataset dataset = (Dataset) ij.io().open("../../images/bridge.tif");
+//		Dataset dataset = (Dataset) ij.io().open("D:\\images/images/bridge.tif");
 
 		// convert to 32 bit 
 	//	Img<FloatType> img = ij.op().convert().float32((Img)dataset.getImgPlus().getImg());
