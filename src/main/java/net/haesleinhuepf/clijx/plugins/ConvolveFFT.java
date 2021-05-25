@@ -146,6 +146,8 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		InverseFFT.runInverseFFT(clij2, complexOutput, output);
 		
 		complexOutput.close();
+		gpuFFTImg.close();
+		gpuFFTPSF.close();
 	
 	}
 
