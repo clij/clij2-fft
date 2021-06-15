@@ -46,4 +46,7 @@ bin/
 build/
 __pycache__/
 
-
+# python
+*.pyc
+*.pyo
+*.egg-info
