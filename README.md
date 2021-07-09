@@ -6,7 +6,7 @@ Latest features and updates are tracked in the [Release Log](https://clij.github
 
 The clij2-fft project is built upon [clFFT](https://github.com/arrayfire/clFFT)  
 
-clij2-fft is shipped as part of [clij2](https://clij.github.io).  Follow [these instructions](https://clij.github.io/clij2-docs/installationInFiji) to install clij2. 
+clij2-fft is shipped as part of [clij2](https://clij.github.io).  Follow [these instructions](https://clij.github.io/clij2-docs/installationInFiji) to install clij2. You can then access Richardson Lucy Deconvolution via the CLIJ2-assistant as shown in [this video](https://clij.github.io/clij2-fft/docs/deconvolution/clij-decon.mp4).
 
 To build the code follow [these instructions](https://clij.github.io/clij2-fft/docs/buildlibs/build)
 
