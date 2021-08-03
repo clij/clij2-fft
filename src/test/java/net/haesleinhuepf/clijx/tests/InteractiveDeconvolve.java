@@ -10,6 +10,7 @@ import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.haesleinhuepf.clijx.plugins.Normalize;
 import net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility;
 import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
+import net.haesleinhuepf.clijx.CLIJx;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
@@ -46,13 +47,18 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		}
 		
 		// load data
-		Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
-		Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
+	//	Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+	//	Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
 		
-//		Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
-//		Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
+	//	Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
+	//	Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
+		
+		Dataset img = (Dataset) ij.io().open("D:\\images\\From Roman Guiet July 13th 2021\\clij_deconv_data\\D_X555_Ph488_Mit647_4-c3_crop1.tif");
+		Dataset psf = (Dataset) ij.io().open("D:\\\\images\\\\From Roman Guiet July 13th 2021\\\\clij_deconv_data\\\\PSF_w500_256x256x41_squared.tif");
+		
+	//	Dataset img = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\spheres_cropped.tiff");
+	//	Dataset psf = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\psf.tiff");
 	
-		
 		//Dataset img = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
 		//Dataset psf = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
 
@@ -79,14 +85,45 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 		ClearCLBuffer gpu_deconvolved_tv = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 
-		// deconvolve the image
-		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f, false);
-		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.0f, true);
-
-		RandomAccessibleInterval deconvolvedRAI = clij2.pullRAI(gpu_deconvolved);
+		boolean tile = false;
+		
+		if (!tile) {
+			// deconvolve the image
+			//DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f, false);
+			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.02f, false   );
+		}
+		else {
+			int numTilesX = 2;
+			int numTilesY = 2;
+			
+			int margin = 10;
+			
+			int tileWidth = (int)Math.floor(gpu_image.getWidth() / numTilesX);
+			int tileHeight = (int)Math.floor(gpu_image.getHeight() / numTilesY);
+			int tileDepth = (int)gpu_image.getDepth();
+			
+			CLIJx clijx=CLIJx.getInstance();
+			
+			for (int x = 0; x < numTilesX; x++) {
+				for (int y = 0; y < numTilesY; y++) {
+					System.out.println(x+" "+y);
+					ClearCLBuffer tempIn = clijx.pushTile(gpu_image, x, y, 0, tileWidth, tileHeight, tileDepth, margin, margin, 0);
+					ClearCLBuffer tempOut = clij2.create(tempIn.getDimensions(), NativeTypeEnum.Float);
+					DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, tempIn, gpu_psf, tempOut, 100, 0.0f, false);
+					
+					//clijx.show(tempOut, "tile");
+					clijx.pullTile(tempOut, gpu_deconvolved, x, y, 0, tileWidth, tileHeight, tileDepth, margin, margin, margin);
+				
+					
+				
+				
+				}
+			}
+		}
+		//RandomAccessibleInterval deconvolvedRAI = clij2.pullRAI(gpu_deconvolved);
 		RandomAccessibleInterval deconvolvedRAI_tv = clij2.pullRAI(gpu_deconvolved_tv);
 
-		clij2.show(deconvolvedRAI, "deconvolved");
+		//clij2.show(deconvolvedRAI, "deconvolved");
 		clij2.show(deconvolvedRAI_tv, "deconvolved tv");
 		//ij.ui().show("deconvolved", deconvolvedRAI);
 
