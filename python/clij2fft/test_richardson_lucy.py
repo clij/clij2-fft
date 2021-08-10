@@ -6,8 +6,13 @@ import numpy as np
 import time
 
 # open image and psf
-imgName='D:\\images/images/Bars-G10-P15-stack-cropped.tif'
-psfName='D:\\images/images/PSF-Bars-stack-cropped.tif'
+
+#imgName='D:\\images/images/Bars-G10-P15-stack-cropped.tif'
+#psfName='D:\\images/images/PSF-Bars-stack-cropped.tif'
+
+imgName='/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif'
+psfName='/home/bnorthan/code/images/PSF-Bars-stack-cropped.tif'
+
 img=io.imread(imgName)
 psf=io.imread(psfName)
 
