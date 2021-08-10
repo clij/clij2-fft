@@ -8,5 +8,5 @@ setup(name='clij2-fft',
       author_email='bnorthan@gmail.com',
       license='BSD',
       packages=find_packages(),
-      data_files=[('',['lib/win64/clij2fft.dll','lib/win64/clFFT.dll'])],
+      data_files=[('',['lib/win64/clij2fft.dll','lib/win64/clFFT.dll', 'lib/linux64/libclij2fft.so', 'lib/linux64/libclFFT.so.2'])],
       zip_safe=False)
