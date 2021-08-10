@@ -16,4 +16,6 @@ If you are a java programmer the clij2-fft test [here](https://github.com/clij/c
 
 If you are a script programmer these [scripting examples](https://github.com/clij/clij2-fft/tree/master/src/main/jython) may be helpful.  
 
+If you are a python programmer this [python example](https://github.com/clij/clij2-fft/tree/master/python/clij2fft/test_richardson_lucy.py) may be helpful.  
+
 Please note thus far only a small subset of potential algorithms have been implemented.  For example we have implemented 3D deconvolution but not 2D, and 2D FFT but not 3D.  If you are in need of a particular FFT flavor, or FFT based algorithm, please ask questions on the forum.  We can prioritize future work based on that feedback and also help others implement additional algorithms. 
