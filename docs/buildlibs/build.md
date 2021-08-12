@@ -21,6 +21,7 @@ The c++ library 'clij2fft' implements several FFT based algorithms built on top 
 2.  From the Command Prompt start a bash shell “C:\Program Files\Git\bin\sh.exe”  
 3.  Run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
 4.  If step 3 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correct locations.  
+5.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/win64/``` directory. 
 
 ### Linux
 
@@ -31,7 +32,12 @@ The c++ library 'clij2fft' implements several FFT based algorithms built on top 
 #### Linux/MacOSX Build Instructions
 
 2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
-3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correct locations.  
+3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correct locations.
+4.  The updated library (clij2fft.so) and dependencies should now be in the ```clij2-fft/lib/linux64/``` directory.
+
+### MacOSX and Mac Silicon Native M1
+
+Some users have successfully built the code in a Mac environment.  Currently we recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.    
 
 ## Build Java Wrapper and Plugin
 
