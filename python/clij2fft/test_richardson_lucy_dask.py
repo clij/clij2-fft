@@ -5,12 +5,22 @@ from richardson_lucy import richardson_lucy
 import matplotlib.pyplot as plt
 from clij2fft.libs import getlib
 
+# example inspired by code from https://github.com/psobolewskiPhD
+# and this forum discussion https://forum.image.sc/t/migrating-from-clij-to-pyclesperanto/54985/20
+
 # define image paths (change these to local paths)
 imgName='/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif'
 psfName='/home/bnorthan/code/images/PSF-Bars-stack-cropped.tif'
 
 # create a dask image
 dimage = dask_image.imread.imread(imgName)
+
+# chunk the image... the bars image likely fits into (most) GPUs memory so this
+# example is just illustrative of the API.  In a real scenario we want to make 
+# the chunk size the maximum size for which the image and temp buffers will fit in the 
+# the GPU.  (For Richardson Lucy we do calculations in 32 bit floating point and need
+# 6 copies of the image solve 6*S = GPU_Memory, and S will be the chunk size, then we (often)
+# fix z and choose x and y for S). s
 dimage_r = dimage.rechunk(chunks=(128, 128, 128)).astype(np.float32)
 
 # open the PSF, in this case don't make it a dask image
