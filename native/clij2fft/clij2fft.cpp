@@ -20,6 +20,11 @@
 #include "clij2fft.h"
 #include <iostream>
 
+#include "kernels/cle_totalvariationterm.h";
+
+#define MULTI "test" \
+"test test"
+
 #define MAX_SOURCE_SIZE (0x100000)
 
 // Author: Brian Northan
@@ -122,14 +127,15 @@ const char * programString =                                       "\n" \
 "       }                           \n" \
 "    }                           \n" \
 "}                                                               \n" \
- 
+ "\n" ;
+
 
 
 
 /**
  * Get fileSize.  Ussually called before reading a kernel from a .cl file
  * 
- * **/                                                                "\n" ;
+ * **/                                                                
 size_t getFileSize(const char * fileName) {
 
     FILE *fp;
@@ -1092,23 +1098,16 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   cl_kernel kernelTV;
 
   if (tv==true) {
-    const char * fileName = "./lib/totalvariationterm.cl";
-    size_t sizer=getFileSize(fileName);
-    std::cout<<"size is "<<sizer<<"\n";
-
-    char * program_str = (char*)malloc(sizer);
-
-    getProgramFromFile(fileName, program_str, sizer);
-
-    std::cout<<program_str<<"\n";
-    
-    cl_program program2 = makeProgram(context, deviceID, program_str);
+   
+    //std::cout<< __cle_totalvariationterm_h <<"\n";
+    std::cout<<"\n\nCompile total variation kernel\n\n";
+    cl_program program2 = makeProgram(context, deviceID, __cle_totalvariationterm_h);
 
     kernelTV = clCreateKernel(program2, "totalVariationTerm", &ret);
 
     printf("\ncreate total variaton KERNEL in GPU %d\n", ret);
 
-    free(program_str);
+    //free(program_str);
   }
   else {
     kernelTV=NULL;
@@ -1175,7 +1174,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
         // multiply estimate by update factor 
         ret = callKernel(kernelMul, d_estimate, d_reblurred, d_estimate, n, commandQueue, globalItemSize, localItemSize);
       }
-
+ 
       if (d_normal!=NULL) {
         // divide estimate by normal
         ret = callKernel(kernelDiv, d_estimate, d_normal, d_estimate, n, commandQueue, globalItemSize, localItemSize);
@@ -1184,7 +1183,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
       ret = clFinish(commandQueue);
 
-      printf("Finished iteration %d\n",i);
+      printf("Iteration %d finished\n",i);
 
   }  
  

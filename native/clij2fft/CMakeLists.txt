@@ -1,9 +1,19 @@
+cmake_minimum_required(VERSION 3.16)
+
 find_package(OpenCL)
 
 if (UNIX OR WIN32 AND NOT APPLE)
     FIND_PATH(OPENCL_INCLUDE_DIR ENV{OPENCL_INCLUDE_DIR} [DOC "Open CL include path"])
     include_directories( ${OPENCL_INCLUDE_DIR} )
 endif()
+
+find_package(Python3 COMPONENTS Interpreter)
+
+add_custom_target(
+    generate_preamble ALL
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/stringify.py ${CMAKE_CURRENT_SOURCE_DIR}/totalvariationterm.cl ${CMAKE_CURRENT_SOURCE_DIR}/kernels/ 
+    COMMENT "Converting totalvarationterm.cl to string."
+)
 
 # find clFFT path
 FIND_PATH(CLFFT_LIBRARY_DIR $ENV{CLFFT_LIBRARY_DIR} [DOC "CLFFT library path"])
