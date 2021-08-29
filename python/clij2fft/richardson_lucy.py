@@ -2,7 +2,7 @@ from clij2fft.libs import getlib
 import numpy as np
 from clij2fft.pad import pad, get_pad_size, get_next_smooth, unpad
 
-def richardson_lucy(img, psf, numiterations, regularizationfactor, lib=None):
+def richardson_lucy(img, psf, numiterations, regularizationfactor=0, lib=None):
     """ perform Richardson-Lucy on img using psf.  The image is extended to the next
     smooth size because clfft only works on smooth sizes
 
@@ -43,9 +43,14 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor, lib=None):
     if (lib==None):
         print('get lib')
         lib = getlib()
+
+    print('hello!!!!!!')
     
     # deconvolution using clij2fft
-    lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+    if regularizationfactor==0:
+        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+    else:
+        lib.deconv3d_32f_tv(numiterations, 0.04, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
     
     # unpad and return
     return unpad(result, original_size)
