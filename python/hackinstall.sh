@@ -7,8 +7,22 @@
 mkdir lib
 cp -r ../lib/* lib
 
-# note we are installing in editable mode, however it seems in this case
+# note if we are installing in editable mode 
 # we have to put the libraries somewhere where python can find them. For me
-# that was anaconda3\envs\napari-env\Library\bin
+# that was anaconda3\envs\napari-env\Library\bin on windows
+# and /home/bnorthan/anaconda3/envs/tnia_deconware/lib/ on linux
+KERNEL=(`uname -s | tr [A-Z] [a-z]`)
+
+case $KERNEL in
+    linux)
+    cp -r ./lib/linux64/* /home/bnorthan/anaconda3/envs/tnia_deconware/lib/
+    echo 'linux'
+    ;;
+    *)
+    echo 'not linux'
+    ;;
+esac
+
 pip install -e .
-rm -rf lib
+#rm -rf lib
+
