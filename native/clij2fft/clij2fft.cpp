@@ -954,6 +954,10 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
 }
 
 int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out) {
+  return convcorr3d_32f(N0, N1, N2, h_image, h_psf, h_out, 0);
+}
+
+int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, bool correlate) {
 
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
@@ -991,7 +995,7 @@ int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, fl
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   printf("\ncopy to GPU  %d\n", ret);
 
-  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, 0, (long long)context, (long long)commandQueue, (long long)deviceID);
+  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, correlate, (long long)context, (long long)commandQueue, (long long)deviceID);
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
