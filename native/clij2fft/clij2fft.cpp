@@ -1216,7 +1216,7 @@ int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image
 
 }
 
-int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
+int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * h_normal) {
   
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
@@ -1244,6 +1244,7 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   printf("\ncreate gpu mem for psf %d\n", ret);
 	cl_mem d_estimate = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
   printf("\ncreate variable 3 %d\n", ret);
+	cl_mem d_normal = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
  
   printf("\nallocated memory\n");
 
@@ -1254,12 +1255,14 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   printf("\ncopy to GPU  %d\n", ret);
 	ret = clEnqueueWriteBuffer(commandQueue, d_estimate, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_out, 0, NULL, NULL);
   printf("\ncopy to GPU  %d\n", ret);
+	ret = clEnqueueWriteBuffer(commandQueue, d_normal, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_normal, 0, NULL, NULL);
+  printf("\ncopy to GPU  %d\n", ret);
 
   unsigned long n = N0*N1*N2;
   unsigned long nFreq=(N0/2+1)*N1*N2;
      
   printf("Call deconv with long long pointers\n\n");
-  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)0, (long long)context, (long long)commandQueue, (long long)deviceID); 
+  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)d_normal, (long long)context, (long long)commandQueue, (long long)deviceID); 
     
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -1268,6 +1271,7 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   clReleaseMemObject( d_estimate);
   clReleaseMemObject( d_observed );
   clReleaseMemObject( d_psf);
+  clReleaseMemObject( d_normal);
 
   // Release OpenCL working objects.
   clReleaseCommandQueue( commandQueue );
