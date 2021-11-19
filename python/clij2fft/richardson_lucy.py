@@ -80,7 +80,7 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     original_size = img.shape
 
     # compute the extended size    
-    extended_size = [img.shape[0]+psf.shape[0], img.shape[1]+psf.shape[1], img.shape[2]+psf.shape[2]]
+    extended_size = [img.shape[0]+2*int(psf.shape[0]/2), img.shape[1]+2*int(psf.shape[1]/2), img.shape[2]+2*int(psf.shape[2]/2)] 
     
     # the native code also only works with 7-smooth sizes so extend further to the next smooth size
     extended_size = get_next_smooth(extended_size)
