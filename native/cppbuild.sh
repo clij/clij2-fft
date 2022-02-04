@@ -92,3 +92,5 @@ for PROJECT in ${PROJECTS[@]}; do
     fi
 
 done
+
+cp -r ../lib/* ../python/lib
