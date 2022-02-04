@@ -2,7 +2,7 @@ from clij2fft.libs import getlib
 import numpy as np
 from clij2fft.pad import pad, get_pad_size, get_next_smooth, unpad
 
-def richardson_lucy(img, psf, numiterations, regularizationfactor=0, lib=None):
+def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess=None, lib=None):
     """ perform Richardson-Lucy on img using psf.  The image is extended to the next smooth size 
     because clfft only works on smooth sizes.  If additional extension is desired the image should 
     be extended before calling this function.  
@@ -34,11 +34,15 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, lib=None):
     # shift psf so center is at 0,0
     shifted_psf = np.fft.ifftshift(psf)
     
-    # memory for result
-    result = np.copy(img);
-
-    # normalization factor for edge smoothing (all ones means no edge normalization)
     normal=np.ones(img.shape).astype(np.float32)
+    
+    # memory for result
+    if (first_guess is None):
+        result = np.copy(img)
+    else:
+        print('copy first guess')
+        result = np.copy(normal)
+    # normalization factor for edge smoothing (all ones means no edge normalization)
 
     # if the lib wasn't passed get it
     if (lib==None):
