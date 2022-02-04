@@ -1,9 +1,6 @@
 from ctypes import *
 import numpy as np
 import numpy.ctypeslib as npct
-from skimage import io
-import matplotlib.pyplot as plt
-import time
 import os
 
 def getlib():
