@@ -91,7 +91,7 @@ const char * programString =                                       "\n" \
 "                                                                \n" \
 "    //Make sure we do not go out of bounds                      \n" \
 "    if (id < n)  {                                               \n" \
-"     if (true)  {                                               \n" \
+"     if (b[id]>0)  {                                               \n" \
 "        c[id] = a[id]/b[id];        \n" \
 "       }                           \n" \
 "       else {                           \n" \
