@@ -87,7 +87,7 @@ def pad(img, paddedsize, mode):
         [nd array]: padded image
     """
     padding = tuple(map(lambda i,j: ( math.ceil((i-j)/2), math.floor((i-j)/2) ),paddedsize,img.shape))
-    return np.pad(img, padding,mode)
+    return np.pad(img, padding,mode), padding
 
 def unpad(padded, imgsize):
     """ crop padded back to imgsize

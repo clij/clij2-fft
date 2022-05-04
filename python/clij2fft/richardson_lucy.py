@@ -23,17 +23,20 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
     psf=psf.astype(np.float32)
 
     original_size = img.shape
+
+    padded_size=[max(x,y) for x,y in zip(img.shape, psf.shape)]
     
     # native code only works with 7-smooth sizes
-    extended_size = get_next_smooth(img.shape)
+    extended_size = get_next_smooth(padded_size)
 
     # pad image and psf to next smooth size
-    img = pad(img, extended_size,'reflect')
-    psf = pad(psf, extended_size, 'constant')    
+    img, _ = pad(img, extended_size,'reflect')
+    psf, _ = pad(psf, extended_size, 'constant')    
 
     # shift psf so center is at 0,0
     shifted_psf = np.fft.ifftshift(psf)
     
+    # normalization factor for edge smoothing (all ones means no edge normalization)
     normal=np.ones(img.shape).astype(np.float32)
     
     # memory for result
@@ -42,7 +45,6 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
     else:
         print('copy first guess')
         result = np.copy(normal)
-    # normalization factor for edge smoothing (all ones means no edge normalization)
 
     # if the lib wasn't passed get it
     if (lib==None):
@@ -80,6 +82,8 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     img=img.astype(np.float32)
     psf=psf.astype(np.float32)
 
+    psf=psf/psf.sum()
+
     # keep track of the original size
     original_size = img.shape
 
@@ -90,8 +94,8 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     extended_size = get_next_smooth(extended_size)
 
     # pad image and psf to the extended size computed above
-    img = pad(img, extended_size,'constant')
-    psf = pad(psf, extended_size, 'constant')    
+    img, padding = pad(img, extended_size,'constant')
+    psf, _ = pad(psf, extended_size, 'constant')    
 
     # shift psf so center is at 0,0
     shifted_psf = np.fft.ifftshift(psf)
@@ -108,7 +112,7 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
 	# calculate the start and end of the original image space within the extended image space
     # we call this the valid region 
     for d in range(3):
-        start[d] = int((extended_size[d]-original_size[d])/2)
+        start[d] = padding[d][0]#int((extended_size[d]-original_size[d])/2)
         end[d]=int(start[d]+original_size[d])
 
     valid=np.zeros(extended_size).astype(np.float32)
@@ -124,7 +128,7 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1)
 
     # get rid of any zeros in the normal to avoid divide by zero issues
-    normal[normal<0.00001]=1
+    #normal[normal<0.00001]=1
 
     # deconvolution using clij2fft
     if regularizationfactor==0:
