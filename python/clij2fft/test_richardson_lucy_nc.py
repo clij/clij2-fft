@@ -4,6 +4,7 @@ from clij2fft.pad import pad, get_pad_size, get_next_smooth, unpad
 from skimage.io import imread
 from tnia.deconvolution.psfs import gibson_lanni_3D
 from tnia.plotting.projections import show_xyz_max
+from tnia.viewing.napari_helper import show_image
 
 set = 1
 
@@ -11,6 +12,8 @@ if set==1:
     input_name="D:\\images\\ABRF LMRG Image Analysis Study\\nuclei\\nuclei4_out_c90_dr10_image.tif"
     input_name="D:\\images\\ABRF LMRG Image Analysis Study\\nuclei\\nuclei2_out_c90_dr90_image.tif"
     #im[:,:,:]=1
+
+    input_name='/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif'
 
     xy_psf_dim=65
     z_psf_dim=50
@@ -42,10 +45,9 @@ elif set==2:
     emission = 0.654
    
 im=imread(input_name).astype('float32')
+
 psf = gibson_lanni_3D(NA, ni, ns, xy_pixel_size, z_pixel_size, xy_psf_dim, z_psf_dim, 0, emission)
-#plt.imshow(psf_xyz[int(size[0]/2),:,:])
 show_xyz_max(psf)
-print(psf.shape)
 
 # native code only works with 32 bit floats
 img=im.astype(np.float32)
@@ -99,12 +101,6 @@ lib.deconv3d_32f(100, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), i
 # unpad and return
 decon = unpad(result, original_size)
 
-from tnia.viewing.napari_helper import show_image
-
 #viewer=show_image(normal, "normal")
-viewer=show_image(img, "img")
-show_image(result, "result", viewer=viewer)
-
-#show_xyz_max(decon)
-#import matplotlib.pyplot as plt
-#plt.show()
+viewer=show_image(im, "img")
+show_image(decon, "decon", viewer=viewer)
