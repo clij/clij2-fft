@@ -60,8 +60,9 @@ extended_size = [img.shape[0]+psf.shape[0], img.shape[1]+psf.shape[1], img.shape
 extended_size = get_next_smooth(extended_size)
 
 # pad image and psf to next smooth size
-img = pad(img, extended_size,'constant')
-psf = pad(psf, extended_size, 'constant')    
+img, _ = pad(img, extended_size,'constant')
+psf, _ = pad(psf, extended_size, 'constant')    
+
 
 # shift psf so center is at 0,0
 shifted_psf = np.fft.ifftshift(psf)
