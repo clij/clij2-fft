@@ -10,10 +10,10 @@ extern "C" {
   __declspec(dllexport) int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long long d_image, long long d_psf, long long d_update, long long d_normal, long long l_context, long long l_queuee, long long l_device); 
   __declspec(dllexport) int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, long long d_image, long long d_psf, long long d_update, long long d_normal, long long l_context, long long l_queuee, long long l_device); 
   __declspec(dllexport) int fft2d_32f(size_t N1, size_t N2, float *h_image, float * h_out);
-  __declspec(dllexport) int fft2d_32f_lp(long long N1, long long N2, long long h_image, long long h_out, long long l_context, long long l_queue);
-  __declspec(dllexport)int fft3d_32f_lp(long long N0, long long N1, long long N2, long long d_image, long long d_out, long long l_context, long long l_queue);
   __declspec(dllexport) int fftinv2d_32f(size_t N1, size_t N2, float *h_fft, float * h_out);
+  __declspec(dllexport) int fft2d_32f_lp(long long N1, long long N2, long long h_image, long long h_out, long long l_context, long long l_queue);
   __declspec(dllexport) int fft2dinv_32f_lp(long long N1, long long N2, long long h_fft, long long h_out, long long l_context, long long l_queue);
+  __declspec(dllexport)int fft3d_32f_lp(long long N0, long long N1, long long N2, long long d_image, long long d_out, long long l_context, long long l_queue);
   __declspec(dllexport) int fft3dinv_32f_lp(long long N0, long long N1, long long N2, long long d_fft, long long d_out, long long l_context, long long l_queue);
   __declspec(dllexport) int diagnostic(); 
 }
