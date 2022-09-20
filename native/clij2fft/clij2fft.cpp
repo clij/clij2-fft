@@ -999,6 +999,16 @@ int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
+ 
+  // Release OpenCL memory objects. 
+  clReleaseMemObject( d_image);
+  clReleaseMemObject( d_psf);
+  clReleaseMemObject( d_out);
+
+  // Release OpenCL working objects.
+  clReleaseCommandQueue( commandQueue );
+  clReleaseContext( context );
+ 
 
   return 0;
 }
@@ -1096,7 +1106,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   printf("\ncreate Divide KERNEL in GPU %d\n", ret);
 
   // Create remove small values kernel
-	cl_kernel kernelRemoveSamllValues = clCreateKernel(program, "removeSmallValues", &ret);
+	cl_kernel kernelRemoveSmallValues = clCreateKernel(program, "removeSmallValues", &ret);
   printf("\ncreate remove small values kernel %d\n", ret);
 
   cl_kernel kernelTV;
@@ -1111,6 +1121,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
     printf("\ncreate total variaton KERNEL in GPU %d\n", ret);
 
+    clReleaseProgram(program2);
     //free(program_str);
   }
   else {
@@ -1133,19 +1144,25 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   printf("FFT of PSF %d\n", ret);
 
   if (d_normal!=NULL) {
-    ret = callInPlaceKernel(kernelRemoveSamllValues, d_normal, n, commandQueue, globalItemSize, localItemSize);
+    ret = callInPlaceKernel(kernelRemoveSmallValues, d_normal, n, commandQueue, globalItemSize, localItemSize);
     printf("\ncall remove small values kernel %d\n", ret);
   }
 
   for (int i=0;i<iterations;i++) {
       // FFT of estimate
       ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &d_estimate, &estimateFFT, NULL);
-      //printf("fft1 %d\n", ret);
+      
+      if (ret!=CL_SUCCESS) {
+        printf("fft1 %d\n", ret);
+      }
 
       // complex multipy estimate FFT and PSF FFT
       ret = callKernel(kernelComplexMultiply, estimateFFT, psfFFT, estimateFFT, nFreq, commandQueue, globalItemSizeFreq, localItemSize);
-      //printf("kernel complex %d\n", ret);
       
+      if (ret!=0) {
+        printf("kernel complex %d\n", ret);
+      }
+
       // Inverse to get reblurred
       ret = clfftEnqueueTransform(planHandleBackward, CLFFT_BACKWARD, 1, &commandQueue, 0, NULL, NULL, &estimateFFT, &d_reblurred, NULL);
       //printf("fft2 %d\n", ret);
@@ -1201,7 +1218,20 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   }
 
    // Release the plan. 
+   ret = clfftDestroyPlan( &planHandleForward );
    ret = clfftDestroyPlan( &planHandleBackward );
+
+  clReleaseKernel(kernelComplexMultiply);
+  clReleaseKernel(kernelComplexConjugateMultiply);
+  clReleaseKernel(kernelDiv);
+  clReleaseKernel(kernelMul);
+  clReleaseKernel(kernelRemoveSmallValues);
+
+  clReleaseProgram(program);
+
+  if (tv==true) {
+    clReleaseKernel(kernelTV);
+  }
 
    // Release clFFT library. 
    clfftTeardown( );
@@ -1217,7 +1247,7 @@ int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image
 }
 
 int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * h_normal) {
-  
+
   cl_platform_id platformId = NULL;
 	cl_device_id deviceID = NULL;
 	cl_uint retNumDevices;
@@ -1281,7 +1311,6 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
 }
 
 int diagnostic() {
-
 
   char buff[FILENAME_MAX];
   GetCurrentDir( buff, FILENAME_MAX );
