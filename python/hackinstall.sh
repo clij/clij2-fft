@@ -4,6 +4,14 @@
 # installs the clij2fft python package then
 # deletes the lib directory
 
+echo 'building native code'
+cd ../native
+bash cppbuild.sh
+cd ../python
+# currently
+
+echo 'copying libs'
+
 mkdir lib
 cp -r ../lib/* lib
 
@@ -15,11 +23,12 @@ KERNEL=(`uname -s | tr [A-Z] [a-z]`)
 
 case $KERNEL in
     linux)
-    cp -r ./lib/linux64/* /home/bnorthan/anaconda3/envs/tnia_deconware/lib/
     echo 'linux'
+    cp -r ./lib/linux64/* /home/bnorthan/anaconda3/envs/tnia_deconware/lib/
     ;;
     *)
     echo 'not linux'
+    cp -r ./lib/win64/* /c/Users/bnort/miniconda3/envs/tnia_deconware/Library/bin/
     ;;
 esac
 
