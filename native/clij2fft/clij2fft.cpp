@@ -1282,7 +1282,8 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
 	cl_command_queue commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
   if (ret!=CL_SUCCESS) {
     printf("Error %d occurred in clCreateCommandQueue", ret);
-    goto cleanup1;
+    //goto cleanup1;
+    return ret;
   }
 
   // create device memory buffers for each array
@@ -1295,7 +1296,8 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
  
   if (ret!=CL_SUCCESS) {
     printf("Error %d occurred allocating memory", ret);
-    goto cleanup3;
+    //goto cleanup3;
+    return ret;
   }
 
   // Copy lists to memory buffers
