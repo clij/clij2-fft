@@ -946,6 +946,12 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
    // Release the plan. 
    ret = clfftDestroyPlan( &planHandleForward);
    ret = clfftDestroyPlan( &planHandleBackward );
+   
+   // release kernels
+   clReleaseKernel(kernel);
+   
+   // release program
+   ret = clReleaseProgram(program);
 
    // Release clFFT library. 
    clfftTeardown( );
@@ -1206,8 +1212,8 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
       printf("Iteration %d finished\n",i);
 
-  }  
- 
+  } 
+
    // Release OpenCL memory objects. 
   clReleaseMemObject( d_reblurred);
   clReleaseMemObject( psfFFT );
@@ -1254,29 +1260,43 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
 	cl_uint retNumPlatforms;
 
   cl_int ret = clGetPlatformIDs(1, &platformId, &retNumPlatforms);
-  printf("\ncreated platform %d \n",ret);
-	
+  if (ret!=CL_SUCCESS) {
+    printf("Error %d occurred in clGetPlatfromIDs", ret);
+    return ret;
+  }
+
   ret = clGetDeviceIDs(platformId, CL_DEVICE_TYPE_DEFAULT, 1, &deviceID, &retNumDevices);
-  printf("\nget device IDs %d \n",ret);
-	
+  if (ret!=CL_SUCCESS) {
+    printf("Error %d occurred in clGetDeviceIDs", ret);
+    return ret;
+  }
+  
   // Creating context.
 	cl_context context = clCreateContext(NULL, 1, &deviceID, NULL, NULL,  &ret);
-  printf("created context %d\n", ret);
-
+  if (ret!=CL_SUCCESS) {
+    printf("Error %d occurred in clCreateContext", ret);
+    return ret;
+  }
+  
 	// Creating command queue
 	cl_command_queue commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
-  printf("created command queue %d\n", ret);
+  if (ret!=CL_SUCCESS) {
+    printf("Error %d occurred in clCreateCommandQueue", ret);
+    goto cleanup1;
+  }
 
   // create device memory buffers for each array
 	cl_mem d_observed = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
-  printf("\ncreate gpu mem for image %d\n", ret);
 	cl_mem d_psf = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
-  printf("\ncreate gpu mem for psf %d\n", ret);
 	cl_mem d_estimate = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
-  printf("\ncreate variable 3 %d\n", ret);
 	cl_mem d_normal = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
  
   printf("\nallocated memory\n");
+ 
+  if (ret!=CL_SUCCESS) {
+    printf("Error %d occurred allocating memory", ret);
+    goto cleanup3;
+  }
 
   // Copy lists to memory buffers
 	ret = clEnqueueWriteBuffer(commandQueue, d_observed, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_image, 0, NULL, NULL);;
@@ -1296,17 +1316,19 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
     
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
- 
-  // Release OpenCL memory objects. 
-  clReleaseMemObject( d_estimate);
-  clReleaseMemObject( d_observed );
-  clReleaseMemObject( d_psf);
-  clReleaseMemObject( d_normal);
 
-  // Release OpenCL working objects.
-  clReleaseCommandQueue( commandQueue );
-  clReleaseContext( context );
-  
+  cleanup3:
+    // Release OpenCL memory objects. 
+    clReleaseMemObject( d_estimate);
+    clReleaseMemObject( d_observed );
+    clReleaseMemObject( d_psf);
+    clReleaseMemObject( d_normal);
+  cleanup2:
+    // Release OpenCL working objects.
+    clReleaseCommandQueue( commandQueue );
+  cleanup1:
+    clReleaseContext( context );
+
   return ret;
 }
 
