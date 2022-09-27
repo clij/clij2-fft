@@ -68,10 +68,13 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 		// bridge....
 		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/bridge.tif");
 		//Dataset dataset = (Dataset) ij.io().open("D:\\images/images/bridge.tif");		// now load data
+		
+		// boats
+		Dataset dataset = (Dataset) ij.io().open("D:\\images/images/boats.tif");		// now load data
 		//Dimensions dimsToTry = new FinalDimensions(512,512);
 		
 		// bars....
-		Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
 		//Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
 		Dimensions dimsToTry = new FinalDimensions(215,215,64);
 	
