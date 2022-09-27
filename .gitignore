@@ -53,3 +53,6 @@ __pycache__/
 python/dist
 python/lib
 
+# visual studio
+native/Visual_Studio/
+
