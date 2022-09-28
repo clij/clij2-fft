@@ -21,9 +21,9 @@ On the left hand pane run 'All Build' and 'INSTALL'
 
 (This step is only needed is you want to step through both java and c++ code.   Alternatively you could simply start a copy of Fiji with a debug version of clij2-fft installed.)
 
-You need to start ImageJ with a test Java program similar to [this one]().
+You need to start ImageJ with a test Java program similar to [this one](https://github.com/clij/clij2-fft/blob/master/src/test/java/net/haesleinhuepf/clijx/tests/LaunchIJ.java).
 
-Then you need to put the functionality you want to test in a command.
+Then you need to put the functionality you want to test in a [Command](https://github.com/clij/clij2-fft/blob/master/src/main/java/net/haesleinhuepf/clijx/plugins/FFTFilterCommand.java).
 
 Note.  When testing just the java code we often just run everything in a single test class.  However we need to attach the c++ debugger to a running process, so we first start an Instance of ImageJ, then attach, then run the code we want to test as a command. 
 
