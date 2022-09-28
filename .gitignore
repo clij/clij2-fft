@@ -52,6 +52,7 @@ __pycache__/
 *.egg-info
 python/dist
 python/lib
+python/.ipynb_checkpoints/
 
 # visual studio
 native/Visual_Studio/
