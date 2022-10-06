@@ -163,25 +163,25 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations, float regularizationFactor, boolean nonCirculant)
 	{
 
-		ClearCLBuffer inpuExtended;
+		ClearCLBuffer inputExtended;
 		
 		// if NOT non-circulant mode pad and mirror
 		if (!nonCirculant) {
-			inpuExtended = padFFTInputMirror(clij2, input, psf, ops);
+			inputExtended = padFFTInputMirror(clij2, input, psf, ops);
 		}
 		// if in non-circulant mode pad with zeros
 		else {
-			inpuExtended = padFFTInputZeros(clij2, input, psf, ops);
+			inputExtended = padFFTInputZeros(clij2, input, psf, ops);
 		}
 		
-		ClearCLBuffer deconvolvedExtended = clij2.create(inpuExtended);
-		ClearCLBuffer psfExtended = clij2.create(inpuExtended);
+		ClearCLBuffer deconvolvedExtended = clij2.create(inputExtended);
+		ClearCLBuffer psfExtended = clij2.create(inputExtended);
 		
-		clij2.copy(inpuExtended, deconvolvedExtended);
+		clij2.copy(inputExtended, deconvolvedExtended);
 		
 		padShiftFFTKernel(clij2, psf, psfExtended);
 		
-		long[] extendedDims = inpuExtended.getDimensions();
+		long[] extendedDims = inputExtended.getDimensions();
 		long[] originalDims = input.getDimensions();
 	
 		ClearCLBuffer normalization_factor=null;
@@ -191,16 +191,16 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 				new FinalDimensions(originalDims[0],originalDims[1],originalDims[2]), psfExtended);
 		
 			// for the non-circulant case the first guess needs to be a flat sheet
-			double mean=clij2.meanOfAllPixels(inpuExtended);
+			double mean=clij2.meanOfAllPixels(inputExtended);
 			clij2.set(deconvolvedExtended, mean);
 		}
 		
-		runRichardsonLucyGPU(clij2, inpuExtended, psfExtended, deconvolvedExtended, normalization_factor, num_iterations, regularizationFactor);
+		runRichardsonLucyGPU(clij2, inputExtended, psfExtended, deconvolvedExtended, normalization_factor, num_iterations, regularizationFactor);
 
 		cropExtended(clij2, deconvolvedExtended, output);
 		
 		clij2.release(psfExtended);
-		clij2.release(inpuExtended);
+		clij2.release(inputExtended);
 		clij2.release(deconvolvedExtended);
 
 		return true;
