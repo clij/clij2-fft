@@ -53,17 +53,7 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 			return;
 		}
 		
-		// TODO 1: Find supported FFT size FFT has optimal speed at power of 2.  Thus some implementations pad to power of 2
-		// sometimes it is not desirable to pad so much (what if your size is 129?).  FFT is also efficient at "smooth' numbers
-		// To further complicate things some FFT implementations only work for power of 2 or a smooth number.  CLFFT only works 
-		// for smooth numbers. See https://ltfat.github.io/notes/ltfatnote017.pdf and 
-		// https://github.com/imagej/imagej-ops/blob/f4bb1c15ad5591874a823e710ddf9c7c0512afa3/src/main/java/net/imagej/ops/filter/fftSize/NextSmoothNumber.java
-		// so we will eventually need a way to pad arbitrary input size to a smooth number.  Currently in the decon this is done
-		// by pulling the image from GPU and using ops to pad, then pushing back. 
-		// See: https://github.com/clij/clij2-fft/blob/master/src/main/java/net/haesleinhuepf/clijx/plugins/OpenCLFFTUtility.java#L137
-		//
-		// In the example try changing 'widthToTry' to 511... you should an empty result because this example does not pad to a smooth size
-		// and we don't yet handle the error properly.
+		// open test dataset
 		
 		// bridge....
 		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/bridge.tif");
@@ -76,21 +66,34 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 		// bars....
 		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
 		//Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
-		Dimensions dimsToTry = new FinalDimensions(215,215,64);
-	
+		
+		// TODO 1:  Need to have a utility that finds the supported FFT size. Fast FFT has optimal speed at power of 2.  Thus some implementations pad to power of 2
+		// sometimes it is not desirable to pad so much (what if your size is 129?).  FFT is also efficient at "smooth' numbers
+		// To further complicate things some FFT implementations only work for power of 2 or a smooth number.  CLFFT only works 
+		// for smooth numbers. See https://ltfat.github.io/notes/ltfatnote017.pdf and 
+		// https://github.com/imagej/imagej-ops/blob/f4bb1c15ad5591874a823e710ddf9c7c0512afa3/src/main/java/net/imagej/ops/filter/fftSize/NextSmoothNumber.java
+		// so we will eventually need a way to pad arbitrary input size to a smooth number.  Currently in the decon this is done
+		// by pulling the image from GPU and using ops to pad, then pushing back. 
+		// See: https://github.com/clij/clij2-fft/blob/master/src/main/java/net/haesleinhuepf/clijx/plugins/OpenCLFFTUtility.java#L137
+		//
+		
+		// In the example try changing 'dimensionsToTry' to 511... you should an empty result because this example does not pad to a smooth size
+		// and we don't yet handle the error properly.
+		Dimensions dimsToTry = new FinalDimensions(512,512,64);
+		
 		// we can find the supported FFT size using ops.  So could re-use or re-implement this in CLIJ
 		long[][] nextFastFFTDimensions=ij.op().filter().fftSize(dimsToTry, false);
 		System.out.println("next fast image size size "+nextFastFFTDimensions[0][0]+" "+nextFastFFTDimensions[0][1]);
 		System.out.println("size of resulting complex FFT "+nextFastFFTDimensions[1][0]+" "+nextFastFFTDimensions[1][1]);
 		System.out.println("note because of symmetrry FFT of real signal is apr. half of original size in first dimension");
 		
-		
-		// TODO 2 we need to convert to 32 because so far only 32 float FFT has been wrapped from clfft, 
+		// TODO 2 also support double precision FFT.  
+		// here we need to convert to 32 because so far only 32 float FFT has been wrapped from clfft, 
 		// the dimensionality, dimensions and precision is defined by a 'plan' 
 		// see here https://github.com/clij/clij2-fft/blob/master/native/clij2fft/clij2fft.cpp#L402
 		RandomAccessibleInterval<FloatType> img = ij.op().convert().float32((Img)dataset);
-		//img = (RandomAccessibleInterval)ij.op().transform().crop(img, Intervals.createMinMax(0,0,widthToTry-1, heightToTry-1));
-			
+		img = (RandomAccessibleInterval)ij.op().transform().crop(img, Intervals.createMinMax(0,0,dimsToTry.dimension(0)-1, dimsToTry.dimension(1)-1));
+		
 		// create a PSF to test convolution
 		RandomAccessibleInterval<T> psf=(Img)ij.op().create().kernelGauss(4., dataset.numDimensions(), new FloatType());
     
@@ -102,9 +105,7 @@ public class TextFFTConvolution<T extends RealType<T> & NativeType<T>> {
 		// see OpenCLFFTUtility.padShiftFFTKernel(clij2, gpu_psf_original, gpu_psf);
 		// so for our 2D example we'll use ops
 		psf = (RandomAccessibleInterval)ij.op().filter().padShiftFFTKernel(psf, img);	
-		
 		clij2.show(psf, "psf");
-
 		
 		ClearCLBuffer gpuImg= clij2.push(img);
 		ClearCLBuffer gpuPSF= clij2.push(psf);
