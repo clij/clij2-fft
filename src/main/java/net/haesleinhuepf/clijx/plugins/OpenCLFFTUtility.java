@@ -6,6 +6,7 @@ import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.imagej.ops.OpService;
 import net.imagej.ops.filter.pad.DefaultPadInputFFT;
+import net.imglib2.Dimensions;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
@@ -81,24 +82,40 @@ public class OpenCLFFTUtility {
 	 * @return
 	 */
 	public static ClearCLBuffer padFFTInputZeros(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer psf, OpService ops) {
-		
-		RandomAccessibleInterval img = clij2.pullRAI(input);
-
-		// compute extended dimensions based on image and PSF dimensions
-		long[] extendedSize = new long[img.numDimensions()];
-
-		for (int d = 0; d < img.numDimensions(); d++) {
-			extendedSize[d] = img.dimension(d) + psf.getDimensions()[d];
-		}
-
-		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
-		
-		ClearCLBuffer extended = clij2.create(extendedSize, NativeTypeEnum.Float);
-		
+		ClearCLBuffer extended = null;
+	
+		// the below code isn't very DRY, but we need to implemeent the same logic (compute extended size, compute
+		// next fast FFT size) for both 2D and 3D case
 		if (input.getDimensions().length==3) {
+			Dimensions dimsExtended = new FinalDimensions(input.getDimensions()[0]+psf.getDimensions()[0],
+					input.getDimensions()[1]+psf.getDimensions()[1],
+					input.getDimensions()[2]+psf.getDimensions()[2]);
+				
+			// we can find the supported FFT size using ops.  So could re-use or re-implement this in CLIJ
+			long[][] nextFastFFTDimensions=ops.filter().fftSize(dimsExtended, false);
+		
+			long[] extendedSize = new long[input.getDimensions().length];
+			
+			extendedSize[0]=nextFastFFTDimensions[0][0];
+			extendedSize[1]=nextFastFFTDimensions[0][1];
+			extendedSize[2]=nextFastFFTDimensions[0][2];
+			
+			extended = clij2.create(extendedSize, NativeTypeEnum.Float);
 			clij2.paste(input, extended, psf.getDimensions()[0]/2, psf.getDimensions()[1]/2, psf.getDimensions()[2]/2);
 		}
 		else {
+			Dimensions dimsExtended = new FinalDimensions(input.getDimensions()[0]+psf.getDimensions()[0],
+						input.getDimensions()[1]+psf.getDimensions()[1]);
+		
+			// we can find the supported FFT size using ops.  So could re-use or re-implement this in CLIJ
+			long[][] nextFastFFTDimensions=ops.filter().fftSize(dimsExtended, false);
+			
+			long[] extendedSize = new long[input.getDimensions().length];
+			
+			extendedSize[0]=nextFastFFTDimensions[0][0];
+			extendedSize[1]=nextFastFFTDimensions[0][1];
+			
+			extended = clij2.create(extendedSize, NativeTypeEnum.Float);
 			clij2.paste(input, extended, psf.getDimensions()[0]/2, psf.getDimensions()[1]/2);
 		}
 		
