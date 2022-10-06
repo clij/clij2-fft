@@ -41,8 +41,15 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	@Override
 	public boolean executeCL() {
 		
+		boolean correlate=false;
+		
+		if ((Double)args[3]>0) {
+			correlate=true;
+		}
+		
 		boolean result = convolveFFT(getCLIJ2(), (ClearCLBuffer) (args[0]),
-			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]));
+			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), correlate);
+		
 		return result;
 		
 	}
@@ -57,16 +64,16 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	 * @return
 	 */
 	public static boolean convolveFFT(CLIJ2 clij2, ClearCLBuffer input,
-		ClearCLBuffer psf, ClearCLBuffer convolved)
+		ClearCLBuffer psf, ClearCLBuffer convolved, boolean correlate)
 	{
 
-		ClearCLBuffer inpuFloat = input;
+		ClearCLBuffer inputFloat = input;
 		
 		boolean inputConverted = false;
 		
-		if (inpuFloat.getNativeType() != NativeTypeEnum.Float) {
-			inpuFloat = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
-			clij2.copy(input, inpuFloat);
+		if (inputFloat.getNativeType() != NativeTypeEnum.Float) {
+			inputFloat = clij2.create(input.getDimensions(), NativeTypeEnum.Float);
+			clij2.copy(input, inputFloat);
 			inputConverted=true;
 		}
 
@@ -89,18 +96,8 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		// extend kernel
 		padShiftFFTKernel(clij2, psfFloat, psf_extended);
 		
-		runConvolve(clij2, inputExtended, psf_extended, convolvedExtended, false);
-		
-		clij2.release(psf_extended);
-
-		if (inpuFloat != input) {
-			clij2.release(inpuFloat);
-		}
-
-		if (psfFloat != psf) {
-			clij2.release(psfFloat);
-		}
-		
+		runConvolve(clij2, inputExtended, psf_extended, convolvedExtended, correlate);
+	
 		OpenCLFFTUtility.cropExtended(clij2, convolvedExtended, convolved);
 	
 		clij2.release(psf_extended);
@@ -108,13 +105,12 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		clij2.release(convolvedExtended);
 		
 		if (inputConverted) {
-			inpuFloat.close();
+			inputFloat.close();
 		}
 		
 		if (psfConverted) {
 			psfFloat.close();
 		}
-		
 		
 		return true;
 	}
@@ -160,7 +156,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 
 	@Override
 	public String getParameterHelpText() {
-		return "Image input, Image convolution_kernel, ByRef Image destination";
+		return "Image input, Image convolution_kernel, ByRef Image destination, Boolean correlate";
 	}
 
 	@Override
@@ -191,6 +187,11 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	@Override
 	public String getCategories() {
 		return "Filter";
+	}
+	
+	@Override
+	public Object[] getDefaultValues() {
+		return new Object[] {null, null, null, 0};
 	}
 
 }
