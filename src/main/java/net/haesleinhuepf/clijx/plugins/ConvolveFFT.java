@@ -114,6 +114,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		
 		return true;
 	}
+	
 
 	/**
 	 * run convolution
@@ -193,5 +194,45 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	public Object[] getDefaultValues() {
 		return new Object[] {null, null, null, 0};
 	}
+
+	/**
+	 * (WIP)
+	 * run convolution using the conv3d_32f_lp API.  This only works for 3D because we don't have a conv2d_32f_lp.
+	 * 
+	 * @param clij2
+	 * @param gpuImg
+	 * @param gpuPSF
+	 * @param output
+	 * @param correlate
+	 * @return
+	 */
+	public static boolean runConvolve2(CLIJ2 clij2, ClearCLBuffer gpuImg,
+										 ClearCLBuffer gpuPSF, ClearCLBuffer output, boolean correlate)
+	{
+
+		// Get the CL Buffers, context, queue and device as long native pointers
+		long longPointerImg = ((NativePointerObject) (gpuImg.getPeerPointer()
+				.getPointer())).getNativePointer();
+		long longPointerPSF = ((NativePointerObject) (gpuPSF.getPeerPointer()
+				.getPointer())).getNativePointer();
+		long longPointerOutput = ((NativePointerObject) (output
+				.getPeerPointer().getPointer())).getNativePointer();
+	
+		long l_context = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+				.getPeerPointer().getPointer())).getNativePointer();
+		long l_queue = ((NativePointerObject) (clij2.getCLIJ().getClearCLContext()
+				.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
+		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
+				.getDevice().getPeerPointer().getPointer()).getNativePointer();
+
+		// call the decon wrapper (n iterations of RL)
+		clij2fftWrapper.conv3d_32f_lp(gpuImg.getDimensions()[0], gpuImg
+						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
+				longPointerPSF, longPointerOutput, correlate, l_context, l_queue,
+				l_device);
+
+		return true;
+	}
+	
 
 }
