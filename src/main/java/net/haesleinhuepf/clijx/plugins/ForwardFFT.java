@@ -69,13 +69,12 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 			.getDefaultQueue().getPeerPointer().getPointer())).getNativePointer();
 
 		if (gpuImg.getDimensions().length==2) {
-			// call the native code that runs the FFT
+			// call the 2D native code that runs the FFT
 			clij2fftWrapper.fft2d_32f_lp((long) (gpuImg.getWidth()), gpuImg.getHeight(),
 					l_in, l_out, l_context, l_queue);
 		}
-		
-		if (gpuImg.getDimensions().length==3) {
-			// call the native code that runs the FFT
+		else if (gpuImg.getDimensions().length==3) {
+			// call the 3D native code that runs the FFT
 			clij2fftWrapper.fft3d_32f_lp((long) (gpuImg.getWidth()), gpuImg.getHeight(), gpuImg.getDepth(),
 					l_in, l_out, l_context, l_queue);
 		}
