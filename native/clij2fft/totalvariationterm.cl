@@ -3,7 +3,7 @@ float hypot3(float a, float b, float c) {
     return sqrt(a*a+b*b+c*c);
 }
 
-double m(double a, double b) {
+float m(float a, float b) {
     if (a < 0 && b < 0) {
         if (a >= b) return a;
         return b;
@@ -14,6 +14,7 @@ double m(double a, double b) {
     }
     return 0.0;
 }
+
 /**
  * This kernel implements the correction term for Richardson-Lucy algorithm with total variation
  * regularization for 3D confocal microscope deconvolution Microsc Res Rech 2006
@@ -31,7 +32,7 @@ __kernel void totalVariationTerm(  __global float *estimate, global float * corr
     
     int NxNy=Nx*Ny;
     
-    double FLOAT32_EPS = 0.0;
+    float FLOAT32_EPS = 0.0;
     
     //Get 3D global thread IDs               
     int i = get_global_id(0);              

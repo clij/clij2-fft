@@ -4,7 +4,7 @@
 "    return sqrt(a*a+b*b+c*c);\n" \
 "}\n" \
 "\n" \
-"double m(double a, double b) {\n" \
+"float m(float a, float b) {\n" \
 "    if (a < 0 && b < 0) {\n" \
 "        if (a >= b) return a;\n" \
 "        return b;\n" \
@@ -15,6 +15,7 @@
 "    }\n" \
 "    return 0.0;\n" \
 "}\n" \
+"\n" \
 "/**\n" \
 " * This kernel implements the correction term for Richardson-Lucy algorithm with total variation\n" \
 " * regularization for 3D confocal microscope deconvolution Microsc Res Rech 2006\n" \
@@ -32,7 +33,7 @@
 "    \n" \
 "    int NxNy=Nx*Ny;\n" \
 "    \n" \
-"    double FLOAT32_EPS = 0.0;\n" \
+"    float FLOAT32_EPS = 0.0;\n" \
 "    \n" \
 "    //Get 3D global thread IDs               \n" \
 "    int i = get_global_id(0);              \n" \
