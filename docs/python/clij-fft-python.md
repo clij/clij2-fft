@@ -1,6 +1,9 @@
-## Install
+## Install from PIP (work in progress test version)
 
-(if testing in new conda environment install pip ```conda install -c anaconda pip```)
+(if testing in new conda environment install pip)   
+```conda install -c anaconda pip```  
+
+then  
 
 ```pip install --index-url https://test.pypi.org/simple/ --no-deps clij2-fft```  
 
