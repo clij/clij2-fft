@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Scripts to build and install native C++ libraries
 # Adapted from https://github.com/bytedeco/javacpp-presets
+
+# Please note this script requires clfft to be on the system
+# The script passes the location of clfft to cmake.  We assume
+# a "typical" location for clfft for each OS however it may be 
+# different on your system.  Check -DCLFFT_LIBRARY_DIR variable
+# and change this if clfft is in a different location on your 
+# system.
+
 set -eu
 
 if [[ -z "$PLATFORM" ]]; then
@@ -21,15 +29,29 @@ case $PLATFORM in
         make
         make install
         ;;
-    macosx-*)
+    macosx-x86_64)
         # the following line might not be necessary if make would be properly installed in the path
-        CMAKE=/Applications/CMake.app/Contents/bin/cmake
+        CMAKE=(`which cmake`)
         
         $CMAKE -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX="../../../lib/macosx/" \
                -DCMAKE_CXX_COMPILER="g++" \
                -DCMAKE_CUDA_HOST_COMPILER="g++" \
-		-DCLFFT_LIBRARY_DIR="/Users/haase/Downloads/clfft-2.12.2-h83d4a3d_1/lib" ..
+		       -DCLFFT_LIBRARY_DIR="/opt/homebrew/opt/clfft/lib" ..
+        make
+        make install
+        ;;
+    macosx-arm64)
+        # the following line might not be necessary if make would be properly installed in the path
+        CMAKE=(`which cmake`)
+        
+        $CMAKE -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX="../../../lib/macosx-arm64/" \
+               -DCMAKE_CXX_COMPILER="g++" \
+               -DCMAKE_CUDA_HOST_COMPILER="g++" \
+		       -DCLFFT_LIBRARY_DIR="/opt/homebrew/opt/clfft/lib" ..
+        make
+        make install
         ;;
     windows-x86_64)
         $CMAKE -G"NMake Makefiles" \
