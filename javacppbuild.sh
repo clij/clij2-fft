@@ -8,7 +8,7 @@ source cppbuild.sh
 cd ..
 
 # now call mvn as part of the maven build the javacpp wrapper will be generated
-mvn
+mvn install -Dgpg.skip
 
 # copy the javacpp wrapper to the resource folder
 case $PLATFORM in
