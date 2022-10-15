@@ -53,7 +53,7 @@ public class LaunchIJ<T extends RealType<T> & NativeType<T>> {
 		int dataNum = 2;
 		
 		if (dataNum==0) {
-			// do nothing load data
+			// do nothing 
 		}
 		// bridge
 		if (dataNum==1) {
