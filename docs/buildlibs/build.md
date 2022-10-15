@@ -43,7 +43,10 @@ Some users have successfully built the code in a Mac environment.  Currently we 
 
 1.  A 64 bit c++ compiler is needed to create the wrapper.  In windows from Start menu run ‘x64 Native Tools Command Prompt for VS 2019'.  In Linux/MacOsx make sure a 64 bit c++ compiler (ie gcc) is installed. 
 
-2. Simply run 'mvn' from the command line or GUI.   The maven build is set up to build native wrappers using [javacpp](https://github.com/bytedeco/javacpp) and pack the wrapper into the jar. 
+2. Run 'mvn install -Dgpg.skip' from the command line or GUI.
+   NOTE:  -Dgpg.skip is needed to skip signing if building for testing or local installation.  
+   
+4. The maven build is set up to build native wrappers using [javacpp](https://github.com/bytedeco/javacpp) and pack the wrapper into the jar. 
 
 ## Build Plugin Only and Install in Fiji
 
