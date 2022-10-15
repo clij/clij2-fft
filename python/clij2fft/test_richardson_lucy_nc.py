@@ -13,7 +13,7 @@ if set==1:
     input_name="D:\\images\\ABRF LMRG Image Analysis Study\\nuclei\\nuclei2_out_c90_dr90_image.tif"
     #im[:,:,:]=1
 
-    input_name='/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif'
+    #input_name='/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif'
 
     xy_psf_dim=65
     z_psf_dim=50
