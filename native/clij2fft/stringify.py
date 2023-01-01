@@ -2,8 +2,7 @@
 
 import sys, os
 
-for i in range(100):
-    print('we called python')
+print('calling python stringify')
 
 # stringify function for clij kernel
 def stringify_clij_code(fname, fout, prefix="cle_"):
@@ -21,8 +20,7 @@ def stringify_clij_code(fname, fout, prefix="cle_"):
                 clean_line = clean_line[0].replace(r'"', r'\"')
                 # BN: To get this working I had to add an extra space and backslash to the end of the line
                 clean_line = "\"{0}\\n\" \\\n".format(clean_line)
-                #clean_line = clean_line
-                print('line is: ',clean_line)
+                #print('line is: ',clean_line)
                 output_file.write(clean_line)
             else:
                 output_file.write("\"\\n\" \\\n")
