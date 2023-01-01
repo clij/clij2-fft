@@ -38,6 +38,7 @@ case $KERNEL in
             echo 'macosx-arm64'
             cp -r ./lib/macosx-arm64/* /home/bnorthan/anaconda3/envs/tnia_deconware/lib/
             ;;
+        esac
         ;;
     *)
     echo 'not linux'
