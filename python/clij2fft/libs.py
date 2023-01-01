@@ -2,6 +2,7 @@ from ctypes import *
 import numpy as np
 import numpy.ctypeslib as npct
 import os
+import sys
 
 def getlib():
     """
