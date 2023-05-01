@@ -138,3 +138,77 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     
     # unpad and return
     return unpad(result, original_size)
+
+
+def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0, valid=None, firstguess=None, lib=None):
+    """ perform Richardson-Lucy interpolated deconvolution on img using psf. The user passes in a map of valid pixels and deconvolution
+    is set up so non-valid values are 'interpolated'.  Non-valid values can be saturated areas, or areas between voxels (as to achieve sub-voxel resolution))
+    Note: the interpolated values may not be representative of true structure.  The quality of results is signal dependent. 
+
+    Note 2:  The algorithm is a general version of the non-circulant deconvolution algorithm implemented above.  If no valid is passed in, the algorithm
+    will behave exactly as the non-circulant algorithm above.  If valid is passed in, the algorithm will interpolate values in the non-valid region.  
+
+    Args:
+        img (numpy array): image to be deconvolved 
+        psf (numpy array): point spread function 
+        numiterations (int): [description]
+        regularizationfactor (float): used for total varation noise regularization
+        valid (numpy array, optional): [description]. Defaults to None. Map of valid pixels in the image
+        firstguess (numpy array, optional): [description]. Defaults to None. First guess for deconvolution
+        lib (numpy array, optional): pass in if clfft lib is already initialized
+
+    Returns:
+        [numpy array]: deconvolved image
+    """
+
+    # native code only works with 32 bit floats
+    img=img.astype(np.float32)
+    psf=psf.astype(np.float32)
+
+    original_size = img.shape
+
+    # if no valid map passed in all pixels are valid 
+    if valid is None:
+        valid=np.ones(img.shape).astype(np.float32)
+    
+    # compute the extended size    
+    extended_size = [img.shape[0]+2*int(psf.shape[0]/2), img.shape[1]+2*int(psf.shape[1]/2), img.shape[2]+2*int(psf.shape[2]/2)] 
+
+    # the native code also only works with 7-smooth sizes so extend further to the next smooth size
+    extended_size = get_next_smooth(extended_size)
+    
+    # pad image and psf and valid map to next smooth size
+    img, _ = pad(img, extended_size,'constant')
+    psf, _ = pad(psf, extended_size, 'constant')    
+    valid, _ = pad(valid, extended_size, 'constant')    
+
+    # shift psf so center is at 0,0
+    shifted_psf = np.fft.ifftshift(psf)
+    
+    # create result array which will be initialized to the first guess if passed in, otherwise to the mean of the image 
+    result = np.zeros(img.shape).astype('float32')
+
+    if firstguess is None:
+        result[:,:,:]=2*img.mean()
+    else:
+        result, _ = pad(firstguess, extended_size,'constant', constant_values=firstguess.mean())
+   
+    # if the lib wasn't passed get it
+    if (lib==None):
+        print('get lib')
+        lib = getlib()
+
+    normal=np.zeros(extended_size).astype(np.float32)
+    
+    # the normalization factor is the valid region correlated with the PSF
+    lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1)
+    
+    # deconvolution using clij2fft
+    if regularizationfactor==0:
+        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+    else:
+        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+    
+    # unpad and return
+    return unpad(result, original_size), normal, valid
+
