@@ -75,7 +75,7 @@ def get_pad_size(img, psf):
     return tuple(map(lambda i,j: i+2*math.floor(j/2),img.shape,psf.shape))
 
 
-def pad(img, paddedsize, mode):
+def pad(img, paddedsize, mode, constant_values=0):
     """ pad image to paddedsize
 
     Args:
@@ -87,7 +87,7 @@ def pad(img, paddedsize, mode):
         [nd array]: padded image
     """
     padding = tuple(map(lambda i,j: ( math.ceil((i-j)/2), math.floor((i-j)/2) ),paddedsize,img.shape))
-    return np.pad(img, padding,mode), padding
+    return np.pad(img, padding,mode, constant_values=constant_values), padding
 
 def unpad(padded, imgsize):
     """ crop padded back to imgsize
