@@ -48,6 +48,6 @@ case $KERNEL in
         ;;
     *)
     echo 'not linux'
-    cp -r ./lib/win64/* /c/Users/bnort/miniconda3/envs/decon-napari/Library/bin/
+    cp -r ./lib/win64/* /c/Users/bnort/miniconda3/envs/decon_bioformats/Library/bin/
     ;;
 esac
