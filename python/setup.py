@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='clij2-fft',
-      version='0.14',
+      version='0.15',
       description='A python wrapper around clij2 opencl FFT algorithms',
       url='https://github.com/clij/clij2-fft',
       author='Robert Haase, Brian Northan',
