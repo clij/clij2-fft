@@ -1148,7 +1148,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   clReleaseMemObject( psfFFT );
   clReleaseMemObject( estimateFFT );
 
-  if (tv=true) {
+  if (tv==true) {
     clReleaseMemObject(d_variation);
   }
 
