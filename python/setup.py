@@ -9,5 +9,5 @@ setup(name='clij2-fft',
       license='BSD',
       packages=find_packages(),
       install_requires=['numpy','dask','dask-image'],
-      data_files=[('Library/bin',['lib/win64/clij2fft.dll','lib/win64/clFFT.dll']), ('lib',['lib/linux64/libclij2fft.so', 'lib/linux64/libclFFT.so.2'])],
+      data_files=[('Library/bin',['lib/win64/clij2fft.dll','lib/win64/clFFT.dll']), ('lib',['lib/linux64/libclij2fft.so', 'lib/linux64/libclFFT.so.2', 'lib/macosx/libclij2fft.dylib', 'lib/macosx/libclFFT.dylib', 'lib/macosx-arm64/libclij2fft.dylib', 'lib/macosx-arm64/libclFFT.dylib'])],
       zip_safe=False)
