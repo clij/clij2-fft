@@ -96,6 +96,3 @@ for PROJECT in ${PROJECTS[@]}; do
 
 done
 
-# we need to copy the libs to another location under the python directory
-# in order for the setup script to find them
-cp -r ../lib/* ../python/lib
