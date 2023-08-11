@@ -37,7 +37,7 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/macosx/" \
                -DCMAKE_CXX_COMPILER="g++" \
                -DCMAKE_CUDA_HOST_COMPILER="g++" \
-		       -DCLFFT_LIBRARY_DIR="/opt/homebrew/opt/clfft/lib" ..
+		       -DCLFFT_LIBRARY_DIR="/usr/local/opt/clfft/lib" ..
         make
         make install
         ;;
