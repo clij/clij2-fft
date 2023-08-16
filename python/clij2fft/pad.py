@@ -33,7 +33,7 @@ def next_smooth(x):
     Returns:
         [type]: next smooth number larger than x
     """
-    z = int(4*math.log2(x))
+    z = int(10*math.log2(x))
     delta = 0.000001
 
     a = np.zeros(z)
@@ -87,8 +87,12 @@ def pad(img, paddedsize, mode, constant_values=0):
         [nd array]: padded image
     """
     padding = tuple(map(lambda i,j: ( math.ceil((i-j)/2), math.floor((i-j)/2) ),paddedsize,img.shape))
-    return np.pad(img, padding,mode, constant_values=constant_values), padding
 
+    if mode == 'constant':
+        return np.pad(img, padding,mode, constant_values=constant_values), padding
+    else:
+        return np.pad(img, padding,mode), padding
+    
 def unpad(padded, imgsize):
     """ crop padded back to imgsize
 
