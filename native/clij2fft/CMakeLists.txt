@@ -17,6 +17,9 @@ add_custom_target(
     COMMENT "Converting totalvarationterm.cl to string."
 )
 
+SET(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+SET(CMAKE_INSTALL_RPATH $ORIGIN)
+
 # find clFFT path
 FIND_PATH(CLFFT_LIBRARY_DIR $ENV{CLFFT_LIBRARY_DIR} [DOC "CLFFT library path" ])
 
