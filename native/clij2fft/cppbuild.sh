@@ -20,12 +20,13 @@ fi
 
 case $PLATFORM in
     linux-x86_64)
+        ln -sf libclFFT.so.2 ../../../lib/linux64/libclFFT.so
         $CMAKE -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX="../../../lib/linux64/" \
                -DCMAKE_CXX_COMPILER="/usr/bin/g++" \
                -DCMAKE_CUDA_HOST_COMPILER="/usr/bin/g++" \
                -DOPENCL_INCLUDE_DIR="/usr/local/cuda/include/" \
-		-DCLFFT_LIBRARY_DIR="/opt/OpenCL/clFFT-2.12.2-Linux-x64/lib64/" .. 
+		-DCLFFT_LIBRARY_DIR="../../../lib/linux64" .. 
         make
         make install
         ;;
@@ -42,6 +43,8 @@ case $PLATFORM in
         make install
         ;;
     macosx-arm64)
+        ln -sf libclFFT.2.dylib ../../../lib/macosx-arm64/libclFFT.dylib
+        
         # the following line might not be necessary if make would be properly installed in the path
         CMAKE=(`which cmake`)
         
@@ -49,7 +52,7 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/macosx-arm64/" \
                -DCMAKE_CXX_COMPILER="g++" \
                -DCMAKE_CUDA_HOST_COMPILER="g++" \
-		       -DCLFFT_LIBRARY_DIR="/opt/homebrew/opt/clfft/lib" ..
+		       -DCLFFT_LIBRARY_DIR="../../../lib/macosx-arm64" ..
         make
         make install
         ;;
