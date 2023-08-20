@@ -55,6 +55,7 @@ case $PLATFORM in
 		       -DCLFFT_LIBRARY_DIR="../../../lib/macosx-arm64" ..
         make
         make install
+	install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx-arm64/libclij2fft.dylib
         ;;
     windows-x86_64)
         $CMAKE -G"NMake Makefiles" \
