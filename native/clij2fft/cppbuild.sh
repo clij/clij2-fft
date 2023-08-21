@@ -38,9 +38,10 @@ case $PLATFORM in
                -DCMAKE_INSTALL_PREFIX="../../../lib/macosx/" \
                -DCMAKE_CXX_COMPILER="g++" \
                -DCMAKE_CUDA_HOST_COMPILER="g++" \
-		       -DCLFFT_LIBRARY_DIR="/usr/local/opt/clfft/lib" ..
+		       -DCLFFT_LIBRARY_DIR="../../../lib/macosx" ..
         make
         make install
+	install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx/libclij2fft.dylib
         ;;
     macosx-arm64)
         ln -sf libclFFT.2.dylib ../../../lib/macosx-arm64/libclFFT.dylib
