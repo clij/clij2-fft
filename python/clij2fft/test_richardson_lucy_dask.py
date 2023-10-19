@@ -9,11 +9,14 @@ from clij2fft.libs import getlib
 # and this forum discussion https://forum.image.sc/t/migrating-from-clij-to-pyclesperanto/54985/20
 
 # define image paths (change these to local paths)
-imgName='D:\\images/images/Bars-G10-P15-stack-cropped.tif'
-psfName='D:\\images/images/PSF-Bars-stack-cropped.tif'
+#imgName='D:\\images/images/Bars-G10-P15-stack-cropped.tif'
+#psfName='D:\\images/images/PSF-Bars-stack-cropped.tif'
 
 # imgName='/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif'
 # psfName='/home/bnorthan/code/images/PSF-Bars-stack-cropped.tif'
+
+imgName = '/home/bnorthan/code/i2k/tnia/deconvolution-gpu-dl-course/data/deconvolution/Bars-G10-P15-stack.tif'
+psfName = '/home/bnorthan/code/i2k/tnia/deconvolution-gpu-dl-course/data/deconvolution/PSF-Bars-stack.tif'
 
 # create a dask image
 dimage = dask_image.imread.imread(imgName)
