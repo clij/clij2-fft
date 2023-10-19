@@ -1,4 +1,4 @@
-## Install from PIP (work in progress test version)
+## Install from PIP
 
 ```pip install  clij2-fft```  
 
