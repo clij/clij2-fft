@@ -1,8 +1,13 @@
 from setuptools import setup, find_packages
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(name='clij2-fft',
-      version='0.20',
+      version='0.21',
       description='A python wrapper around clij2 opencl FFT algorithms',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
       url='https://github.com/clij/clij2-fft',
       author='Robert Haase, Brian Northan',
       author_email='bnorthan@gmail.com',
