@@ -23,7 +23,7 @@ def gpu_mem():
 def rl_mem_footprint(img, psf, depth=(0, 0, 0)):
     """ Gets the approximate amount of memory the RL algorithm will use for given image size, psf size and depth.
     The depth is the amount of overlap between chunks that dask will use. The default is 0,0,0 which means no overlap.  The overlap is needed to avoid artifacts at the chunk boundaries.  
-    The depth should be at least the size of the psf.  The larger the depth the more memory is needed.  The depth should be chosen to be as small as possible to avoid artifacts.  
+    The larger the depth the more memory is needed so ideally the depth should be chosen to be as small as possible while avoiding artifacts.  
     The depth is in pixels.
 
     Note the memory use returned is approximate.  Due to internal memory use and extra padding used by the FFTs the exact memory use for OpenCL based RL is difficult to compute.  
@@ -54,8 +54,8 @@ def chunk_factor(img, psf, depth, mem_to_use=-1):
     """    
     If chunks are needed, it is desirable that the 3D image will be chunked along x and y only because
     the psf is usually elongated along z and chunking it on z could create artifacts.
-    This function, will be chunking the image in such a manner that 4 or 16 or 32 etc
-    chunks will be used. That means that if we split x by 2 then y will also be split by 2 which
+    This function, will be chunking the image in such a manner that 4 or 16 or 64 etc
+    chunks will be used. That means that if we split x by 2 then y will also split y by 2 which
     will result in 4 chunks with the same aspect ratio (on xy) as the original image.
     Similarly, to get 16 chunks (if needed) we will be splitting both x and y by 4
     
@@ -84,7 +84,7 @@ def chunk_factor(img, psf, depth, mem_to_use=-1):
 
     cf = 1
     if gpu_bytes <= img_bytes:
-        # we wamt to find an integer k such that:
+        # we want to find an integer k such that:
         # img_bytes / 4^k <= gpu_bytes
 
         # inflate by 1 byte so that if img_bytes==gpu_bytes then chunks will be produced.
@@ -93,7 +93,7 @@ def chunk_factor(img, psf, depth, mem_to_use=-1):
         k = np.ceil(np.emath.logn(4, img_bytes/gpu_bytes))
 
         # 4^k is the number of chunks.
-        # The find how much x and y must be split-by take the square root
+        # Now find out how much x and y must be split-by take the square root
         cf = np.sqrt(4 ** k)
     return cf
 
