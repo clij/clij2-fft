@@ -5,7 +5,13 @@ clij2-fft is a prototype implementation of a framework for OpenCl based FFT algo
 ```
 from clij2fft.richardson_lucy import richardson_lucy_nc
 decon_clij2=richardson_lucy_nc(im,psf,100,0.0002)
-    
+```
+
+or for large image that need to be split up into chunks with dask
+
+```
+from richardson_lucy_dask import richardson_lucy_dask
+decon=richardson_lucy_dask(img, psf, 100, 0.0001)
 ```
 
 If you need support for the library please post a question on the [Image.sc Forum](https://forum.image.sc/).
