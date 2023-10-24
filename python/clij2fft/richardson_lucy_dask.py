@@ -107,7 +107,7 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
         regularizationfactor (float): regularization factor
         non_circulant (bool, optional): If True use non-circulant Richardson Lucy. Defaults to True.
         overlap (int, optional): Overlap between blocks. Defaults to 10.
-        mem_to_use (int, optional): If -1 use full GPU memory, otherwise limit GPU memory to mem_to_use. Defaults to -1.
+        mem_to_use (int, optional): GPU memory to use in GB.  If -1 use full GPU memory, otherwise limit GPU memory to mem_to_use. Defaults to -1.
 
     Returns:
         numpy.ndarray: deconvolved image 
