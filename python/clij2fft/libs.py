@@ -30,8 +30,8 @@ def getlib():
     
     array_3d_float = npct.ndpointer(dtype=np.float32, ndim=3 , flags='CONTIGUOUS')
 
-    clij2fft.deconv3d_32f.argtypes = [c_int, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float]
-    clij2fft.deconv3d_32f_tv.argtypes = [c_int, c_float, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float]
+    clij2fft.deconv3d_32f.argtypes = [c_int, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float, c_int, c_int]
+    clij2fft.deconv3d_32f_tv.argtypes = [c_int, c_float, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float, c_int, c_int]
     clij2fft.convcorr3d_32f.argtypes = [c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, c_bool]
 
     return clij2fft

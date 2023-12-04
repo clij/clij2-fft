@@ -2,7 +2,7 @@ from clij2fft.libs import getlib
 import numpy as np
 from clij2fft.pad import pad, get_pad_size, get_next_smooth, unpad
 
-def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess=None, lib=None):
+def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess=None, lib=None, platform=0, device=0):
     """ perform Richardson-Lucy on img using psf.  The image is extended to the next smooth size 
     because clfft only works on smooth sizes.  If additional extension is desired the image should 
     be extended before calling this function.  
@@ -53,14 +53,14 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
 
     # deconvolution using clij2fft
     if regularizationfactor==0:
-        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     else:
-        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     
     # unpad and return
     return unpad(result, original_size)
 
-def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None):
+def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None, platform=0, device=0):
     """ perform non-circulant Richardson-Lucy on img using psf.  The image is extended to the size of
     image+psf in each dimension then to the next smooth size because clfft only works on smooth sizes.
     A non-circulant normalization factor is computed, as part of the Boundary condition handling scheme 
@@ -125,22 +125,22 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
         lib = getlib()
 
     # the normalization factor is the valid region correlated with the PSF
-    lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1)
+    lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1,platform,device)
 
     # get rid of any zeros in the normal to avoid divide by zero issues
     #normal[normal<0.00001]=1
 
     # deconvolution using clij2fft
     if regularizationfactor==0:
-        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     else:
-        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     
     # unpad and return
     return unpad(result, original_size)
 
 
-def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0, valid=None, firstguess=None, lib=None):
+def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0, valid=None, firstguess=None, lib=None, platform=0, device=0):
     """ perform Richardson-Lucy interpolated deconvolution on img using psf. The user passes in a map of valid pixels and deconvolution
     is set up so non-valid values are 'interpolated'.  Non-valid values can be saturated areas, or areas between voxels (as to achieve sub-voxel resolution))
     Note: the interpolated values may not be representative of true structure.  The quality of results is signal dependent. 
@@ -205,9 +205,9 @@ def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0,
     
     # deconvolution using clij2fft
     if regularizationfactor==0:
-        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     else:
-        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal)
+        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     
     # unpad and return
     return unpad(result, original_size), normal, valid

@@ -45,28 +45,26 @@ int main() {
     GetCurrentDir( buff, FILENAME_MAX );
     cout<<"Current working dir: "<<buff<<"\n"<<flush;
 
-    unsigned int size[3];
+    unsigned int N0, N1, N2;
 
     // load test images.  These images are expected to be pre-conditioned
     // 1.  PSF and image extended to supported OpenCL FFT size
     // 2.  PSF and image saved as 32 bit float.
-    // 3.  PSF center translated to 0,0,0.  
-    float * img = read3DTiff("/home/bnorthan/code/images/barsext32f.tif", size);
-    float * psf = read3DTiff("/home/bnorthan/code/images/barspsfext32f.tif", size);
+    // 3.  PSF center translated to 0,0,0. 
+    float * img, *psf;
+    int rows, cols, slices; 
+
+    openTifStack("D:\\images\\bars\\barsext32f.tif", &img, &N0, &N1, &N2);
+    openTifStack("D:\\images\\bars\\barspsfext32f.tif", &psf, &N0, &N1, &N2);
 
     if (img==NULL) {
         cout<<"File not found\n"<<flush;
         return -1;
     }
 
-    // input image size    
-    unsigned int N0=size[0];
-    unsigned int N1=size[1];
-    unsigned int N2=size[2];
-
     unsigned long n=N0*N1;
 
-    float * rescaled = new float[size[0]*size[1]];
+    float * rescaled = new float[n];
 
     float * convolved = new float[N0*N1*N2];  
 
@@ -74,17 +72,17 @@ int main() {
         convolved[i]=img[i];
     }
 
-    conv3d_32f(N0, N1, N2, img, psf, convolved);
+    conv3d_32f(N0, N1, N2, img, psf, convolved, 0, 0);
 
     // rescale for visualization
     rescale(img, rescaled, 1., n);
-    Mat cvImg(size[0], size[1], CV_32F, rescaled);
+    Mat cvImg(N0, N1, CV_32F, rescaled);
     //namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
     imshow( "Img", cvImg);                   // Show our image inside it.
      
     // resclae for visualization
     rescale(convolved, rescaled, 1., n);
-    Mat cvConv(size[0], size[1], CV_32F, rescaled);
+    Mat cvConv(N0, N1, CV_32F, rescaled);
     //namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
     imshow( "Conv", cvConv);                   // Show our image inside it.
     waitKey(0);
