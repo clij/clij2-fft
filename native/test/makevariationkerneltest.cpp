@@ -18,7 +18,7 @@
 
 size_t getFileSize(const char* fileName);
 int getProgramFromFile(const char* fileName, char * programString, size_t programLength);
-cl_program makeProgram(cl_context context, cl_device_id deviceID, char * programString);
+cl_program makeProgram(cl_context context, cl_device_id deviceID, const char * programString);
 
 
 using namespace std;
