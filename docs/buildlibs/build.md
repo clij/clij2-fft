@@ -42,7 +42,7 @@ You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/cl
 Note that the `macosx-universal2` binaries were generated using `lipo` (e.g. `lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`). 
 Currently we recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
 
-We have also found that on macosx the native library libclFFT needs to be modified with ```install_name_tool``` in order for it to be found by libclij2fft.dylib in it’s current directory (ie when both are in /mambaforge/envs/current_environment/lib)
+We have also found that on macosx the native library libclij2fft needs to be modified with ```install_name_tool``` in order for it to be found by libclij2fft.dylib in it’s current directory (ie when both are in /mambaforge/envs/current_environment/lib)
 
 ```
 install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx-arm64/libclij2fft.dylib
