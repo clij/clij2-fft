@@ -38,7 +38,7 @@ The c++ library 'clij2fft' implements several FFT based algorithms built on top 
 ### MacOSX and Mac Silicon Native M1
 
 Some users have successfully built the code in a Mac environment. 
-You will need to install `clFFT` from using [homebrew](https://brew.sh/).
+You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/clfft) using [homebrew](https://brew.sh/).
 Note that the `macosx-universal2` binaries were generated using `lipo` (e.g. `lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`). 
 Currently we recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
 
