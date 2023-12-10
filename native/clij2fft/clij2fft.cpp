@@ -59,6 +59,8 @@ int globaldebug=0;
   } \
 } while (0)
 
+#define MAXPLATFORMS 10
+#define MAXDEVICESPERPLATFORM 10
 
 // Author: Brian Northan
 // License: BSD
@@ -897,29 +899,45 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
   return ret;
 }
 
-int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out) {
-  return convcorr3d_32f(N0, N1, N2, h_image, h_psf, h_out, 0);
+int conv3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, int platformIndex, int deviceIndex) {
+  return convcorr3d_32f(N0, N1, N2, h_image, h_psf, h_out, 0, platformIndex, deviceIndex);
 }
 
-int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, bool correlate) {
+int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, bool correlate, int platformIndex, int deviceIndex) {
 
   ENTEREXIT(1,"convcorr3d_32f");
 
-  cl_platform_id platformId = NULL;
-	cl_device_id deviceID = NULL;
-	cl_uint retNumDevices;
+  cl_platform_id *platformIds = new cl_platform_id[MAXPLATFORMS];
 	cl_uint retNumPlatforms;
-  cl_int ret = clGetPlatformIDs(1, &platformId, &retNumPlatforms);
+  cl_int ret = clGetPlatformIDs(MAXPLATFORMS, platformIds, &retNumPlatforms);
+  CHECKRETURN(ret, "deconv3d_32f_tf getPlatformIDs", 1);
+  char * platformName = new char[1000];
+  clGetPlatformInfo(platformIds[platformIndex], CL_PLATFORM_NAME, 1000, platformName, NULL);
+  
+  cl_context_properties properties[] =
+  {
+    CL_CONTEXT_PLATFORM, (cl_context_properties)platformIds[platformIndex],
+    0 // signals end of property list
+  };
+  
+  cl_device_id *deviceIDs = new cl_device_id[MAXDEVICESPERPLATFORM];
+	cl_uint retNumDevices;
 
-	ret = clGetDeviceIDs(platformId, CL_DEVICE_TYPE_DEFAULT, 1, &deviceID, &retNumDevices);
-  CHECKRETURN(ret,"convcorr3d_32f getdeviceid",1);
-	// Creating context.
-	cl_context context = clCreateContext(NULL, 1, &deviceID, NULL, NULL,  &ret);
+  ret = clGetDeviceIDs(platformIds[platformIndex], CL_DEVICE_TYPE_ALL, MAXDEVICESPERPLATFORM, deviceIDs, &retNumDevices);
+  
+  char * deviceName = new char[1000];
+  clGetDeviceInfo(deviceIDs[0], CL_DEVICE_NAME, 1000, deviceName, NULL);
+  std::cout<<std::flush;
+  CHECKRETURN(ret, "deconv3d_32f_tf getDeviceIDs", 1);
+  
+  // Creating context.
+	cl_context context = clCreateContext(properties, 1, &deviceIDs[deviceIndex], NULL, NULL,  &ret);
+  CHECKRETURN(ret, "deconv3d_32f_tf createContext", 1);
 
 	// Creating command queue
-	cl_command_queue commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
-  CHECKRETURN(ret,"convcorr3d_32f createcommandqueue",1);
-  
+	cl_command_queue commandQueue = clCreateCommandQueue(context, deviceIDs[deviceIndex], 0, &ret);
+  CHECKRETURN(ret, "deconv3d_32f_tf createCommandQueue", 1);
+
   // Memory buffers for each array
 	cl_mem d_image = clCreateBuffer(context, CL_MEM_READ_WRITE, N2*N1*N0 * sizeof(float), NULL, &ret);
   CHECKRETURN(ret,"convcorr3d_32f gpu image createbuffer",1);
@@ -934,7 +952,7 @@ int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   CHECKRETURN(ret,"convcorr3d_32f copy PSF",1);
 
-  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, correlate, (long long)context, (long long)commandQueue, (long long)deviceID);
+  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, correlate, (long long)context, (long long)commandQueue, (long long)deviceIDs[deviceIndex]);
 
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -947,6 +965,9 @@ int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf
   // Release OpenCL working objects.
   clReleaseCommandQueue( commandQueue );
   clReleaseContext( context );
+  
+  delete platformIds;
+  delete deviceIDs;
  
   ENTEREXIT(0,"convcorr3d_32f");
 
@@ -1140,7 +1161,7 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
       }
   } 
 
-  printf("\nRichardson Lucy Finished");
+  printf("\nRichardson Lucy Finished\n");
   std::cout<<std::flush;
 
   // Release OpenCL memory objects. 
@@ -1176,33 +1197,85 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
 }
 
-int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal) {
+int deconv3d_32f(int iterations, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * normal, int platformIndex, int deviceIndex) {
 
-  return deconv3d_32f_tv(iterations, 0.0, N0, N1,N2, h_image, h_psf, h_out, normal);
+  return deconv3d_32f_tv(iterations, 0.0, N0, N1,N2, h_image, h_psf, h_out, normal, platformIndex, deviceIndex);
 
 }
 
-int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * h_normal) {
+int print_platforms_and_devices() {
 
-  ENTEREXIT(1, "deconv3d_32f_tv");
-
-  cl_platform_id platformId = NULL;
-	cl_device_id deviceID = NULL;
+  cl_platform_id *platformId = new cl_platform_id[MAXPLATFORMS];
 	cl_uint retNumDevices;
 	cl_uint retNumPlatforms;
 
-  cl_int ret = clGetPlatformIDs(1, &platformId, &retNumPlatforms);
+  cl_int ret = clGetPlatformIDs(MAXPLATFORMS, platformId, &retNumPlatforms);
   CHECKRETURN(ret, "deconv3d_32f_tf getPlatformIDs", 1);
-   
-  ret = clGetDeviceIDs(platformId, CL_DEVICE_TYPE_DEFAULT, 1, &deviceID, &retNumDevices);
+
+  for (int i=0;i<retNumPlatforms;i++) {
+      char * platformName = new char[1000];
+      clGetPlatformInfo(platformId[i], CL_PLATFORM_NAME, 1000, platformName, NULL);
+      printf("platform %d %s\n",i, platformName);
+                                                 
+	    cl_device_id *deviceIDs = new cl_device_id[MAXDEVICESPERPLATFORM];
+
+      ret = clGetDeviceIDs(platformId[i], CL_DEVICE_TYPE_ALL, MAXDEVICESPERPLATFORM, deviceIDs, &retNumDevices);
+      
+      for (int j=0;j<retNumDevices;j++) {
+        char * deviceName = new char[1000];
+        clGetDeviceInfo(deviceIDs[j], CL_DEVICE_NAME, 1000, deviceName, NULL);
+        printf("     device name %d %s\n", j, deviceName);
+        std::cout<<std::flush;
+        delete deviceName;
+      }
+      printf("\n");
+
+      delete platformName;
+      delete deviceIDs;
+
+      std::cout<<std::flush;
+      CHECKRETURN(ret, "deconv3d_32f_tf getDeviceIDs", 1);
+  }
+ 
+
+  return 0;
+}
+
+int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf, float *h_out, float * h_normal, int platformIndex, int deviceIndex) {
+
+  ENTEREXIT(1, "deconv3d_32f_tv");
+
+  cl_platform_id *platformIds = new cl_platform_id[MAXPLATFORMS];
+	cl_uint retNumPlatforms;
+  cl_int ret = clGetPlatformIDs(MAXPLATFORMS, platformIds, &retNumPlatforms);
+  CHECKRETURN(ret, "deconv3d_32f_tf getPlatformIDs", 1);
+  char * platformName = new char[1000];
+  clGetPlatformInfo(platformIds[platformIndex], CL_PLATFORM_NAME, 1000, platformName, NULL);
+  printf("\nplatform %d %s\n", platformIndex, platformName);
+  
+  cl_context_properties properties[] =
+  {
+    CL_CONTEXT_PLATFORM, (cl_context_properties)platformIds[platformIndex],
+    0 // signals end of property list
+  };
+  
+  cl_device_id *deviceIDs = new cl_device_id[MAXDEVICESPERPLATFORM];
+	cl_uint retNumDevices;
+
+  ret = clGetDeviceIDs(platformIds[platformIndex], CL_DEVICE_TYPE_ALL, MAXDEVICESPERPLATFORM, deviceIDs, &retNumDevices);
+  
+  char * deviceName = new char[1000];
+  clGetDeviceInfo(deviceIDs[0], CL_DEVICE_NAME, 1000, deviceName, NULL);
+  printf("device name %d %s\n", deviceIndex, deviceName);
+  std::cout<<std::flush;
   CHECKRETURN(ret, "deconv3d_32f_tf getDeviceIDs", 1);
- 
+  
   // Creating context.
-	cl_context context = clCreateContext(NULL, 1, &deviceID, NULL, NULL,  &ret);
+	cl_context context = clCreateContext(properties, 1, &deviceIDs[deviceIndex], NULL, NULL,  &ret);
   CHECKRETURN(ret, "deconv3d_32f_tf createContext", 1);
- 
+
 	// Creating command queue
-	cl_command_queue commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
+	cl_command_queue commandQueue = clCreateCommandQueue(context, deviceIDs[deviceIndex], 0, &ret);
   CHECKRETURN(ret, "deconv3d_32f_tf createCommandQueue", 1);
   
   // create device memory buffers for each array
@@ -1226,7 +1299,7 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   unsigned long n = N0*N1*N2;
   unsigned long nFreq=(N0/2+1)*N1*N2;
      
-  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)d_normal, (long long)context, (long long)commandQueue, (long long)deviceID); 
+  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)d_normal, (long long)context, (long long)commandQueue, (long long)deviceIDs[deviceIndex]); 
     
   // copy back to host 
   ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
@@ -1242,6 +1315,9 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
     clReleaseCommandQueue( commandQueue );
   cleanup1:
     clReleaseContext( context );
+
+  delete platformIds;
+  delete deviceIDs;
 
   ENTEREXIT(0, "deconv3d_32f_tv");
   

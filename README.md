@@ -6,7 +6,7 @@ There are many GPU deconvolution projects in Python, which are probably easier t
 
 Currently most of the focus has been on an implementation of Richardson Lucy Deconvolution that includes non-circulant edge handling and total variation regularization.  We found this particularly useful in deconvolving images from instruments with extended PSFs, for which the classic version of Richardson Lucy sometimes produces ringing at high iteration numbers.  See an example [here](https://forum.image.sc/t/deconvolution-minimizing-edge-artifacts/69828/2)
 
-Latest features and updates are tracked in the [Release Log](https://clij.github.io/clij2-fft/docs/releaselog) though this code is still in very early development.  If you are experimenting with this code base please feel free to submit an issue or ping us on the [Imaging Forum](
+Latest features and updates are tracked in the [Release Log](https://clij.github.io/clij2-fft/docs/releaselog) though this code is still in very early development.  If you are experimenting with this code base please feel free to submit an issue or ping us on the [Imaging Forum](https://forum.image.sc/).
 
 The clij2-fft project is built upon [clFFT](https://github.com/arrayfire/clFFT)  
 

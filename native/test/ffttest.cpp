@@ -8,6 +8,7 @@
 #define GetCurrentDir getcwd
 #endif
 
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -45,23 +46,24 @@ int main() {
     GetCurrentDir( buff, FILENAME_MAX );
     cout<<"Current working dir: "<<buff<<"\n"<<flush;
 
-    unsigned int size[3];
 
-    float * data = read3DTiff("/home/bnorthan/code/images/bridge32f.tif", size);
+    cv::Mat matData = cv::imread("D:/images/images/bridge32f.tif", cv::IMREAD_ANYDEPTH);
 
-    if (data==NULL) {
+    if (matData.empty()) {
         cout<<"File not found\n"<<flush;
         return -1;
     }
 
+    float * data = (float*)matData.data;
+
     // input image size    
-    unsigned int N0=size[0];
-    unsigned int N1=size[1];
+    unsigned int N0=matData.cols;
+    unsigned int N1=matData.rows;
     unsigned long n=N0*N1;
 
     // output fft size
-    unsigned int M0=size[0]/2+1;
-    unsigned int M1=size[1];
+    unsigned int M0=N0/2+1;
+    unsigned int M1=N1;
     unsigned long nFreq=M1*M0;
 
     // memory for fft and inverse fft
@@ -84,14 +86,14 @@ int main() {
         abs[i]=log(sqrt(real*real+imag*imag));
     }
 
-    float * rescaled = new float[size[0]*size[1]];
+    float * rescaled = new float[N0*N1];
     float * rescaledinv = new float[n];
     float * rescaledabs = new float[nFreq];
     rescale(data, rescaled, 1., n);
     rescale(abs, rescaledabs, 1., nFreq);
     rescale(invfft, rescaledinv, 1., n);
 
-    Mat cvImg(size[0], size[1], CV_32F, rescaled);
+    Mat cvImg(N0, N1, CV_32F, rescaled);
     Mat cvAbs(M1, M0, CV_32F, rescaledabs);
     Mat cvInv(N1, N0, CV_32F, rescaledinv);
 
