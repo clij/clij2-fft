@@ -32,7 +32,7 @@ def getlib():
 
     clij2fft.deconv3d_32f.argtypes = [c_int, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float, c_int, c_int]
     clij2fft.deconv3d_32f_tv.argtypes = [c_int, c_float, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float, c_int, c_int]
-    clij2fft.convcorr3d_32f.argtypes = [c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, c_bool]
+    clij2fft.convcorr3d_32f.argtypes = [c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, c_bool, c_int, c_int]
 
     return clij2fft
 
