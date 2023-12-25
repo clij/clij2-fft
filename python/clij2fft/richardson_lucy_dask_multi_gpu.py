@@ -3,6 +3,7 @@ from clij2fft.richardson_lucy import richardson_lucy_nc, richardson_lucy
 import numpy as np
 import pyopencl as cl
 from clij2fft.pad import get_next_smooth
+from clij2fft.libs import getlib
 
 bytes_per_gb = 1024 * 1024 * 1024
 
@@ -148,8 +149,12 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
     from multiprocessing import Pool, current_process, Queue
     queue = Queue()
 
-    for i in range(1):
+    num_gpus = 1 
+    for i in range(num_gpus):
         queue.put(i)
+
+    
+    lib = getlib()
 
     #from dask.distributed import get_worker
     if non_circulant:
@@ -161,17 +166,18 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
                 gpu_num=queue.get()
                 print('start rlnc')
                 print('gpu num is', gpu_num)
-                print('block id is', block_id)
-                print('block info is', block_info)
-                print('thread id is', thread_id)
+                #print('block id is', block_id)
+                #print('block info is', block_info)
+                #print('thread id is', thread_id)
                 #print('worker is ', get_worker())
-                if block_id is None:
-                    print('returning block id is None')
-                    return None
-                result=richardson_lucy_nc(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib)
+                #if block_id is None:
+                #    print('returning block id is None')
+                #    return None
+                result=richardson_lucy_nc(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib, platform = 0, device = gpu_num)
                 print('end rlnc')
                 return result
-            except:
+            except Exception as e:
+                print("EXCEPTION",e)
                 pass
             finally:
                 print('putting gpu num back', gpu_num)
@@ -186,9 +192,16 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
             return img#richardson_lucy(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib)
         rl_func = richardson_lucy_dask_task
 
+    import time
 
-    out = dimg.map_overlap(rl_func, depth={0:0, 1:overlap, 2:overlap}, dtype=np.float32, psf=psf, numiterations=numiterations, regularizationfactor=regularizationfactor)
-    return out.compute(num_workers=4)
+    start_time = time.time()
+    out = dimg.map_overlap(rl_func, depth={0:0, 1:overlap, 2:overlap}, dtype=np.float32, psf=psf, numiterations=numiterations, regularizationfactor=regularizationfactor, lib=lib)
+    out_img = out.compute(num_workers=num_gpus)
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time of rl dask multi gpu: {execution_time} seconds")
+    
+    return out_img 
 
 
 
