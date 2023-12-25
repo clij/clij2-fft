@@ -141,30 +141,54 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
 
     chunk_size = (img.shape[0], y_chunk_size, x_chunk_size)
     print('chunk size is',chunk_size)
+    print('==========================================================================')
 
     dimg = da.from_array(img,chunks=(img.shape[0], y_chunk_size, x_chunk_size))
+
+    from multiprocessing import Pool, current_process, Queue
+    queue = Queue()
+
+    for i in range(1):
+        queue.put(i)
 
     #from dask.distributed import get_worker
     if non_circulant:
 
         def richardson_lucy_nc_dask_task(img, psf, numiterations, regularizationfactor=0, lib=None, block_info=None, block_id=None, thread_id=None):
-            print('block id is', block_id)
-            print('block info is', block_info)
-            print('thread id is', thread_id)
-            #print('worker is ', get_worker())
-            return richardson_lucy_nc(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib)
+            
+            try:
+                print()
+                gpu_num=queue.get()
+                print('start rlnc')
+                print('gpu num is', gpu_num)
+                print('block id is', block_id)
+                print('block info is', block_info)
+                print('thread id is', thread_id)
+                #print('worker is ', get_worker())
+                if block_id is None:
+                    print('returning block id is None')
+                    return None
+                result=richardson_lucy_nc(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib)
+                print('end rlnc')
+                return result
+            except:
+                pass
+            finally:
+                print('putting gpu num back', gpu_num)
+                queue.put(gpu_num)
         rl_func = richardson_lucy_nc_dask_task
     else:
         def richardson_lucy_dask_task(img, psf, numiterations, regularizationfactor=0, lib=None, block_info=None, block_id=None, thread_id=None):
-            print('block id is', block_id)
+            print('\nblock id is', block_id)
             print('block info is', block_info)
             print('thread id is', thread_id)
             #print('worker is', get_worker())
-            return richardson_lucy(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib)
+            return img#richardson_lucy(img, psf, numiterations, regularizationfactor=regularizationfactor, lib=lib)
         rl_func = richardson_lucy_dask_task
 
+
     out = dimg.map_overlap(rl_func, depth={0:0, 1:overlap, 2:overlap}, dtype=np.float32, psf=psf, numiterations=numiterations, regularizationfactor=regularizationfactor)
-    return out.compute(num_workers=1)
+    return out.compute(num_workers=4)
 
 
 
