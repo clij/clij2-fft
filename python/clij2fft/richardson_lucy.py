@@ -50,13 +50,19 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
     if (lib==None):
         print('get lib')
         lib = getlib()
+        cleanup = True
+    else:
+        cleanup = False
 
     # deconvolution using clij2fft
     if regularizationfactor==0:
         lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     else:
         lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
-    
+
+    if cleanup==True:
+        lib.cleanup()
+
     # unpad and return
     return unpad(result, original_size)
 
@@ -123,6 +129,9 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     if (lib==None):
         print('get lib')
         lib = getlib()
+        cleanup = True
+    else:
+        cleanup = False
 
     print('calling convcorr',platform, device)
     # the normalization factor is the valid region correlated with the PSF
@@ -136,7 +145,10 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
         lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
     else:
         lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
-    
+
+    if cleanup==True:
+        lib.cleanup()
+
     # unpad and return
     return unpad(result, original_size)
 
