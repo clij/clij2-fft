@@ -17,6 +17,7 @@ extern "C" {
   __declspec(dllexport) int fft3dinv_32f_lp(long long N0, long long N1, long long N2, long long d_fft, long long d_out, long long l_context, long long l_queue);
   __declspec(dllexport) int diagnostic(); 
   __declspec(dllexport) int print_platforms_and_devices();
+  __declspec(dllexport) int cleanup();
 }
 #else
 extern "C" {
@@ -35,6 +36,7 @@ extern "C" {
   int fft3dinv_32f_lp(long long N0, long long N1, long long N2, long long d_fft, long long d_out, long long l_context, long long l_queue);
   int diagnostic(); 
   int print_platforms_and_devices();
+  int cleanup();
 }
 #endif
 

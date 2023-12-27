@@ -605,7 +605,7 @@ int fft3d_32f_lp(long long N0, long long N1, long long N2, long long d_image, lo
 
    clfftTeardown();
 
-   return 0; 
+   return 0;
 }
 
 int fft2d_32f(size_t N0, size_t N1, float *h_image, float * h_out) {
@@ -890,9 +890,6 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
    
    // release program
    ret = clReleaseProgram(program);
-
-   // Release clFFT library. 
-   clfftTeardown( );
 
   ENTEREXIT(0,"conv32_32f_lp");
   
@@ -1189,9 +1186,6 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
     clReleaseKernel(kernelTV);
   }
 
-   // Release clFFT library. 
-   clfftTeardown( );
-
    ENTEREXIT(0,"deconv3d_32f_lp_tf");
    return 0;
 
@@ -1346,4 +1340,9 @@ int diagnostic() {
 
   return 0;
  
+}
+
+int cleanup() {
+  clfftStatus status=clfftTeardown();
+  return status;
 }
