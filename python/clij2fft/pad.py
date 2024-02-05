@@ -84,7 +84,8 @@ def pad(img, paddedsize, mode, constant_values=0):
         mode ([type]): one of the np.pad modes
 
     Returns:
-        [nd array]: padded image
+        padded [nd array]: padded image
+        padding [tuple]: tuple containing the padding used
     """
     padding = tuple(map(lambda i,j: ( math.ceil((i-j)/2), math.floor((i-j)/2) ),paddedsize,img.shape))
 
