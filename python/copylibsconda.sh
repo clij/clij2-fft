@@ -1,6 +1,7 @@
 #!/bin/bash
-# installs in editable mode, copying the native libraries to the location they are needed
-# NOTE this script needs to be customized for your system and environment name
+# this script is used when installing in editable mode, it copies the native libraries to the 
+# location they are needed NOTE this script needs to be customized for your system and environment 
+# name
 
 KERNEL=(`uname -s | tr [A-Z] [a-z]`)
 ARCH=(`uname -m | tr [A-Z] [a-z]`)
