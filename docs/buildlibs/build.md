@@ -32,21 +32,31 @@ The c++ library 'clij2fft' implements several FFT based algorithms built on top 
 #### Linux/MacOSX Build Instructions
 
 2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
-3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correct locations.
+3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L28) and verify that OpenCL and clFFT are installed in the correct locations.
 4.  The updated library (clij2fft.so) and dependencies should now be in the ```clij2-fft/lib/linux64/``` directory.
 
 ### MacOSX and Mac Silicon Native M1
 
-Some users have successfully built the code in a Mac environment. 
-You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/clfft) using [homebrew](https://brew.sh/).
-Note that the `macosx-universal2` binaries were generated using `lipo` (e.g. `lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`). 
-Currently we recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
+You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/clfft) using [homebrew](https://brew.sh/).  
 
-We have also found that on macosx the native library libclij2fft needs to be modified with ```install_name_tool``` in order for it to be found by libclij2fft.dylib in it’s current directory (ie when both are in /mambaforge/envs/current_environment/lib)
+To build on macosx or mac m1/m2 (arm64) perform the following
+
+2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
+3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L56) and verify that OpenCL and clFFT are installed in the correct locations.
+
+The macosx the native library libclij2fft needs to be modified with ```install_name_tool``` in order for it to be found by libclij2fft.dylib in it’s current directory (ie when both are in /mambaforge/envs/current_environment/lib)
 
 ```
 install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx-arm64/libclij2fft.dylib
 ```
+
+If targeting both macosx and macosx-arm64 we need to build a universal binary using 'lipo'
+
+```
+lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`
+```
+
+We recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
 
 ## Build Java Wrapper and Plugin
 
