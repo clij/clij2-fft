@@ -1,3 +1,4 @@
+#!/bin/bash
 # this script builds the native code then copies it to the python directory
 # so we can then upload to testpypi or pypi.
 # NOTE:  When uploading from one OS need to also build the native code on the other OSs then
