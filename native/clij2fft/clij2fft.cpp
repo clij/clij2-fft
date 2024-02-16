@@ -603,7 +603,7 @@ int fft3d_32f_lp(long long N0, long long N1, long long N2, long long d_image, lo
    // Release the plan. 
    ret = clfftDestroyPlan( &planHandleForward );
 
-   clfftTeardown();
+   //clfftTeardown();
 
    return 0;
 }
