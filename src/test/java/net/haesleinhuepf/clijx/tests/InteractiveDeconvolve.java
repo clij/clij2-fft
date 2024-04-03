@@ -6,23 +6,17 @@ import java.io.IOException;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij2.CLIJ2;
-import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
-import net.haesleinhuepf.clijx.plugins.Normalize;
-import net.haesleinhuepf.clijx.plugins.OpenCLFFTUtility;
-import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
 import net.haesleinhuepf.clijx.CLIJx;
+import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
+import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.converter.ChannelARGBConverter.Channel;
-import net.imglib2.img.Img;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.view.Views;
 
 public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
-
+	
 	final static ImageJ ij = new ImageJ();
 
 	public static <T extends RealType<T> & NativeType<T>> void main(
@@ -37,6 +31,7 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		ij.launch(args);
 
 		CLIJ2 clij2=null;
+		
 		// get clij
 		try {
 			clij2 = CLIJ2.getInstance("RTX");
@@ -47,17 +42,17 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		}
 		
 		// load data
-	//	Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
-	//	Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
-		
-	//	Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
-	//	Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
-		
-		Dataset img = (Dataset) ij.io().open("D:\\images\\From Roman Guiet July 13th 2021\\clij_deconv_data\\D_X555_Ph488_Mit647_4-c3_crop1.tif");
-		Dataset psf = (Dataset) ij.io().open("D:\\\\images\\\\From Roman Guiet July 13th 2021\\\\clij_deconv_data\\\\PSF_w500_256x256x41_squared.tif");
-		
-	//	Dataset img = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\spheres_cropped.tiff");
-	//	Dataset psf = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\psf.tiff");
+		//	Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
+		//	Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
+			
+		//	Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
+		//	Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
+			
+		//	Dataset img = (Dataset) ij.io().open("D:\\images\\From Roman Guiet July 13th 2021\\clij_deconv_data\\D_X555_Ph488_Mit647_4-c3_crop1.tif");
+		//	Dataset psf = (Dataset) ij.io().open("D:\\\\images\\\\From Roman Guiet July 13th 2021\\\\clij_deconv_data\\\\PSF_w500_256x256x41_squared.tif");
+			
+		//	Dataset img = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\spheres_cropped.tiff");
+		//	Dataset psf = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\psf.tiff");
 	
 		//Dataset img = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
 		//Dataset psf = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
@@ -67,7 +62,14 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		
 		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
 		//Dataset psf = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3-cropped.tif");
-			// show image and PSF
+		
+		Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
+		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead.tif");
+		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead_266_266_512.tif");
+		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/ones_266_266_512.tif");
+		Dataset psf = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
+		
+		// show image and PSF
 		
 		clij2.show(img, "img ");
 		clij2.show(psf, "psf ");
@@ -85,18 +87,18 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 		ClearCLBuffer gpu_deconvolved_tv = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 
-		boolean tile = false;
+		boolean tile = true;
 		
 		if (!tile) {
 			// deconvolve the image
-			//DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f, false);
-			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.02f, false   );
+			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.0f, true);
+			//DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved_tv, 100, 0.02f, false);
 		}
 		else {
 			int numTilesX = 2;
 			int numTilesY = 2;
 			
-			int margin = 10;
+			int margin = 8;
 			
 			int tileWidth = (int)Math.floor(gpu_image.getWidth() / numTilesX);
 			int tileHeight = (int)Math.floor(gpu_image.getHeight() / numTilesY);
@@ -111,21 +113,19 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 					ClearCLBuffer tempOut = clij2.create(tempIn.getDimensions(), NativeTypeEnum.Float);
 					DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, tempIn, gpu_psf, tempOut, 100, 0.0f, false);
 					
-					//clijx.show(tempOut, "tile");
-					clijx.pullTile(tempOut, gpu_deconvolved, x, y, 0, tileWidth, tileHeight, tileDepth, margin, margin, margin);
+					clijx.show(tempOut, "tile");
+					clijx.pullTile(tempOut, gpu_deconvolved, x, y, 0, tileWidth, tileHeight, tileDepth, margin, margin, 0);
 				
-					
-				
-				
+					tempOut.close();
 				}
 			}
 		}
-		//RandomAccessibleInterval deconvolvedRAI = clij2.pullRAI(gpu_deconvolved);
-		RandomAccessibleInterval deconvolvedRAI_tv = clij2.pullRAI(gpu_deconvolved_tv);
+		RandomAccessibleInterval deconvolvedRAI = clij2.pullRAI(gpu_deconvolved);
+		//RandomAccessibleInterval deconvolvedRAI_tv = clij2.pullRAI(gpu_deconvolved_tv);
 
 		//clij2.show(deconvolvedRAI, "deconvolved");
-		clij2.show(deconvolvedRAI_tv, "deconvolved tv");
-		//ij.ui().show("deconvolved", deconvolvedRAI);
+		//clij2.show(deconvolvedRAI_tv, "deconvolved tv");
+		ij.ui().show("deconvolved", deconvolvedRAI);
 
 	}
 }
