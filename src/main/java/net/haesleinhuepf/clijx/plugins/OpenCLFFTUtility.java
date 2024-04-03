@@ -84,8 +84,8 @@ public class OpenCLFFTUtility {
 	public static ClearCLBuffer padFFTInputZeros(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer psf, OpService ops) {
 		ClearCLBuffer extended = null;
 	
-		// the below code isn't very DRY, but we need to implemeent the same logic (compute extended size, compute
-		// next fast FFT size) for both 2D and 3D case
+		// the below code isn't very DRY, we implemeent the same logic (compute extended size, compute
+		// next fast FFT size) for both 2D and 3D case)...  TODO: Refactor
 		if (input.getDimensions().length==3) {
 			Dimensions dimsExtended = new FinalDimensions(input.getDimensions()[0]+psf.getDimensions()[0],
 					input.getDimensions()[1]+psf.getDimensions()[1],
@@ -95,13 +95,23 @@ public class OpenCLFFTUtility {
 			long[][] nextFastFFTDimensions=ops.filter().fftSize(dimsExtended, false);
 		
 			long[] extendedSize = new long[input.getDimensions().length];
+			long[] start= new long[input.getDimensions().length];
 			
 			extendedSize[0]=nextFastFFTDimensions[0][0];
 			extendedSize[1]=nextFastFFTDimensions[0][1];
 			extendedSize[2]=nextFastFFTDimensions[0][2];
 			
+			// define the starting coordinates that will be used to paste the input within
+			// the larger extended space. 
+			// Note: if (extendedSize[n]-input.getDimension(n)) is odd the border size on each end will 
+			// be different.  Need to make sure we are consistent with respect to which side gets the smaller
+			// padding
+			start[0]=(long)(Math.floor((extendedSize[0]-input.getDimensions()[0])/2));
+			start[1]=(long)(Math.floor((extendedSize[1]-input.getDimensions()[1])/2));
+			start[2]=(long)(Math.floor((extendedSize[2]-input.getDimensions()[2])/2));
+			
 			extended = clij2.create(extendedSize, NativeTypeEnum.Float);
-			clij2.paste(input, extended, psf.getDimensions()[0]/2, psf.getDimensions()[1]/2, psf.getDimensions()[2]/2);
+			clij2.paste(input, extended, start[0], start[1], start[2]);
 		}
 		else {
 			Dimensions dimsExtended = new FinalDimensions(input.getDimensions()[0]+psf.getDimensions()[0],
@@ -114,9 +124,14 @@ public class OpenCLFFTUtility {
 			
 			extendedSize[0]=nextFastFFTDimensions[0][0];
 			extendedSize[1]=nextFastFFTDimensions[0][1];
+
+			long[] start= new long[input.getDimensions().length];
+
+			start[0]=(long)(Math.floor((extendedSize[0]-input.getDimensions()[0])/2));
+			start[1]=(long)(Math.floor((extendedSize[1]-input.getDimensions()[1])/2));
 			
 			extended = clij2.create(extendedSize, NativeTypeEnum.Float);
-			clij2.paste(input, extended, psf.getDimensions()[0]/2, psf.getDimensions()[1]/2);
+			clij2.paste(input, extended, start[0], start[1]); 
 		}
 		
 		return extended;
