@@ -289,11 +289,11 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 		// convert above to ClearBufferCl
 		ClearCLBuffer gpuvalidregion = clij2.push(validRegion);
-	  ClearCLBuffer gpunormal = clij2.create(gpuvalidregion);	
+		ClearCLBuffer gpunormal = clij2.create(gpuvalidregion);	
 		
-	  // the normalization factor is the correlation between valid region and psf 
-	  ConvolveFFT.runConvolve(clij2, gpuvalidregion, psf, gpunormal, true);
-	
+		// the normalization factor is the correlation between valid region and psf 
+		ConvolveFFT.runConvolve2(clij2, gpuvalidregion, psf, gpunormal, true);
+		
 		return gpunormal;
 	}
 	
