@@ -202,6 +202,10 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		clij2.release(psfExtended);
 		clij2.release(inputExtended);
 		clij2.release(deconvolvedExtended);
+		
+		if (nonCirculant) {
+			clij2.release(normalization_factor);
+		}
 
 		return true;
 	}
@@ -251,7 +255,9 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerOutput, longPointerNormal, l_context, l_queue,
 				l_device);
-
+		
+		clij2fftWrapper.cleanup();
+		
 		return true;
 	}
 	
