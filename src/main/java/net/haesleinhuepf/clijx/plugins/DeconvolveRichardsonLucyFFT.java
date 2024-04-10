@@ -299,6 +299,8 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		// the normalization factor is the correlation between valid region and psf 
 		ConvolveFFT.runConvolve2(clij2, gpuvalidregion, psf, gpunormal, true);
+
+		gpuvalidregion.close();
 		
 		return gpunormal;
 	}
