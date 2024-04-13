@@ -230,6 +230,8 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerOutput, correlate, l_context, l_queue,
 				l_device);
+		
+		clij2fftWrapper.cleanup();
 
 		return true;
 	}
