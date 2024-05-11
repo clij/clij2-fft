@@ -52,7 +52,8 @@ public class clij2fftWrapper {
 		long l_context, long l_queuee, long l_device);
 	
 	public static native int diagnostic();
-
+	
+	public static native int cleanup();
 
 	public static void load() {
 		Loader.load();

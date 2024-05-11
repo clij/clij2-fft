@@ -202,6 +202,10 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		clij2.release(psfExtended);
 		clij2.release(inputExtended);
 		clij2.release(deconvolvedExtended);
+		
+		if (nonCirculant) {
+			clij2.release(normalization_factor);
+		}
 
 		return true;
 	}
@@ -251,7 +255,9 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerOutput, longPointerNormal, l_context, l_queue,
 				l_device);
-
+		
+		clij2fftWrapper.cleanup();
+		
 		return true;
 	}
 	
@@ -289,11 +295,13 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 		// convert above to ClearBufferCl
 		ClearCLBuffer gpuvalidregion = clij2.push(validRegion);
-	  ClearCLBuffer gpunormal = clij2.create(gpuvalidregion);	
+		ClearCLBuffer gpunormal = clij2.create(gpuvalidregion);	
 		
-	  // the normalization factor is the correlation between valid region and psf 
-	  ConvolveFFT.runConvolve(clij2, gpuvalidregion, psf, gpunormal, true);
-	
+		// the normalization factor is the correlation between valid region and psf 
+		ConvolveFFT.runConvolve2(clij2, gpuvalidregion, psf, gpunormal, true);
+
+		gpuvalidregion.close();
+		
 		return gpunormal;
 	}
 	
