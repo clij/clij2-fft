@@ -2,6 +2,7 @@ package net.clij2fft.deconvolution;
 
 import javax.swing.SwingUtilities;
 
+import org.scijava.app.StatusService;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -20,6 +21,9 @@ public class RichardsonLucyGUICommand<T extends RealType<T> & NativeType<T>> imp
 
 	@Parameter
 	LogService log;
+	
+	@Parameter
+	StatusService status;
 
 	@Parameter
 	UIService ui;
@@ -32,6 +36,7 @@ public class RichardsonLucyGUICommand<T extends RealType<T> & NativeType<T>> imp
 		SwingUtilities.invokeLater(() -> {
 				if (dialog == null) {
 					dialog = new RichardsonLucyGUI();
+					dialog.initiateModel(ops, log, status);
 				}
 				dialog.setVisible(true);
 			});

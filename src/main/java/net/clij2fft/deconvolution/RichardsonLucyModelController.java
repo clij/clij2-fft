@@ -1,5 +1,9 @@
 package net.clij2fft.deconvolution;
 
+import org.scijava.app.StatusService;
+import org.scijava.log.LogService;
+import org.scijava.ui.UIService;
+
 import ij.ImagePlus;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
@@ -7,6 +11,7 @@ import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.imglib2cache.Clij2RichardsonLucyImglib2Cache;
 import net.haesleinhuepf.clijx.imglib2cache.Lazy;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
+import net.imagej.ops.OpService;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
@@ -16,6 +21,10 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.real.FloatType;
 
 public class RichardsonLucyModelController {
+	
+	OpService ops;
+	LogService log;
+	StatusService status;
 	
 	int psfType;
 	int iterations;
@@ -32,6 +41,16 @@ public class RichardsonLucyModelController {
 	float PSFDepth;
 	int PsfXYSize;
 	int PsfZSize;
+	
+	RichardsonLucyModelController(OpService ops, LogService log, StatusService status) {
+		this.ops = ops;
+		this.log = log;
+		this.status = status;
+	}
+	
+	public void setStatusService(StatusService status) {
+		this.status = status;
+	}
 	
 	public float getXYSpacing() {
 		return xySpacing;
@@ -174,12 +193,7 @@ public class RichardsonLucyModelController {
 		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 		
 		
-		System.out.println("Do we use cells? "+this.useCells);
-		
-		System.out.println("cell xy "+this.xyCellSize);
-		System.out.println("cell z "+this.zCellSize);
-		
-		if (!this.useCells) {
+				if (!this.useCells) {
 			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.002f, true);
 
 			ImagePlus out = clij2.pull(gpu_deconvolved);
@@ -187,11 +201,22 @@ public class RichardsonLucyModelController {
 		}
 		else {
 			
+			log.error("show me");
+			log.info("Performing Cell deconvolution "+this.useCells);
+			
+			log.info("cell xy "+this.xyCellSize);
+			log.info("cell z "+this.zCellSize);
+			
+			status.showStatus(50, 100, "Deconvolving");
+		
+
 			Img<FloatType> img = ImageJFunctions.convertFloat(imp);
 			
 			// create the version of clij2 RL that works on cells
 			Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op = new Clij2RichardsonLucyImglib2Cache<FloatType, FloatType>(
 				img, gpu_psf, 10, 10, 10);
+			
+			op.setUpStatus(status, 25);
 
 			// here we use the imglib2cache lazy 'generate' utility
 			// first parameter is the image to process

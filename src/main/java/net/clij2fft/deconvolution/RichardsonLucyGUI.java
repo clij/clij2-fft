@@ -2,6 +2,7 @@ package net.clij2fft.deconvolution;
 
 import java.awt.BorderLayout;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -10,8 +11,17 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.apache.commons.lang3.tuple.Triple;
+import org.scijava.Context;
+import org.scijava.app.StatusService;
+import org.scijava.app.event.StatusEvent;
+import org.scijava.log.LogService;
+import org.scijava.plugin.PluginInfo;
+import org.scijava.ui.UIService;
+
 import ij.ImagePlus;
 import ij.WindowManager;
+import net.imagej.ops.OpService;
 
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -28,10 +38,25 @@ import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JCheckBox;
+import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.JProgressBar;
+import java.awt.Component;
+
+//Functional interface with three parameters and no return value
+interface TriConsumer<A, B, C> {
+    void accept(A a, B b, C c);
+}
 
 public class RichardsonLucyGUI extends JFrame {
 	
-	RichardsonLucyModelController modelController = new RichardsonLucyModelController();
+	StatusService statusService;
+	
+	RichardsonLucyModelController modelController;  
+	
+	public void initiateModel(OpService ops, LogService log, StatusService status) {
+		this.modelController = new RichardsonLucyModelController(ops, log, this.statusService);
+	}
 	
     public RichardsonLucyGUI() {
         // Set the layout manager for the content pane
@@ -41,6 +66,9 @@ public class RichardsonLucyGUI extends JFrame {
         splitPane.setResizeWeight(0.5);
         getContentPane().add(splitPane, BorderLayout.CENTER);
         
+        JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        splitPane2.setResizeWeight(0.5);
+       
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
         
         JPanel panel_1 = new JPanel();
@@ -242,7 +270,35 @@ public class RichardsonLucyGUI extends JFrame {
         splitPane.setRightComponent(tabbedPane);
         
         JPanel panel = new JPanel();
-        splitPane.setLeftComponent(panel);
+        JPanel panel2 = new JPanel();
+        splitPane.setLeftComponent(splitPane2);
+        splitPane2.setTopComponent(panel);
+        splitPane2.setBottomComponent(panel2);
+        
+        GridBagLayout gbl_panel2 = new GridBagLayout();
+        gbl_panel2.columnWidths = new int[] {0, 0};
+        gbl_panel2.rowHeights = new int[]{62, 0};
+        gbl_panel2.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+        gbl_panel2.rowWeights = new double[]{0.0, 1.0};
+        panel2.setLayout(gbl_panel2);
+        
+        JProgressBar progressBar = new JProgressBar();
+        GridBagConstraints gbc_progressBar = new GridBagConstraints();
+        gbc_progressBar.fill = GridBagConstraints.BOTH;
+        gbc_progressBar.insets = new Insets(0, 0, 5, 0);
+        gbc_progressBar.gridx = 0;
+        gbc_progressBar.gridy = 0;
+        panel2.add(progressBar, gbc_progressBar);
+        
+        JTextArea textArea = new JTextArea();
+        textArea.setLineWrap(true);
+        textArea.setEditable(false);
+        GridBagConstraints gbc_textArea = new GridBagConstraints();
+        gbc_textArea.fill = GridBagConstraints.BOTH;
+        gbc_textArea.gridx = 0;
+        gbc_textArea.gridy = 1;
+        panel2.add(textArea, gbc_textArea);
+        
         GridBagLayout gbl_panel = new GridBagLayout();
         gbl_panel.columnWidths = new int[]{0, 0, 0};
         gbl_panel.rowHeights = new int[] {30, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -399,15 +455,103 @@ public class RichardsonLucyGUI extends JFrame {
                 modelController.setPsfZSize(ZSize);
         		
         		System.out.println("run decon on "+imp.getTitle()+" with PSF "+psf.getTitle());
-        		
         		System.out.println("x spacing "+modelController.getXYSpacing());
-        		
         		System.out.println("PSF Tab "+tabbedPane.getSelectedIndex());
         		
-        		modelController.runDeconvolution(imp, psf, 100);
+        		new Thread("Deconvolution Thread") {
+        			@Override
+        			public void run() {
+        				modelController.runDeconvolution(imp, psf, 100);
+        			}
+        		}.start();
         	}
         });
+        
+        // Create an instance of the StatusService interface
+        this.statusService = new StatusService() {
+            @Override
+            public void showProgress(int value, int maximum) {
+                System.out.println("Progress: " + value + " out of " + maximum);
+            }
 
+            @Override
+            public void showStatus(String message) {
+                System.out.println("Status message: " + message);
+            }
+
+            @Override
+            public void showStatus(int progress, int maximum, String message) {
+            	if (SwingUtilities.isEventDispatchThread()) {
+	            	textArea.append(message);
+	            	progressBar.setMaximum(maximum);
+	            	progressBar.setValue(progress);
+            	}
+            	SwingUtilities.invokeLater(() -> {
+	            	textArea.append(message);
+	            	progressBar.setMaximum(maximum);
+	            	progressBar.setValue(progress);
+            	});
+            	//progress.
+            }
+
+            @Override
+            public void showStatus(int progress, int maximum, String message, boolean warn) {
+                System.out.println("Progress: " + progress + " out of " + maximum + ", Status message: " + message + ", Warn: " + warn);
+            }
+
+            @Override
+            public void warn(String message) {
+                System.out.println("Warning: " + message);
+            }
+
+            @Override
+            public void clearStatus() {
+                System.out.println("Clearing status");
+            }
+
+         	@Override
+			public Context context() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Context getContext() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public double getPriority() {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public void setPriority(double priority) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public PluginInfo<?> getInfo() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public void setInfo(PluginInfo<?> info) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public String getStatusMessage(String appName, StatusEvent statusEvent) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+        };
+        
 
     }
        

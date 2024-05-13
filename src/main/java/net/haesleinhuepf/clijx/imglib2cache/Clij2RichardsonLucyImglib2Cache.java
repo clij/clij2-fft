@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.scijava.app.StatusService;
+
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.converters.implementations.ClearCLBufferToRandomAccessibleIntervalConverter;
 import net.haesleinhuepf.clij.converters.implementations.RandomAccessibleIntervalToClearCLBufferConverter;
@@ -35,6 +37,10 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 	protected BiConsumer<ClearCLBuffer, ClearCLBuffer> filter = (a, b) -> {};
 
 	public CLIJ2 getClij2() { return clij2; }
+	
+	protected StatusService status = null;
+	protected int total = -1;
+	protected int current = 0;
 
 	/**
 	 * Creates a new clij2OverlapOp instance with the specified parameters.
@@ -60,6 +66,13 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		
 		this.psf = psf;
 		this.filter = (a,b) -> DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, a, psf, b, 100, 0.0f, true);
+	
+	}
+	
+	public void setUpStatus(StatusService status, int total) {
+		this.status = status;
+		this.total = total;
+		this.current = 0;
 	}
 	
 	public Clij2RichardsonLucyImglib2Cache(
@@ -85,7 +98,12 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 	 * @param cell The RandomAccessibleInterval representing the cell.
 	 */
 	public void accept(final RandomAccessibleInterval<T> cell) {
-
+		
+		if (this.status != null) {
+			this.status.showStatus(current, total, "deconvolving volume "+current + " of "+total);
+			current = current + 1;
+		}
+		
 		final RandomAccessibleIntervalToClearCLBufferConverter rai2cl = new RandomAccessibleIntervalToClearCLBufferConverter();
 		rai2cl.setCLIJ(clij2.getCLIJ());
 	
