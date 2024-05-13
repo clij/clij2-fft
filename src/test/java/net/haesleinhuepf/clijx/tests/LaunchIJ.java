@@ -50,7 +50,7 @@ public class LaunchIJ<T extends RealType<T> & NativeType<T>> {
 			return;
 		}
 
-		int dataNum = 2;
+		int dataNum = 3;
 		
 		if (dataNum==0) {
 			// do nothing 
@@ -68,13 +68,23 @@ public class LaunchIJ<T extends RealType<T> & NativeType<T>> {
 		// bars 
 		else if (dataNum==2) {
 				// bars....
-		 Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-stack.tif");
+		 Dataset dataset = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
 		 Dataset psf= (Dataset)
 				 ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
 		
 		 clij2.show(dataset, "data");
 		 clij2.show(psf, "psf");
 		
+		}
+		
+		else if (dataNum==3) {
+			
+		 Dataset dataset = (Dataset) ij.io()
+				.open("D:\\images\\tnia-python-images\\imagesc/2024_02_15_clij_z_tiling/im.tif");
+		 Dataset psf = (Dataset) ij.io()
+				.open("D:\\images\\tnia-python-images\\imagesc/2024_02_15_clij_z_tiling/psf.tif");
+		 clij2.show(dataset, "data");
+		 clij2.show(psf, "psf");
 		}
 				
 		//Dataset dataset = (Dataset) ij.io().open("/home/bnorthan/code/support/imagejMacros/DeconvolutionDemos/C1-YeastTNA1_1516_conv_RG_26oC_003_256xcropSub100.tif");

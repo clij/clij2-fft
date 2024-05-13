@@ -42,23 +42,21 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		}
 		
 		// load data
-<<<<<<< HEAD
 	//	Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
 	//	Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
 		
-	//	Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
-	//	Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
+		Dataset img = (Dataset) ij.io().open("D:\\images/images/Bars-G10-P15-stack-cropped.tif");
+		Dataset psf = (Dataset) ij.io().open("D:\\images/images/PSF-Bars-stack-cropped-64.tif");
 		
 	//	Dataset img = (Dataset) ij.io().open("D:\\images\\From Roman Guiet July 13th 2021\\clij_deconv_data\\D_X555_Ph488_Mit647_4-c3_crop1.tif");
 	//	Dataset psf = (Dataset) ij.io().open("D:\\\\images\\\\From Roman Guiet July 13th 2021\\\\clij_deconv_data\\\\PSF_w500_256x256x41_squared.tif");
 		
-		Dataset img = (Dataset) ij.io().open("D:\\images\\tnia-python-images\\imagesc\\2024_02_15_clij_z_tiling\\im.tif");
-		Dataset psf = (Dataset) ij.io().open("D:\\images\\tnia-python-images\\imagesc\\2024_02_15_clij_z_tiling\\psf_1.tif");
+	//	Dataset img = (Dataset) ij.io().open("D:\\images\\tnia-python-images\\imagesc\\2024_02_15_clij_z_tiling\\im.tif");
+	//	Dataset psf = (Dataset) ij.io().open("D:\\images\\tnia-python-images\\imagesc\\2024_02_15_clij_z_tiling\\psf_1.tif");
 		
 		
 		//	Dataset img = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\spheres_cropped.tiff");
 	//	Dataset psf = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\psf.tiff");
-=======
 		//	Dataset img = (Dataset) ij.io().open("/home/bnorthan/code/images/Bars-G10-P15-stack-cropped.tif");
 		//	Dataset psf = (Dataset) ij.io().open("/home/bnorthan/code/images/PSF-Bars-stack-cropped-64.tif");
 			
@@ -70,7 +68,6 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 			
 		//	Dataset img = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\spheres_cropped.tiff");
 		//	Dataset psf = (Dataset) ij.io().open("D:\\images\\decon-phantoms\\psf.tiff");
->>>>>>> fbe9af910534f683fbc778c9da75b2dd724f60ac
 	
 		//Dataset img = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
 		//Dataset psf = (Dataset) ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
@@ -81,11 +78,11 @@ public class InteractiveDeconvolve<T extends RealType<T> & NativeType<T>> {
 		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
 		//Dataset psf = (Dataset) ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3-cropped.tif");
 		
-		Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
+		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
 		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead.tif");
 		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead_266_266_512.tif");
 		//Dataset img = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/ones_266_266_512.tif");
-		Dataset psf = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
+		//Dataset psf = (Dataset) ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
 		
 		// show image and PSF
 		
