@@ -21,6 +21,7 @@ import org.scijava.ui.UIService;
 
 import ij.ImagePlus;
 import ij.WindowManager;
+import net.clij2fft.deconvolution.RichardsonLucyModelController.PSFTypeEnum;
 import net.imagej.ops.OpService;
 
 import javax.swing.JSplitPane;
@@ -41,6 +42,8 @@ import javax.swing.JCheckBox;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+
 import java.awt.Component;
 
 //Functional interface with three parameters and no return value
@@ -293,11 +296,16 @@ public class RichardsonLucyGUI extends JFrame {
         JTextArea textArea = new JTextArea();
         textArea.setLineWrap(true);
         textArea.setEditable(false);
+
+        // Wrap the text area in a scroll pane
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
         GridBagConstraints gbc_textArea = new GridBagConstraints();
         gbc_textArea.fill = GridBagConstraints.BOTH;
         gbc_textArea.gridx = 0;
         gbc_textArea.gridy = 1;
-        panel2.add(textArea, gbc_textArea);
+        panel2.add(scrollPane, gbc_textArea);
         
         GridBagLayout gbl_panel = new GridBagLayout();
         gbl_panel.columnWidths = new int[]{0, 0, 0};
@@ -421,7 +429,6 @@ public class RichardsonLucyGUI extends JFrame {
         		ImagePlus psf = (ImagePlus)comboBoxPSF.getSelectedItem();
         		
         		   // Get values from GUI components
-                int psfType = comboBoxPSF.getSelectedIndex();
                 int iterations = (int) spinnerIterations.getValue();
                 float regularizationFactor = ((Number) spinnerRegularizationFactor.getValue()).floatValue();
                 boolean useCells = chckbxNewCheckBox.isSelected();
@@ -438,7 +445,6 @@ public class RichardsonLucyGUI extends JFrame {
                 int ZSize = (int) spinnerZSize.getValue();
 
                 // Update model using setters
-                modelController.setPsfType(psfType);
                 modelController.setIterations(iterations);
                 modelController.setRegularizaitonFactor(regularizationFactor);
                 modelController.setUseCells(useCells);
@@ -457,6 +463,21 @@ public class RichardsonLucyGUI extends JFrame {
         		System.out.println("run decon on "+imp.getTitle()+" with PSF "+psf.getTitle());
         		System.out.println("x spacing "+modelController.getXYSpacing());
         		System.out.println("PSF Tab "+tabbedPane.getSelectedIndex());
+        		
+        		PSFTypeEnum psfType; 
+        		if (tabbedPane.getSelectedIndex()==0) {
+        			psfType = PSFTypeEnum.MEASURED_SINGLE_BEAD;
+        		}
+        		else if (tabbedPane.getSelectedIndex()==1) {
+        			psfType = PSFTypeEnum.GIBSON_LANNI;
+        		}
+        		else {
+        			psfType = PSFTypeEnum.GAUSSIAN;
+        		}
+        		
+        		modelController.setPSFType(psfType);
+        		
+        		modelController.computePSF(psfType);
         		
         		new Thread("Deconvolution Thread") {
         			@Override
@@ -483,11 +504,13 @@ public class RichardsonLucyGUI extends JFrame {
             public void showStatus(int progress, int maximum, String message) {
             	if (SwingUtilities.isEventDispatchThread()) {
 	            	textArea.append(message);
+	            	textArea.append("\n");
 	            	progressBar.setMaximum(maximum);
 	            	progressBar.setValue(progress);
             	}
             	SwingUtilities.invokeLater(() -> {
 	            	textArea.append(message);
+	            	textArea.append("\n");
 	            	progressBar.setMaximum(maximum);
 	            	progressBar.setValue(progress);
             	});

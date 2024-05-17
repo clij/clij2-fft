@@ -12,6 +12,7 @@ import net.haesleinhuepf.clijx.imglib2cache.Clij2RichardsonLucyImglib2Cache;
 import net.haesleinhuepf.clijx.imglib2cache.Lazy;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.imagej.ops.OpService;
+import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
@@ -22,11 +23,17 @@ import net.imglib2.type.numeric.real.FloatType;
 
 public class RichardsonLucyModelController {
 	
+	public enum PSFTypeEnum {
+	    MEASURED_SINGLE_BEAD,
+	    EXTRACTED_FROM_MULTIPLE_BEADS,
+	    GIBSON_LANNI,
+	    GAUSSIAN
+	}
+	
 	OpService ops;
 	LogService log;
 	StatusService status;
 	
-	int psfType;
 	int iterations;
 	float regularizaitonFactor;
 	boolean useCells;
@@ -41,6 +48,11 @@ public class RichardsonLucyModelController {
 	float PSFDepth;
 	int PsfXYSize;
 	int PsfZSize;
+	
+	float sigmaXY=2.f;
+	float sigmaZ=3.f;
+	
+	PSFTypeEnum psfType;
 	
 	RichardsonLucyModelController(OpService ops, LogService log, StatusService status) {
 		this.ops = ops;
@@ -60,11 +72,11 @@ public class RichardsonLucyModelController {
 		this.xySpacing = xSpacing;
 	}
 	
-	public int getPsfType() {
+	public PSFTypeEnum getPSFType() {
 	    return psfType;
 	}
 
-	public void setPsfType(int psfType) {
+	public void setPSFType(PSFTypeEnum psfType) {
 	    this.psfType = psfType;
 	}
 
@@ -170,6 +182,32 @@ public class RichardsonLucyModelController {
 
 	public void setPsfZSize(int ZSize) {
 	    this.PsfZSize = ZSize;
+	}
+	
+	public void computePSF(PSFTypeEnum psfType) {
+		if (psfType == PSFTypeEnum.GIBSON_LANNI) {
+			
+			FinalDimensions psfSize=new FinalDimensions(PsfXYSize, PsfXYSize, PsfZSize);
+
+			
+			Img psf = ops.create().kernelDiffraction(psfSize, NA, wavelength,
+					riSample, riImmersion, xySpacing, zSpacing, PSFDepth, new FloatType());
+			
+			ImageJFunctions.show(psf);
+	
+		}
+		else if (psfType == PSFTypeEnum.EXTRACTED_FROM_MULTIPLE_BEADS) {
+			
+		}
+		else if (psfType == PSFTypeEnum.GAUSSIAN) {
+		
+			Img psf=(Img)ops.create().kernelGauss(new double[] {sigmaXY, sigmaXY, sigmaZ}, new FloatType());
+			
+			ImageJFunctions.show(psf);
+		}
+		else {
+			
+		}
 	}
 		
 	
