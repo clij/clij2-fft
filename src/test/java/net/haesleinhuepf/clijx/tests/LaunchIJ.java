@@ -78,11 +78,16 @@ public class LaunchIJ<T extends RealType<T> & NativeType<T>> {
 		}
 		
 		else if (dataNum==3) {
-			
-		 Dataset dataset = (Dataset) ij.io()
-				.open("D:\\images\\tnia-python-images\\imagesc/2024_02_15_clij_z_tiling/im.tif");
-		 Dataset psf = (Dataset) ij.io()
-				.open("D:\\images\\tnia-python-images\\imagesc/2024_02_15_clij_z_tiling/psf.tif");
+		 		Dataset dataset = (Dataset) ij.io()
+				.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
+		Dataset psf = (Dataset) ij.io()
+				.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
+
+	
+		 //Dataset dataset = (Dataset) ij.io()
+		//		.open("D:\\images\\tnia-python-images\\imagesc/2024_02_15_clij_z_tiling/im.tif");
+		 //Dataset psf = (Dataset) ij.io()
+		//		.open("D:\\images\\tnia-python-images\\imagesc/2024_02_15_clij_z_tiling/psf.tif");
 		 clij2.show(dataset, "data");
 		 clij2.show(psf, "psf");
 		}
