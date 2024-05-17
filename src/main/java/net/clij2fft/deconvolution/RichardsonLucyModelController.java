@@ -231,7 +231,7 @@ public class RichardsonLucyModelController {
 		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 		
 		
-				if (!this.useCells) {
+		if (!this.useCells) {
 			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.002f, true);
 
 			ImagePlus out = clij2.pull(gpu_deconvolved);
@@ -239,30 +239,38 @@ public class RichardsonLucyModelController {
 		}
 		else {
 			
-			log.error("show me");
 			log.info("Performing Cell deconvolution "+this.useCells);
+		
 			
 			log.info("cell xy "+this.xyCellSize);
 			log.info("cell z "+this.zCellSize);
 			
-			status.showStatus(50, 100, "Deconvolving");
-		
-
 			Img<FloatType> img = ImageJFunctions.convertFloat(imp);
+
+			log.info("image size x "+img.dimension(0));
+			log.info("image size y "+img.dimension(1));
+			log.info("image size z "+img.dimension(2));
+			
+			int numDivisionsX = (int)(Math.ceil((float)img.dimension(0)/(float)this.xyCellSize));
+			int numDivisionsY = (int)(Math.ceil((float)img.dimension(1)/(float)this.xyCellSize));
+			int numDivisionsZ = (int)(Math.ceil((float)img.dimension(2)/(float)this.zCellSize));
+			
+			int numCells = numDivisionsX*numDivisionsY*numDivisionsZ;
 			
 			// create the version of clij2 RL that works on cells
 			Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op = new Clij2RichardsonLucyImglib2Cache<FloatType, FloatType>(
 				img, gpu_psf, 10, 10, 10);
 			
-			op.setUpStatus(status, 25);
+			op.setUpStatus(status, numCells);
 
 			// here we use the imglib2cache lazy 'generate' utility
 			// first parameter is the image to process
 			// second parameter is the cell size (which we set to half the original dimension in each direction)
+			
 			CachedCellImg<FloatType, RandomAccessibleInterval<FloatType>> decon = (CachedCellImg) Lazy.generate(img,
-					new int[] { (int) img.dimension(0) / 2, (int) img.dimension(1) / 2, (int) img.dimension(2) / 2 },
+					new int[] { (int) this.xyCellSize, (int) this.xyCellSize, (int) this.zCellSize },
 					new FloatType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
-	
+			
 			// trigger processing of the entire volume
 			// (otherwise processing will be triggerred as we view different parts of the volume,
 			// which is sometimes the behavior we want, but sometiems we'd rather process everything before hand,
