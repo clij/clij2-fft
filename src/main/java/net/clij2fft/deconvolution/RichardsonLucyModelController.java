@@ -13,12 +13,18 @@ import net.haesleinhuepf.clijx.imglib2cache.Lazy;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.imagej.ops.OpService;
 import net.imglib2.FinalDimensions;
+import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealLocalizable;
+import net.imglib2.algorithm.labeling.ConnectedComponents.StructuringElement;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
 import net.imglib2.img.basictypeaccess.AccessFlags;
 import net.imglib2.img.cell.Cell;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.roi.labeling.LabelRegion;
+import net.imglib2.roi.labeling.LabelRegions;
 import net.imglib2.type.numeric.real.FloatType;
 
 public class RichardsonLucyModelController {
@@ -184,8 +190,20 @@ public class RichardsonLucyModelController {
 	    this.PsfZSize = ZSize;
 	}
 	
-	public void computePSF(PSFTypeEnum psfType) {
+	public void setSigmaXY(float sigmaXY) {
+		this.sigmaXY = sigmaXY;
+	}
+	
+	public void setSigmaZ(float sigmaZ) {
+		this.sigmaZ = sigmaZ;
+	}
+	
+	public Img computePSF(PSFTypeEnum psfType, Img beads) {
+		
+		//this.status.showStatus(0, 2, "");
+		
 		if (psfType == PSFTypeEnum.GIBSON_LANNI) {
+			this.status.showStatus(1, 2, "Computing Gibson Lanni PSF");
 			
 			FinalDimensions psfSize=new FinalDimensions(PsfXYSize, PsfXYSize, PsfZSize);
 
@@ -194,24 +212,89 @@ public class RichardsonLucyModelController {
 					riSample, riImmersion, xySpacing, zSpacing, PSFDepth, new FloatType());
 			
 			ImageJFunctions.show(psf);
+			
+			return psf;
 	
 		}
 		else if (psfType == PSFTypeEnum.EXTRACTED_FROM_MULTIPLE_BEADS) {
+			this.status.showStatus(1, 2, "Extracting PSF from beads");
 			
+			// get dimensions of bead image
+			long xSize=beads.dimension(0);
+			long ySize=beads.dimension(1);
+			long zSize=beads.dimension(2);
+
+			// create an empty image to store the points
+			Img points=ops.create().img(new FinalDimensions(new long[] {xSize, ySize, zSize}), new FloatType());
+			
+			// otsu threshold to find the beads
+			Img thresholded = (Img)ops.threshold().otsu(beads);
+			
+			// call connected components to label each connected region
+			ImgLabeling labeling=ops.labeling().cca(thresholded, StructuringElement.FOUR_CONNECTED);
+			
+			// get the index image (each object will have a unique gray level)
+			Img labelingIndex=(Img)labeling.getIndexImg();
+			
+			// get the collection of regions and loop through them
+			LabelRegions<Integer> regions=new LabelRegions(labeling);
+			
+			for (LabelRegion<Integer> region:regions) {
+
+				// get the center of mass of the region
+				RealLocalizable center=region.getCenterOfMass();
+
+				// place a point at the bead centroid
+				RandomAccess<FloatType> randomAccess= points.randomAccess();
+				randomAccess.setPosition(new long[]{(long)(center.getFloatPosition(0)), (long)(center.getFloatPosition(1)), (long)(center.getFloatPosition(2))});
+				randomAccess.get().setReal(255.0);
+			}
+			
+			CLIJ2 clij2=null;
+			
+			// get clij
+			try {
+				clij2 = CLIJ2.getInstance("RTX");
+			}
+			catch(Exception e) {
+				System.out.println(e);
+				return null;
+			}
+			
+			ImageJFunctions.show(thresholded, "Thresholded Beads");
+			
+			ClearCLBuffer gpuBeadCentroids = clij2.push(points);
+			ClearCLBuffer gpuImage = clij2.push(beads);
+			ClearCLBuffer gpuPSF= clij2.create(gpuImage.getDimensions(), NativeTypeEnum.Float);
+			
+			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpuImage, gpuBeadCentroids, gpuPSF, 100, 0, true);
+
+			Img psf = (Img)clij2.pullRAI(gpuPSF);
+			ImageJFunctions.show(psf, "Extracted PSF");
+			
+			gpuBeadCentroids.close();
+			gpuImage.close();
+			gpuPSF.close();
+			this.status.showStatus(0, 2, "Finished extracting PSF from beads");
+			
+			return psf;
+
 		}
 		else if (psfType == PSFTypeEnum.GAUSSIAN) {
+			this.status.showStatus(1, 2, "Computing Gaussian PSF");
 		
 			Img psf=(Img)ops.create().kernelGauss(new double[] {sigmaXY, sigmaXY, sigmaZ}, new FloatType());
 			
 			ImageJFunctions.show(psf);
-		}
-		else {
 			
+			return psf;
 		}
+		
+		return null; 
 	}
 		
 	
-	public void runDeconvolution(ImagePlus imp, ImagePlus psf, int numIterations) {
+	public void runDeconvolution(ImagePlus imp, Img psf, int numIterations) {
 		
 
 		CLIJ2 clij2=null;
@@ -232,10 +315,18 @@ public class RichardsonLucyModelController {
 		
 		
 		if (!this.useCells) {
-			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, 100, 0.002f, true);
+			this.status.showStatus(1, 2, "cell mode is off");
+			this.status.showStatus(1, 2, "deconvolving volume using " + iterations + " iterations" );
+			
+			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, iterations, regularizaitonFactor, true);
 
 			ImagePlus out = clij2.pull(gpu_deconvolved);
 			out.show();
+			out.setTitle("Deconvolved");
+			
+			gpu_psf.close();
+			gpu_image.close();
+			gpu_deconvolved.close();
 		}
 		else {
 			
@@ -279,9 +370,11 @@ public class RichardsonLucyModelController {
 			// and we don't fully take advantage of the 'just in time' aspect. 
 			decon.getCells().forEach(Cell::getData);
 			
-			ImagePlus out = ImageJFunctions.show(decon);
+			ImagePlus out = ImageJFunctions.show(decon, "Deconvolution");
 			
 		}
+		// reset progress
+		this.status.showStatus(0, 2, "");
 	}
 
 }
