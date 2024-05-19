@@ -38,7 +38,8 @@ public class RichardsonLucyGUICommand<T extends RealType<T> & NativeType<T>> imp
 					dialog = new RichardsonLucyGUI();
 					dialog.initiateModel(ops, log, status);
 				}
-				dialog.setSize(800, 600);
+				dialog.setSize(1000, 600);
+				dialog.setLocation(300, 300);
 				dialog.setVisible(true);
 			});
 		}
