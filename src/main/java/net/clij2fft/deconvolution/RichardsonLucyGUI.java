@@ -69,6 +69,7 @@ public class RichardsonLucyGUI extends JFrame {
 	}
 	
     public RichardsonLucyGUI() {
+    	setTitle("CLIJ 3D Deconvolution");
         // Set the layout manager for the content pane
         getContentPane().setLayout(new BorderLayout());
         
@@ -82,7 +83,7 @@ public class RichardsonLucyGUI extends JFrame {
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
         
         JPanel panelMeasured = new JPanel();
-        tabbedPane.addTab("Measured Input", panelMeasured);
+        tabbedPane.addTab("Measured PSF", panelMeasured);
         GridBagLayout gbl_panelMeasured = new GridBagLayout();
         gbl_panelMeasured.columnWidths = new int[]{0, 0, 0};
         gbl_panelMeasured.rowHeights = new int[]{0, 0};
@@ -115,9 +116,9 @@ public class RichardsonLucyGUI extends JFrame {
         JPanel panelGibsonLanni = new JPanel();
         GridBagLayout gblPanelGibsonLanni = new GridBagLayout();
         gblPanelGibsonLanni.columnWidths = new int[]{0, 0, 0};
-        gblPanelGibsonLanni.rowHeights = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        gblPanelGibsonLanni.rowHeights = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         gblPanelGibsonLanni.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-        gblPanelGibsonLanni.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+        gblPanelGibsonLanni.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
         panelGibsonLanni.setLayout(gblPanelGibsonLanni);
 
         // Create a label for the x spacing field
@@ -268,7 +269,7 @@ public class RichardsonLucyGUI extends JFrame {
         
         JLabel lblZSize = new JLabel("Z Size");
         GridBagConstraints gbc_lblZSize = new GridBagConstraints();
-        gbc_lblZSize.insets = new Insets(0, 0, 0, 5);
+        gbc_lblZSize.insets = new Insets(0, 0, 5, 5);
         gbc_lblZSize.gridx = 0;
         gbc_lblZSize.gridy = 8;
         panelGibsonLanni.add(lblZSize, gbc_lblZSize);
@@ -276,10 +277,26 @@ public class RichardsonLucyGUI extends JFrame {
         JSpinner spinnerZSize = new JSpinner();
         spinnerZSize.setModel(new SpinnerNumberModel(new Integer(128), null, null, new Integer(1)));
         GridBagConstraints gbc_spinnerZSize = new GridBagConstraints();
+        gbc_spinnerZSize.insets = new Insets(0, 0, 5, 0);
         gbc_spinnerZSize.fill = GridBagConstraints.HORIZONTAL;
         gbc_spinnerZSize.gridx = 1;
         gbc_spinnerZSize.gridy = 8;
         panelGibsonLanni.add(spinnerZSize, gbc_spinnerZSize);
+        
+        JLabel lblConfocalFactor = new JLabel("Confocal Factor");
+        GridBagConstraints gbc_lblConfocalFactor = new GridBagConstraints();
+        gbc_lblConfocalFactor.insets = new Insets(0, 0, 0, 5);
+        gbc_lblConfocalFactor.gridx = 0;
+        gbc_lblConfocalFactor.gridy = 9;
+        panelGibsonLanni.add(lblConfocalFactor, gbc_lblConfocalFactor);
+        
+        JSpinner spinnerConfocalFactor = new JSpinner();
+        spinnerConfocalFactor.setModel(new SpinnerNumberModel(1.0, 1.0, 2.0, 0.1)); // Example range and step size
+        GridBagConstraints gbc_spinnerConfocalFactor = new GridBagConstraints();
+        gbc_spinnerConfocalFactor.fill = GridBagConstraints.HORIZONTAL;
+        gbc_spinnerConfocalFactor.gridx = 1;
+        gbc_spinnerConfocalFactor.gridy = 9;
+        panelGibsonLanni.add(spinnerConfocalFactor, gbc_spinnerConfocalFactor);
         
         JPanel panelGaussian = new JPanel();
         tabbedPane.addTab("Gaussian", panelGaussian);
@@ -298,7 +315,7 @@ public class RichardsonLucyGUI extends JFrame {
         panelGaussian.add(lblSigmaXY, gbc_lblSigmaXY);
         
         JSpinner spinnerSigmaXY = new JSpinner();
-        spinnerSigmaXY.setModel(new SpinnerNumberModel(0.1, 0.001, 10.0, 0.1)); // Example range and step size
+        spinnerSigmaXY.setModel(new SpinnerNumberModel(1.0, 0.001, 10.0, 0.1)); // Example range and step size
         GridBagConstraints gbc_spinnerSigmaXY = new GridBagConstraints();
         gbc_spinnerSigmaXY.fill = GridBagConstraints.HORIZONTAL;
         gbc_spinnerSigmaXY.insets = new Insets(0, 0, 5, 5);
@@ -314,7 +331,7 @@ public class RichardsonLucyGUI extends JFrame {
         panelGaussian.add(lblSigmaZ, gbc_lblSigmaZ);
         
         JSpinner spinnerSigmaZ = new JSpinner();
-        spinnerSigmaZ.setModel(new SpinnerNumberModel(0.3, 0.001, 10.0, 0.1)); // Example range and step size
+        spinnerSigmaZ.setModel(new SpinnerNumberModel(3.0, 0.001, 10.0, 0.1)); // Example range and step size
         GridBagConstraints gbc_spinnerSigmaZ = new GridBagConstraints();
         gbc_spinnerSigmaZ.fill = GridBagConstraints.HORIZONTAL;
         gbc_spinnerSigmaZ.insets = new Insets(0, 0, 0, 5);
@@ -470,7 +487,7 @@ public class RichardsonLucyGUI extends JFrame {
         panel.add(spinnerRegularizationFactor, gbc_spinnerRegularizationFactor);
         
         SpinnerNumberModel modelIterations = new SpinnerNumberModel(10, 0, 100, 1);
-        spinnerIterations.setModel(modelIterations);
+        spinnerIterations.setModel(new SpinnerNumberModel(100, 0, 100, 1));
         
         SpinnerNumberModel modelRegularizationFactor = new SpinnerNumberModel(0.0002f, 0.0f, 100.0f, 0.0001f);
         spinnerRegularizationFactor.setModel(modelRegularizationFactor);
@@ -479,8 +496,9 @@ public class RichardsonLucyGUI extends JFrame {
         
         JButton btnRun = new JButton("Run");
                 
-        JLabel lblUseCells = new JLabel("Use Cells");
+        JLabel lblUseCells = new JLabel("Divide into Cells");
         GridBagConstraints gbc_lblUseCells = new GridBagConstraints();
+        gbc_lblUseCells.anchor = GridBagConstraints.WEST;
         gbc_lblUseCells.insets = new Insets(0, 0, 5, 5);
         gbc_lblUseCells.gridx = 0;
         gbc_lblUseCells.gridy = 4;
@@ -494,8 +512,9 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_chckbxNewCheckBox.gridy = 4;
         panel.add(chckbxNewCheckBox, gbc_chckbxNewCheckBox);
         
-        JLabel lblNumCells = new JLabel("Cell XY");
+        JLabel lblNumCells = new JLabel("Cell XY Size");
         GridBagConstraints gbc_lblNumCells = new GridBagConstraints();
+        gbc_lblNumCells.anchor = GridBagConstraints.WEST;
         gbc_lblNumCells.insets = new Insets(0, 0, 5, 5);
         gbc_lblNumCells.gridx = 0;
         gbc_lblNumCells.gridy = 5;
@@ -510,8 +529,9 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_spinner_1.gridy = 5;
         panel.add(spinner_1, gbc_spinner_1);
         
-        JLabel lblNewLabel = new JLabel("Cell Z");
+        JLabel lblNewLabel = new JLabel("Cell Z Size");
         GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+        gbc_lblNewLabel.anchor = GridBagConstraints.WEST;
         gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
         gbc_lblNewLabel.gridx = 0;
         gbc_lblNewLabel.gridy = 6;
@@ -551,7 +571,7 @@ public class RichardsonLucyGUI extends JFrame {
                 float PSFDepth = ((Number) spinnerPSFDepth.getValue()).floatValue();
                 int XYSize = (int) spinnerXYSize.getValue();
                 int ZSize = (int) spinnerZSize.getValue();
-                
+                float confocalFactor = ((Number) spinnerConfocalFactor.getValue()).floatValue();
                 float sigmaXY = ((Number) spinnerSigmaXY.getValue()).floatValue();
                 float sigmaZ = ((Number) spinnerSigmaZ.getValue()).floatValue();
 
@@ -572,6 +592,7 @@ public class RichardsonLucyGUI extends JFrame {
                 modelController.setPsfZSize(ZSize);
                 modelController.setSigmaXY(sigmaXY);
                 modelController.setSigmaZ(sigmaZ);
+                modelController.setConfocalFactor(confocalFactor);
         		
         		System.out.println("run decon on "+imp.getTitle()+" with PSF "+psf.getTitle());
         		System.out.println("x spacing "+modelController.getXYSpacing());

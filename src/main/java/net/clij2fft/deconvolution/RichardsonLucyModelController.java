@@ -55,6 +55,7 @@ public class RichardsonLucyModelController {
 	float PSFDepth;
 	int PsfXYSize;
 	int PsfZSize;
+	float confocalFactor=1;
 	
 	float sigmaXY=2.f;
 	float sigmaZ=3.f;
@@ -191,6 +192,10 @@ public class RichardsonLucyModelController {
 	    this.PsfZSize = ZSize;
 	}
 	
+	public void setConfocalFactor(float confocalFactor) {
+		this.confocalFactor = confocalFactor;
+	}
+	
 	public void setSigmaXY(float sigmaXY) {
 		this.sigmaXY = sigmaXY;
 	}
@@ -209,8 +214,22 @@ public class RichardsonLucyModelController {
 			FinalDimensions psfSize=new FinalDimensions(PsfXYSize, PsfXYSize, PsfZSize);
 
 			
-			Img psf = ops.create().kernelDiffraction(psfSize, NA, wavelength,
+			Img<FloatType> psf = ops.create().kernelDiffraction(psfSize, NA, wavelength,
 					riSample, riImmersion, xySpacing, zSpacing, PSFDepth, new FloatType());
+			
+			// raise PSF to power of confocalFactor
+			// If confocalFactor = 2 this is equivalent to squaring PSF to approximate confocal
+			// If confocalFactor > 1 and < 2 this is a estimate of partial confocal (spinning disc) PSF
+			// Note that this method is a somewhat ad-hoc approximation of confocal PSF that experimentally is useful
+			// to increase contrast in confocal/spinning disc images
+			if (confocalFactor > 1.0 & confocalFactor < 2) {
+				for (FloatType p:psf) {
+					float val = p.getRealFloat()*p.getRealFloat();
+					
+					p.setReal(val);
+					
+				}
+			}
 			
 			ImageJFunctions.show(psf);
 			
@@ -286,7 +305,7 @@ public class RichardsonLucyModelController {
 		
 			Img psf=(Img)ops.create().kernelGauss(new double[] {sigmaXY, sigmaXY, sigmaZ}, new FloatType());
 			
-			ImageJFunctions.show(psf);
+			ImageJFunctions.show(psf, "Gaussian PSF");
 			
 			return psf;
 		}
@@ -303,6 +322,7 @@ public class RichardsonLucyModelController {
 		// get clij
 		try {
 			clij2 = CLIJ2.getInstance("RTX");
+			this.status.showStatus(0, 2, "Using device "+clij2.getGPUName());
 		}
 		catch(Exception e) {
 			System.out.println(e);
