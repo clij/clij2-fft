@@ -13,7 +13,7 @@ import net.imagej.ops.OpService;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
-@Plugin(type = Command.class, headless = true, menuPath = "Test>Test Deconvolution")
+@Plugin(type = Command.class, headless = true, menuPath = "Plugins>CLIJ 3D Deconvolution")
 public class RichardsonLucyGUICommand<T extends RealType<T> & NativeType<T>> implements Command {
 
 	@Parameter
