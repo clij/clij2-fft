@@ -100,7 +100,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 	public void accept(final RandomAccessibleInterval<T> cell) {
 		
 		if (this.status != null) {
-			this.status.showStatus(current, total, "deconvolving volume "+current + " of "+total);
+			this.status.showStatus(current, total, "deconvolving cell "+current + " of "+total);
 			current = current + 1;
 		}
 		
