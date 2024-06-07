@@ -20,6 +20,7 @@ import net.imglib2.algorithm.labeling.ConnectedComponents.StructuringElement;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.Img;
 import net.imglib2.img.basictypeaccess.AccessFlags;
+import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
 import net.imglib2.img.cell.Cell;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.roi.labeling.ImgLabeling;
@@ -358,7 +359,7 @@ public class RichardsonLucyModelController {
 			// first parameter is the image to process
 			// second parameter is the cell size (which we set to half the original dimension in each direction)
 			
-			CachedCellImg<FloatType, RandomAccessibleInterval<FloatType>> decon = (CachedCellImg) Lazy.generate(img,
+			CachedCellImg<FloatType, ArrayDataAccess<FloatType>> decon = (CachedCellImg) Lazy.generate(img,
 					new int[] { (int) this.xyCellSize, (int) this.xyCellSize, (int) this.zCellSize },
 					new FloatType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
 			
