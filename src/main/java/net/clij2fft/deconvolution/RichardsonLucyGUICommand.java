@@ -13,7 +13,7 @@ import net.imagej.ops.OpService;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
-@Plugin(type = Command.class, headless = true, menuPath = "Test>Test Deconvolution")
+@Plugin(type = Command.class, headless = true, menuPath = "Plugins>CLIJ 3D Deconvolution")
 public class RichardsonLucyGUICommand<T extends RealType<T> & NativeType<T>> implements Command {
 
 	@Parameter
@@ -38,7 +38,8 @@ public class RichardsonLucyGUICommand<T extends RealType<T> & NativeType<T>> imp
 					dialog = new RichardsonLucyGUI();
 					dialog.initiateModel(ops, log, status);
 				}
-				dialog.setSize(800, 600);
+				dialog.setSize(1000, 600);
+				dialog.setLocation(300, 300);
 				dialog.setVisible(true);
 			});
 		}

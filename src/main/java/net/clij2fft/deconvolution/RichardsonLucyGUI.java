@@ -10,6 +10,9 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+import javax.swing.plaf.basic.BasicComboBoxUI;
 
 import org.apache.commons.lang3.tuple.Triple;
 import org.scijava.Context;
@@ -23,6 +26,8 @@ import ij.ImagePlus;
 import ij.WindowManager;
 import net.clij2fft.deconvolution.RichardsonLucyModelController.PSFTypeEnum;
 import net.imagej.ops.OpService;
+import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -37,6 +42,8 @@ import javax.swing.JSpinner;
 import javax.swing.SwingConstants;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JCheckBox;
 import javax.swing.JTextField;
@@ -62,6 +69,7 @@ public class RichardsonLucyGUI extends JFrame {
 	}
 	
     public RichardsonLucyGUI() {
+    	setTitle("CLIJ 3D Deconvolution");
         // Set the layout manager for the content pane
         getContentPane().setLayout(new BorderLayout());
         
@@ -74,14 +82,14 @@ public class RichardsonLucyGUI extends JFrame {
        
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
         
-        JPanel panel_1 = new JPanel();
-        tabbedPane.addTab("Measured Input", panel_1);
-        GridBagLayout gbl_panel_1 = new GridBagLayout();
-        gbl_panel_1.columnWidths = new int[]{0, 0, 0};
-        gbl_panel_1.rowHeights = new int[]{0, 0};
-        gbl_panel_1.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-        gbl_panel_1.rowWeights = new double[]{0.0, Double.MIN_VALUE};
-        panel_1.setLayout(gbl_panel_1);
+        JPanel panelMeasured = new JPanel();
+        tabbedPane.addTab("Measured PSF", panelMeasured);
+        GridBagLayout gbl_panelMeasured = new GridBagLayout();
+        gbl_panelMeasured.columnWidths = new int[]{0, 0, 0};
+        gbl_panelMeasured.rowHeights = new int[]{0, 0};
+        gbl_panelMeasured.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+        gbl_panelMeasured.rowWeights = new double[]{0.0, Double.MIN_VALUE};
+        panelMeasured.setLayout(gbl_panelMeasured);
         
         JLabel lblPSF = new JLabel("Input PSF");
         GridBagConstraints gbc_lblPSF = new GridBagConstraints();
@@ -89,22 +97,28 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_lblPSF.anchor = GridBagConstraints.EAST;
         gbc_lblPSF.gridx = 0;
         gbc_lblPSF.gridy = 0;
-        panel_1.add(lblPSF, gbc_lblPSF);
+        panelMeasured.add(lblPSF, gbc_lblPSF);
         
-        JComboBox comboBoxPSF = new JComboBox(new ImagePlusComboBox());
+        ImagePlusComboBox imagePlusCombo1 = new ImagePlusComboBox();
+        JComboBox comboBoxPSF = new JComboBox(imagePlusCombo1);
+        
+        ImageJPopupMenuListener popupMenuListener1 = new ImageJPopupMenuListener(imagePlusCombo1);
+        comboBoxPSF.addPopupMenuListener(popupMenuListener1);
+        
+        comboBoxPSF.addMouseListener(null);
         GridBagConstraints gbc_comboBoxPSF = new GridBagConstraints();
         gbc_comboBoxPSF.fill = GridBagConstraints.HORIZONTAL;
         gbc_comboBoxPSF.gridx = 1;
         gbc_comboBoxPSF.gridy = 0;
-        panel_1.add(comboBoxPSF, gbc_comboBoxPSF);
+        panelMeasured.add(comboBoxPSF, gbc_comboBoxPSF);
         
         // Create a panel for the "Gibson Lanni" tab
         JPanel panelGibsonLanni = new JPanel();
         GridBagLayout gblPanelGibsonLanni = new GridBagLayout();
         gblPanelGibsonLanni.columnWidths = new int[]{0, 0, 0};
-        gblPanelGibsonLanni.rowHeights = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        gblPanelGibsonLanni.rowHeights = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         gblPanelGibsonLanni.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-        gblPanelGibsonLanni.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+        gblPanelGibsonLanni.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
         panelGibsonLanni.setLayout(gblPanelGibsonLanni);
 
         // Create a label for the x spacing field
@@ -255,7 +269,7 @@ public class RichardsonLucyGUI extends JFrame {
         
         JLabel lblZSize = new JLabel("Z Size");
         GridBagConstraints gbc_lblZSize = new GridBagConstraints();
-        gbc_lblZSize.insets = new Insets(0, 0, 0, 5);
+        gbc_lblZSize.insets = new Insets(0, 0, 5, 5);
         gbc_lblZSize.gridx = 0;
         gbc_lblZSize.gridy = 8;
         panelGibsonLanni.add(lblZSize, gbc_lblZSize);
@@ -263,14 +277,119 @@ public class RichardsonLucyGUI extends JFrame {
         JSpinner spinnerZSize = new JSpinner();
         spinnerZSize.setModel(new SpinnerNumberModel(new Integer(128), null, null, new Integer(1)));
         GridBagConstraints gbc_spinnerZSize = new GridBagConstraints();
+        gbc_spinnerZSize.insets = new Insets(0, 0, 5, 0);
         gbc_spinnerZSize.fill = GridBagConstraints.HORIZONTAL;
         gbc_spinnerZSize.gridx = 1;
         gbc_spinnerZSize.gridy = 8;
         panelGibsonLanni.add(spinnerZSize, gbc_spinnerZSize);
         
-        tabbedPane.addTab("Gaussian", new JPanel());
+        JLabel lblConfocalFactor = new JLabel("Confocal Factor");
+        GridBagConstraints gbc_lblConfocalFactor = new GridBagConstraints();
+        gbc_lblConfocalFactor.insets = new Insets(0, 0, 0, 5);
+        gbc_lblConfocalFactor.gridx = 0;
+        gbc_lblConfocalFactor.gridy = 9;
+        panelGibsonLanni.add(lblConfocalFactor, gbc_lblConfocalFactor);
+        
+        JSpinner spinnerConfocalFactor = new JSpinner();
+        spinnerConfocalFactor.setModel(new SpinnerNumberModel(1.0, 1.0, 2.0, 0.1)); // Example range and step size
+        GridBagConstraints gbc_spinnerConfocalFactor = new GridBagConstraints();
+        gbc_spinnerConfocalFactor.fill = GridBagConstraints.HORIZONTAL;
+        gbc_spinnerConfocalFactor.gridx = 1;
+        gbc_spinnerConfocalFactor.gridy = 9;
+        panelGibsonLanni.add(spinnerConfocalFactor, gbc_spinnerConfocalFactor);
+        
+        JPanel panelGaussian = new JPanel();
+        tabbedPane.addTab("Gaussian", panelGaussian);
+        GridBagLayout gbl_panelGaussian = new GridBagLayout();
+        gbl_panelGaussian.columnWidths = new int[] {0, 0, 0};
+        gbl_panelGaussian.rowHeights = new int[] {0, 0, 0};
+        gbl_panelGaussian.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+        gbl_panelGaussian.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+        panelGaussian.setLayout(gbl_panelGaussian);
+        
+        JLabel lblSigmaXY = new JLabel("Sigma XY");
+        GridBagConstraints gbc_lblSigmaXY = new GridBagConstraints();
+        gbc_lblSigmaXY.insets = new Insets(0, 0, 5, 5);
+        gbc_lblSigmaXY.gridx = 0;
+        gbc_lblSigmaXY.gridy = 0;
+        panelGaussian.add(lblSigmaXY, gbc_lblSigmaXY);
+        
+        JSpinner spinnerSigmaXY = new JSpinner();
+        spinnerSigmaXY.setModel(new SpinnerNumberModel(1.0, 0.001, 10.0, 0.1)); // Example range and step size
+        GridBagConstraints gbc_spinnerSigmaXY = new GridBagConstraints();
+        gbc_spinnerSigmaXY.fill = GridBagConstraints.HORIZONTAL;
+        gbc_spinnerSigmaXY.insets = new Insets(0, 0, 5, 5);
+        gbc_spinnerSigmaXY.gridx = 1;
+        gbc_spinnerSigmaXY.gridy = 0;
+        panelGaussian.add(spinnerSigmaXY, gbc_spinnerSigmaXY);
+        
+        JLabel lblSigmaZ = new JLabel("Sigma Z");
+        GridBagConstraints gbc_lblSigmaZ = new GridBagConstraints();
+        gbc_lblSigmaZ.insets = new Insets(0, 0, 0, 5);
+        gbc_lblSigmaZ.gridx = 0;
+        gbc_lblSigmaZ.gridy = 1;
+        panelGaussian.add(lblSigmaZ, gbc_lblSigmaZ);
+        
+        JSpinner spinnerSigmaZ = new JSpinner();
+        spinnerSigmaZ.setModel(new SpinnerNumberModel(3.0, 0.001, 10.0, 0.1)); // Example range and step size
+        GridBagConstraints gbc_spinnerSigmaZ = new GridBagConstraints();
+        gbc_spinnerSigmaZ.fill = GridBagConstraints.HORIZONTAL;
+        gbc_spinnerSigmaZ.insets = new Insets(0, 0, 0, 5);
+        gbc_spinnerSigmaZ.gridx = 1;
+        gbc_spinnerSigmaZ.gridy = 1;
+        panelGaussian.add(spinnerSigmaZ, gbc_spinnerSigmaZ);
         
         splitPane.setRightComponent(tabbedPane);
+        
+        JPanel panelExtractPSF = new JPanel();
+        tabbedPane.addTab("Extract PSF from beads", panelExtractPSF);
+        GridBagLayout gbl_panelExtractPSF = new GridBagLayout();
+        gbl_panelExtractPSF.columnWidths = new int[]{0, 0, 0};
+        gbl_panelExtractPSF.rowHeights = new int[]{0, 0, 0};
+        gbl_panelExtractPSF.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+        gbl_panelExtractPSF.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+        panelExtractPSF.setLayout(gbl_panelExtractPSF);
+        
+        JLabel lblBeadImage = new JLabel("Bead Image");
+        GridBagConstraints gbc_lblBeadFile = new GridBagConstraints();
+        gbc_lblBeadFile.insets = new Insets(0, 0, 5, 5);
+        gbc_lblBeadFile.anchor = GridBagConstraints.EAST;
+        gbc_lblBeadFile.gridx = 0;
+        gbc_lblBeadFile.gridy = 0;
+        panelExtractPSF.add(lblBeadImage, gbc_lblBeadFile);
+        
+        ImagePlusComboBox imagePlusComboBeads = new ImagePlusComboBox();
+        JComboBox comboBoxBeads = new JComboBox(imagePlusComboBeads);
+        
+        ImageJPopupMenuListener popupMenuListenerBeads = new ImageJPopupMenuListener(imagePlusComboBeads);
+        comboBoxBeads.addPopupMenuListener(popupMenuListenerBeads);
+        
+        comboBoxBeads.addMouseListener(null);
+        GridBagConstraints gbc_comboBoxBeads = new GridBagConstraints();
+        gbc_comboBoxBeads.insets = new Insets(0, 0, 5, 0);
+        gbc_comboBoxBeads.fill = GridBagConstraints.HORIZONTAL;
+        gbc_comboBoxBeads.gridx = 1;
+        gbc_comboBoxBeads.gridy = 0;
+        panelExtractPSF.add(comboBoxBeads, gbc_comboBoxBeads);
+        
+        JButton btnExtractPSF = new JButton("Extract PSF");
+        btnExtractPSF.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		ImagePlus beads= (ImagePlus)comboBoxBeads.getSelectedItem();
+        		
+        		new Thread("Extract PSF Thread") {
+        			@Override
+        			public void run() {
+        				modelController.computePSF(PSFTypeEnum.EXTRACTED_FROM_MULTIPLE_BEADS, ImageJFunctions.wrap(beads));
+        			}
+        		}.start();
+        	}
+        });
+        GridBagConstraints gbc_btnExtractPSF = new GridBagConstraints();
+        gbc_btnExtractPSF.gridx = 1;
+        gbc_btnExtractPSF.gridy = 1;
+        panelExtractPSF.add(btnExtractPSF, gbc_btnExtractPSF);
+         
         
         JPanel panel = new JPanel();
         JPanel panel2 = new JPanel();
@@ -280,7 +399,7 @@ public class RichardsonLucyGUI extends JFrame {
         
         GridBagLayout gbl_panel2 = new GridBagLayout();
         gbl_panel2.columnWidths = new int[] {0, 0};
-        gbl_panel2.rowHeights = new int[]{62, 0};
+        gbl_panel2.rowHeights = new int[] {27, 0};
         gbl_panel2.columnWeights = new double[]{1.0, Double.MIN_VALUE};
         gbl_panel2.rowWeights = new double[]{0.0, 1.0};
         panel2.setLayout(gbl_panel2);
@@ -321,8 +440,13 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_lblInput.gridx = 0;
         gbc_lblInput.gridy = 1;
         panel.add(lblInput, gbc_lblInput);
+       
+        ImagePlusComboBox imagePlusCombo2 = new ImagePlusComboBox();
+        JComboBox comboBoxInput = new JComboBox(imagePlusCombo2);
         
-        JComboBox comboBoxInput = new JComboBox(new ImagePlusComboBox());
+        ImageJPopupMenuListener popupMenuListener2 = new ImageJPopupMenuListener(imagePlusCombo2);
+        comboBoxInput.addPopupMenuListener(popupMenuListener2);
+    
         GridBagConstraints gbc_comboBoxInput = new GridBagConstraints();
         gbc_comboBoxInput.insets = new Insets(0, 0, 5, 0);
         gbc_comboBoxInput.fill = GridBagConstraints.HORIZONTAL;
@@ -363,7 +487,7 @@ public class RichardsonLucyGUI extends JFrame {
         panel.add(spinnerRegularizationFactor, gbc_spinnerRegularizationFactor);
         
         SpinnerNumberModel modelIterations = new SpinnerNumberModel(10, 0, 100, 1);
-        spinnerIterations.setModel(modelIterations);
+        spinnerIterations.setModel(new SpinnerNumberModel(100, 0, 100, 1));
         
         SpinnerNumberModel modelRegularizationFactor = new SpinnerNumberModel(0.0002f, 0.0f, 100.0f, 0.0001f);
         spinnerRegularizationFactor.setModel(modelRegularizationFactor);
@@ -372,8 +496,9 @@ public class RichardsonLucyGUI extends JFrame {
         
         JButton btnRun = new JButton("Run");
                 
-        JLabel lblUseCells = new JLabel("Use Cells");
+        JLabel lblUseCells = new JLabel("Divide into Cells");
         GridBagConstraints gbc_lblUseCells = new GridBagConstraints();
+        gbc_lblUseCells.anchor = GridBagConstraints.WEST;
         gbc_lblUseCells.insets = new Insets(0, 0, 5, 5);
         gbc_lblUseCells.gridx = 0;
         gbc_lblUseCells.gridy = 4;
@@ -387,8 +512,9 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_chckbxNewCheckBox.gridy = 4;
         panel.add(chckbxNewCheckBox, gbc_chckbxNewCheckBox);
         
-        JLabel lblNumCells = new JLabel("Cell XY");
+        JLabel lblNumCells = new JLabel("Cell XY Size");
         GridBagConstraints gbc_lblNumCells = new GridBagConstraints();
+        gbc_lblNumCells.anchor = GridBagConstraints.WEST;
         gbc_lblNumCells.insets = new Insets(0, 0, 5, 5);
         gbc_lblNumCells.gridx = 0;
         gbc_lblNumCells.gridy = 5;
@@ -403,8 +529,9 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_spinner_1.gridy = 5;
         panel.add(spinner_1, gbc_spinner_1);
         
-        JLabel lblNewLabel = new JLabel("Cell Z");
+        JLabel lblNewLabel = new JLabel("Cell Z Size");
         GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+        gbc_lblNewLabel.anchor = GridBagConstraints.WEST;
         gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
         gbc_lblNewLabel.gridx = 0;
         gbc_lblNewLabel.gridy = 6;
@@ -427,6 +554,7 @@ public class RichardsonLucyGUI extends JFrame {
         	public void actionPerformed(ActionEvent e) {
         		ImagePlus imp = (ImagePlus)comboBoxInput.getSelectedItem();
         		ImagePlus psf = (ImagePlus)comboBoxPSF.getSelectedItem();
+        		ImagePlus beads= (ImagePlus)comboBoxBeads.getSelectedItem();
         		
         		   // Get values from GUI components
                 int iterations = (int) spinnerIterations.getValue();
@@ -443,6 +571,9 @@ public class RichardsonLucyGUI extends JFrame {
                 float PSFDepth = ((Number) spinnerPSFDepth.getValue()).floatValue();
                 int XYSize = (int) spinnerXYSize.getValue();
                 int ZSize = (int) spinnerZSize.getValue();
+                float confocalFactor = ((Number) spinnerConfocalFactor.getValue()).floatValue();
+                float sigmaXY = ((Number) spinnerSigmaXY.getValue()).floatValue();
+                float sigmaZ = ((Number) spinnerSigmaZ.getValue()).floatValue();
 
                 // Update model using setters
                 modelController.setIterations(iterations);
@@ -459,32 +590,44 @@ public class RichardsonLucyGUI extends JFrame {
                 modelController.setPSFDepth(PSFDepth);
                 modelController.setPsfXYSize(XYSize);
                 modelController.setPsfZSize(ZSize);
+                modelController.setSigmaXY(sigmaXY);
+                modelController.setSigmaZ(sigmaZ);
+                modelController.setConfocalFactor(confocalFactor);
         		
         		System.out.println("run decon on "+imp.getTitle()+" with PSF "+psf.getTitle());
         		System.out.println("x spacing "+modelController.getXYSpacing());
         		System.out.println("PSF Tab "+tabbedPane.getSelectedIndex());
         		
-        		PSFTypeEnum psfType; 
+        		PSFTypeEnum psfType;
+        		final Img psfImg;
+        		
         		if (tabbedPane.getSelectedIndex()==0) {
+        			statusService.showStatus(1, 2, "Using Measured PSF");
         			psfType = PSFTypeEnum.MEASURED_SINGLE_BEAD;
+        			psfImg = ImageJFunctions.convertFloat(psf);
         		}
         		else if (tabbedPane.getSelectedIndex()==1) {
         			psfType = PSFTypeEnum.GIBSON_LANNI;
+        			psfImg = modelController.computePSF(psfType, null);
+        		}
+        		else if (tabbedPane.getSelectedIndex()==2) {
+        			psfType = PSFTypeEnum.GAUSSIAN;
+        			psfImg = modelController.computePSF(psfType, null);
         		}
         		else {
-        			psfType = PSFTypeEnum.GAUSSIAN;
+        			psfType = PSFTypeEnum.EXTRACTED_FROM_MULTIPLE_BEADS;
+        			psfImg = modelController.computePSF(psfType, ImageJFunctions.wrap(beads));
         		}
         		
         		modelController.setPSFType(psfType);
         		
-        		modelController.computePSF(psfType);
-        		
         		new Thread("Deconvolution Thread") {
         			@Override
         			public void run() {
-        				modelController.runDeconvolution(imp, psf, 100);
+        				modelController.runDeconvolution(imp, psfImg, 100);
         			}
         		}.start();
+        		
         	}
         });
         
@@ -508,13 +651,14 @@ public class RichardsonLucyGUI extends JFrame {
 	            	progressBar.setMaximum(maximum);
 	            	progressBar.setValue(progress);
             	}
-            	SwingUtilities.invokeLater(() -> {
-	            	textArea.append(message);
-	            	textArea.append("\n");
-	            	progressBar.setMaximum(maximum);
-	            	progressBar.setValue(progress);
-            	});
-            	//progress.
+            	else {
+	            	SwingUtilities.invokeLater(() -> {
+		            	textArea.append(message);
+		            	textArea.append("\n");
+		            	progressBar.setMaximum(maximum);
+		            	progressBar.setValue(progress);
+	            	});
+            	}
             }
 
             @Override

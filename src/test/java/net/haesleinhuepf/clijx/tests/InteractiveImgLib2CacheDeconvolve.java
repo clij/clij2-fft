@@ -13,6 +13,7 @@ import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.basictypeaccess.AccessFlags;
+import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
 import net.imglib2.img.cell.Cell;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -52,18 +53,23 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 		// Dataset psf = (Dataset)
 		// ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3-cropped.tif");
 
-		// Dataset img = (Dataset)
-		// ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead.tif");
-		// Dataset img = (Dataset)
-		// ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead_266_266_512.tif");
-		// Dataset img = (Dataset)
-		// ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/ones_266_266_512.tif");
+		 //Dataset img = (Dataset)
+		 //ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead.tif");
+		 //Dataset img = (Dataset)
+		 //ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead_266_266_512.tif");
+		 //Dataset img = (Dataset)
+		 //ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/ones_266_266_512.tif");
+
+		//Dataset imgD = (Dataset) ij.io()
+		//		.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
+		//Dataset psfD = (Dataset) ij.io()
+		//		.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
 
 		Dataset imgD = (Dataset) ij.io()
-				.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
+				.open("D:\\images\\tnia-python-images\\imagesc\\2024_06_03_clij_z_error\\im.tif");
 		Dataset psfD = (Dataset) ij.io()
-				.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
-
+				.open("D:\\images\\tnia-python-images\\imagesc\\2024_06_03_clij_z_error\\psf.tif");
+		
 		RandomAccessibleInterval<FloatType> img = (RandomAccessibleInterval<FloatType>) imgD.getImgPlus();
 		RandomAccessibleInterval<FloatType> psf = (RandomAccessibleInterval<FloatType>) psfD.getImgPlus();
 
@@ -77,11 +83,11 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 		// create the version of clij2 RL that works on cells
 		Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op = new Clij2RichardsonLucyImglib2Cache<FloatType, FloatType>(
 				img, psfCL, 10, 10, 10);
-
+	
 		// here we use the imglib2cache lazy 'generate' utility
 		// first parameter is the image to process
 		// second parameter is the cell size (which we set to half the original dimension in each direction)
-		CachedCellImg<FloatType, RandomAccessibleInterval<FloatType>> decon = (CachedCellImg) Lazy.generate(img,
+		CachedCellImg<FloatType, ArrayDataAccess<FloatType>> decon = (CachedCellImg) Lazy.generate(img,
 				new int[] { (int) img.dimension(0) / 2, (int) img.dimension(1) / 2, (int) img.dimension(2) / 2 },
 				new FloatType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
 
@@ -94,6 +100,6 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 		decon.getCells().forEach(Cell::getData);
 
 		clij2.show(decon, "decon");
-
+		
 	}
 }
