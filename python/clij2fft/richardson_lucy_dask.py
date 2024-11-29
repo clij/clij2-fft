@@ -48,7 +48,7 @@ def rl_mem_footprint(img, psf, depth=(0, 0, 0)):
     total_size = np.prod(img_size + psf_size / 2 + depth_size)
 
     img_bytes = total_size * 4  # float32 needs 4 bytes
-    img_bytes = img_bytes * 9  # the RL deconv algo needs 9 copies
+    img_bytes = img_bytes * 11  # the RL deconv algo needs 9 copies plus add a factor of safety
     return np.ceil(img_bytes)
 
 def chunk_factor(img, psf, depth, mem_to_use=-1):
