@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='clij2-fft',
-      version='0.26',
+      version='0.27',
       description='A python wrapper around clij2 opencl FFT algorithms',
       long_description=long_description,
       long_description_content_type="text/markdown",
