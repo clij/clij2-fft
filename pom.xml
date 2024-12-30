@@ -13,7 +13,7 @@
 
 	<groupId>net.haesleinhuepf</groupId>
 	<artifactId>clij2-fft_</artifactId>
-	<version>2.2.0.17</version>
+	<version>2.2.0.18-SNAPSHOT</version>
 
 	<name>clij2-fft</name>
 	<description>clij2 fft</description>
@@ -50,6 +50,13 @@
 			</roles>
 		</developer>
 	</developers>
+
+	<contributors>
+		<contributor>
+			<name>Brian Northan</name>
+			<url>http://truenorth-ia.com</url>
+		</contributor>
+	</contributors>
 
   <mailingLists>
 		<mailingList>
@@ -92,6 +99,12 @@
 		<dependency>
 			<groupId>net.haesleinhuepf</groupId>
 			<artifactId>clij_</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>com.google.android.tools</groupId>
+					<artifactId>dx</artifactId>
+				</exclusion>
+			</exclusions>
      	</dependency>
 		
 		<dependency>
