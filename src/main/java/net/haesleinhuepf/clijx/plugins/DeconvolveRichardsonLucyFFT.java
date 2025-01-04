@@ -256,7 +256,7 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 				longPointerPSF, longPointerOutput, longPointerNormal, l_context, l_queue,
 				l_device);
 		
-		clij2fftWrapper.cleanup();
+		//clij2fftWrapper.cleanup(); // CAN'T USE MULTIPLE GPU IF UNCOMMENTED, see https://github.com/clij/clij2-fft/issues/37 TODO fix!
 		
 		return true;
 	}

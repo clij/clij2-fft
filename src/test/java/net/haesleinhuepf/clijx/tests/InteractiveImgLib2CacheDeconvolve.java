@@ -2,11 +2,9 @@ package net.haesleinhuepf.clijx.tests;
 
 import java.io.IOException;
 
-import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.imglib2cache.Lazy;
 import net.haesleinhuepf.clijx.imglib2cache.Clij2RichardsonLucyImglib2Cache;
-import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
@@ -31,8 +29,9 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 
 		// launch IJ so we can interact with the inputs and outputs
 		ij.launch(args);
+		String gpuId = "RTX";
 
-		final CLIJ2 clij2 = CLIJ2.getInstance("RTX");
+		final CLIJ2 clij2 = CLIJ2.getInstance(gpuId);
 
 		// load data
 		// (keep commented out list of datasets we've tested with previously and on
@@ -77,12 +76,10 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 		clij2.show(img, "img ");
 		clij2.show(psf, "psf ");
 
-		// push PSF to GPU
-		ClearCLBuffer psfCL = clij2.push(psf);
-
 		// create the version of clij2 RL that works on cells
-		Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op = new Clij2RichardsonLucyImglib2Cache<FloatType, FloatType>(
-				img, psfCL, 10, 10, 10);
+		Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op =
+				Clij2RichardsonLucyImglib2Cache.<FloatType, FloatType>builder(img, psf)
+						.overlap(10).useGPU(gpuId).build();
 	
 		// here we use the imglib2cache lazy 'generate' utility
 		// first parameter is the image to process

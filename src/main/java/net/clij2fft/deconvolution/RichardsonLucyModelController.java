@@ -2,7 +2,6 @@ package net.clij2fft.deconvolution;
 
 import org.scijava.app.StatusService;
 import org.scijava.log.LogService;
-import org.scijava.ui.UIService;
 
 import ij.ImagePlus;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
@@ -14,7 +13,6 @@ import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.imagej.ops.OpService;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccess;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.algorithm.labeling.ConnectedComponents.StructuringElement;
 import net.imglib2.cache.img.CachedCellImg;
@@ -370,8 +368,9 @@ public class RichardsonLucyModelController {
 			int numCells = numDivisionsX*numDivisionsY*numDivisionsZ;
 			
 			// create the version of clij2 RL that works on cells
-			Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op = new Clij2RichardsonLucyImglib2Cache<FloatType, FloatType>(
-				img, gpu_psf, 10, 10, 10);
+			Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op =
+				Clij2RichardsonLucyImglib2Cache.<FloatType, FloatType>builder(img, psf)
+					.useGPU("RTX").overlap(10,10,10).build();
 			
 			op.setUpStatus(status, numCells);
 
