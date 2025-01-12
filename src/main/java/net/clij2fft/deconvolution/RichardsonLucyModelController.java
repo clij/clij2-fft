@@ -368,9 +368,8 @@ public class RichardsonLucyModelController {
 			int numCells = numDivisionsX*numDivisionsY*numDivisionsZ;
 			
 			// create the version of clij2 RL that works on cells
-			Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op =
-				Clij2RichardsonLucyImglib2Cache.<FloatType, FloatType>builder(img, psf)
-					.useGPU("RTX").overlap(10,10,10).build();
+			Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
+					Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).build();
 			
 			op.setUpStatus(status, numCells);
 

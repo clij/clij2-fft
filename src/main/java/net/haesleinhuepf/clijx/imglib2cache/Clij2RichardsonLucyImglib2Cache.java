@@ -5,13 +5,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import net.haesleinhuepf.clijx.CLIJ2Pool;
-import net.haesleinhuepf.clijx.ResourcePool;
+import net.haesleinhuepf.clijx.CLIJx;
+import net.haesleinhuepf.clijx.faclonheavy.CLIJxPool;
+import net.imglib2.type.numeric.real.FloatType;
 import org.scijava.app.StatusService;
 
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.converters.implementations.ClearCLBufferToRandomAccessibleIntervalConverter;
-import net.haesleinhuepf.clij2.CLIJ2;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.imglib2.FinalInterval;
 import net.imglib2.RandomAccessibleInterval;
@@ -27,10 +27,10 @@ import net.imglib2.view.Views;
  * <p>
  * It is designed to be used as an input to the {@link Lazy} class
  * 
- * @param <T>
- * @param <S>
+ * @param <T> pixel type of the deconvolved image - FloatType
+ * @param <S> pixel type of the psf and of the rai to deconvolve
  */
-public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<T>, S extends RealType<S>> implements Consumer<RandomAccessibleInterval<T>>{
+public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<T>, S extends RealType<S>, P extends RealType<P>> implements Consumer<RandomAccessibleInterval<T>>{
 
 	private final RandomAccessibleInterval<S> source;
 	private final long[] overlap;
@@ -40,9 +40,9 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 	final int numberOfIterations;
 	final float regularizationFactor;
 	final boolean nonCirculant;
-	final Map<CLIJ2, ClearCLBuffer> psfPushed = new HashMap<>(); // Keeps track of PSF pushed per CLIJ2 instance
-	final ResourcePool<CLIJ2> clij2Pool;
-	final RandomAccessibleInterval<S> psf;
+	final Map<CLIJx, ClearCLBuffer> psfPushed = new HashMap<>(); // Keeps track of PSF pushed per CLIJ2 instance
+	final CLIJxPool clijxPool;
+	final RandomAccessibleInterval<P> psf;
 
 	/*
 	 * The constructor should not be called directly. This object should be built
@@ -50,15 +50,15 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 	 */
 	protected Clij2RichardsonLucyImglib2Cache(
 			final RandomAccessibleInterval<S> source,
-			final CLIJ2Pool pool,
-			final RandomAccessibleInterval<S> psf,
+			final CLIJxPool pool,
+			final RandomAccessibleInterval<P> psf,
 			final long[] overlap,
 			final int numberOfIterations,
 			final float regularizationFactor,
 			final boolean nonCirculant) {
 
 		this.source = source;
-		this.clij2Pool = pool;
+		this.clijxPool = pool;
 		final int n = source.numDimensions();
 		if (n == overlap.length) {
 			this.overlap = overlap;
@@ -143,32 +143,32 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			// - if one is available, gets one instantly, and lock it while it is not recycled
 			// - if none is available:
 			//   - or waits for one to be available (Thread will park, it's not busy waiting)
-			CLIJ2 clij2 = clij2Pool.acquire();
+			CLIJx clijx = clijxPool.getIdleCLIJx();
 			// Using GPU named clij2.getGPUName()
 
 			// convert input RAI to ClearCLBuffer
-			final ClearCLBuffer input = clij2.push(Views.zeroMin(inputRAI));
+			final ClearCLBuffer input = clijx.push(Views.zeroMin(inputRAI));
 
 			// create temporary buffer for output
-			final ClearCLBuffer output = clij2.create(input);
+			final ClearCLBuffer output = clijx.create(input);
 
-			if (!psfPushed.containsKey(clij2)) {
-				psfPushed.put(clij2, clij2.push(psf)); // Push one psf buffer per CLIJ2 only
+			if (!psfPushed.containsKey(clijx)) {
+				psfPushed.put(clijx, clijx.push(psf)); // Push one psf buffer per CLIJ2 only
 			}
 
-			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, input, psfPushed.get(clij2), output, numberOfIterations, regularizationFactor, nonCirculant);
+			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clijx, input, psfPushed.get(clijx), output, numberOfIterations, regularizationFactor, nonCirculant);
 
 			// convert CLBuffer result to RAI
 			// at this point the result contains the padded area
 			final ClearCLBufferToRandomAccessibleIntervalConverter cl2rai = new ClearCLBufferToRandomAccessibleIntervalConverter();
-			cl2rai.setCLIJ(clij2.getCLIJ());
+			cl2rai.setCLIJ(clijx.getCLIJ());
 			final RandomAccessibleInterval<T> result = cl2rai.convert(output);
 
 			input.close();
 			output.close();
 
 			// Set clij2 instance as available again
-			clij2Pool.recycle(clij2);
+			clijxPool.setCLIJxIdle(clijx, false);
 
 			// get the valid part of the extended deconvolution (ie exclude the padded area)
 			RandomAccessibleInterval<T> valid = Views.zeroMin(Views.interval(
@@ -185,35 +185,33 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 	}
 
 	/**
-	 * Builder for constructing a deconvolver. The arguments are the compulsory ones.
-	 * @param source the 3D (xyz) RAI to deconvolve
-	 * @param psf the 3D (xyz) RAI of the point spread function
+	 * Builder for constructing a deconvolver.
 	 * @return builder for constructing the deconvolver
-	 * @param <T>
-	 * @param <S>
 	 */
-	public static <T extends RealType<T> & NativeType<T>, S extends RealType<S>> Builder<T,S> builder(
-			RandomAccessibleInterval<S> source,
-			RandomAccessibleInterval<S> psf
-	) {
-		return new Builder<>(source, psf);
+	public  static Builder builder() {
+		return new Builder();
 	}
 
-	public static class Builder<T extends RealType<T> & NativeType<T>, S extends RealType<S>> {
+	public static class Builder {
 		// Compulsory
-		final private RandomAccessibleInterval<S> source;
-		final private RandomAccessibleInterval<S> psf;
+		private RandomAccessibleInterval source; // source the 3D (xyz) RAI to deconvolve
+		private RandomAccessibleInterval psf; // psf the 3D (xyz) RAI of the point spread function
 
 		// Optional
-		private CLIJ2Pool pool = null;
+		private CLIJxPool pool = null;
 		private long[] overlap = new long[]{10,10,10};
 		private int numberOfIterations = 100;
 		private float regularizationFactor = 0.0f;
 		private boolean nonCirculant = true;
 
-		protected Builder(RandomAccessibleInterval<S> source, RandomAccessibleInterval<S> psf) {
-			this.source = source;
-			this.psf = psf;
+		public Builder rai(RandomAccessibleInterval<? extends RealType<?>> rai) {
+			this.source = rai;
+			return this;
+		}
+
+		public Builder psf(RandomAccessibleInterval<? extends RealType<?>> rai) {
+			this.psf = rai;
+			return this;
 		}
 
 		/**
@@ -222,14 +220,14 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * for instance .useGPUs("RTX","RTX","Intel")
 		 * <p>
 		 * The method useGPUPool can be used instead to specify directly the pool
-		 * @param gpuId the list of gpu (can be a single one) to be used for deconvolution task
+		 * @param gpuIds the list of gpu (can be a single one) to be used for deconvolution task
 		 * @return builder
 		 */
-		public Builder<T,S> useGPU(String... gpuId) {
+		public Builder useGPU(String[] gpuIds, int[] number_of_instances_per_clij) {
 			if (this.pool!=null) {
 				System.err.println("The gpu pool was already defined and will be overridden");
 			}
-			pool = new CLIJ2Pool(gpuId);
+			pool = CLIJxPool.fromDeviceNames(gpuIds, number_of_instances_per_clij);
 			return this;
 		}
 
@@ -242,7 +240,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @param pool the pool of CLIJ2 instances that can be used for deconvolution tasks
 		 * @return builder
 		 */
-		public Builder<T,S> useGPUPool(CLIJ2Pool pool) {
+		public Builder useGPUPool(CLIJxPool pool) {
 			if (this.pool!=null) {
 				System.err.println("The gpu pool was already defined and will be overridden");
 			}
@@ -255,7 +253,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @param overlap in pixel unit
 		 * @return builder
 		 */
-		public Builder<T,S> overlap(long... overlap) {
+		public Builder overlap(long... overlap) {
 			this.overlap = overlap;
 			return this;
 		}
@@ -265,7 +263,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @param overlap in pixel unit
 		 * @return builder
 		 */
-		public Builder<T,S> overlap(long overlap) {
+		public Builder overlap(long overlap) {
 			this.overlap = new long[]{overlap};
 			return this;
 		}
@@ -274,7 +272,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @param numberOfIterations for deconvolution, typically 100
 		 * @return builder
 		 */
-		public Builder<T,S> numberOfIterations(int numberOfIterations) {
+		public Builder numberOfIterations(int numberOfIterations) {
 			this.numberOfIterations = numberOfIterations;
 			return this;
 		}
@@ -284,7 +282,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @param regularizationFactor
 		 * @return builder
 		 */
-		public Builder<T,S> regularizationFactor(float regularizationFactor) {
+		public Builder regularizationFactor(float regularizationFactor) {
 			this.regularizationFactor = regularizationFactor;
 			return this;
 		}
@@ -294,7 +292,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @param nonCirculant
 		 * @return builder
 		 */
-		public Builder<T,S> nonCirculant(boolean nonCirculant) {
+		public Builder nonCirculant(boolean nonCirculant) {
 			this.nonCirculant = nonCirculant;
 			return this;
 		}
@@ -303,8 +301,10 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * builds the deconvovolver
 		 * @return Clij2RichardsonLucyImglib2Cache instance
 		 */
-		public Clij2RichardsonLucyImglib2Cache<T,S> build() {
-			if (pool == null) pool = new CLIJ2Pool();
+		public Clij2RichardsonLucyImglib2Cache<FloatType, ? extends RealType<?>, ? extends RealType<?>> build() {
+			if (pool == null) pool = new CLIJxPool(new int[]{0}, new int[1]);
+			if (source == null) throw new IllegalArgumentException("A source to deconvolve has to be specified");
+			if (psf == null) throw new IllegalArgumentException("A point spread function has to be specified");
 
 			return new Clij2RichardsonLucyImglib2Cache<>(
 					source,

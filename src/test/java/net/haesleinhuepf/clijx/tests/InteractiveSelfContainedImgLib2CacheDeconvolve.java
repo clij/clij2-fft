@@ -7,7 +7,7 @@ import bdv.util.BdvStackSource;
 import bdv.util.volatiles.VolatileViews;
 import net.haesleinhuepf.clij.CLIJ;
 import net.haesleinhuepf.clij2.CLIJ2;
-import net.haesleinhuepf.clijx.CLIJ2Pool;
+import net.haesleinhuepf.clijx.faclonheavy.CLIJxPool;
 import net.haesleinhuepf.clijx.imglib2cache.Clij2RichardsonLucyImglib2Cache;
 import net.haesleinhuepf.clijx.imglib2cache.Lazy;
 import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
@@ -86,13 +86,20 @@ public class InteractiveSelfContainedImgLib2CacheDeconvolve {
 		clij2.show(img, "img");
 		clij2.show(psf, "psf");
 
-		CLIJ2Pool gpuPool = new CLIJ2Pool(deviceNames.toArray(new String[0])); // uses all gpus, 1 thread per gpu
+		// Pfou, not clean
+		int[] nThreadPerGpu = new int[deviceNames.size()];
+		for (int i = 0; i< deviceNames.size(); i++) {
+			nThreadPerGpu[i] = 1;
+		}
+
+		CLIJxPool gpuPool = CLIJxPool.fromDeviceNames(deviceNames.toArray(new String[0]), nThreadPerGpu); // uses all gpus, 1 thread per gpu
 		// Multiple threads per gpu can be used, simply duplicate the same gpu name:
 		// .useGPUs(deviceNames.get(0),deviceNames.get(0),deviceNames.get(0))
 
 		// Create the version of clij2 RL that works on cells
-		Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op =
-				Clij2RichardsonLucyImglib2Cache.<FloatType, FloatType>builder(img, psf)
+		Clij2RichardsonLucyImglib2Cache op =
+				Clij2RichardsonLucyImglib2Cache.builder()
+						.rai(img).psf(psf)
 						.overlap(10)
 						.regularizationFactor(0.001f)
 						.numberOfIterations(50)

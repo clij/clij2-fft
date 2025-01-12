@@ -33,37 +33,6 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 
 		final CLIJ2 clij2 = CLIJ2.getInstance(gpuId);
 
-		// load data
-		// (keep commented out list of datasets we've tested with previously and on
-		// different machines)
-
-		// Dataset img = (Dataset)
-		// ij.io().open("C:/structure/data/Deconvolution_Brian/Bars-G10-P15-stack-cropped.tif");
-		// Dataset psf = (Dataset)
-		// ij.io().open("C:/structure/data/Deconvolution_Brian/PSF-Bars-stack-cropped-64.tif");
-
-		// Dataset img = (Dataset)
-		// ij.io().open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images/Bars-G10-P15-stack-cropped.tif");
-		// Dataset psf = (Dataset)
-		// ij.io().open("C:\\Users\\bnort\\ImageJ2018\\ops-experiments\\images/PSF-Bars-stack-cropped-64.tif");
-
-		// Dataset img = (Dataset)
-		// ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/CElegans-CY3.tif");
-		// Dataset psf = (Dataset)
-		// ij.io().open("/home/bnorthan/Images/Deconvolution/CElegans_April_2020/PSF-CElegans-CY3-cropped.tif");
-
-		 //Dataset img = (Dataset)
-		 //ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead.tif");
-		 //Dataset img = (Dataset)
-		 //ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/half_bead_266_266_512.tif");
-		 //Dataset img = (Dataset)
-		 //ij.io().open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/ones_266_266_512.tif");
-
-		//Dataset imgD = (Dataset) ij.io()
-		//		.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/im.tif");
-		//Dataset psfD = (Dataset) ij.io()
-		//		.open("/home/bnorthan/images/tnia-python-images/imagesc/2024_02_15_clij_z_tiling/psf.tif");
-
 		Dataset imgD = (Dataset) ij.io()
 				.open("D:\\images\\tnia-python-images\\imagesc\\2024_06_03_clij_z_error\\im.tif");
 		Dataset psfD = (Dataset) ij.io()
@@ -77,9 +46,9 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 		clij2.show(psf, "psf ");
 
 		// create the version of clij2 RL that works on cells
-		Clij2RichardsonLucyImglib2Cache<FloatType, FloatType> op =
-				Clij2RichardsonLucyImglib2Cache.<FloatType, FloatType>builder(img, psf)
-						.overlap(10).useGPU(gpuId).build();
+		Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
+				Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf)
+						.overlap(10).useGPU(new String[]{"A500"}, new int[]{1}).build();
 	
 		// here we use the imglib2cache lazy 'generate' utility
 		// first parameter is the image to process
