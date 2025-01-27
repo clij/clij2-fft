@@ -7,7 +7,7 @@ import bdv.util.BdvStackSource;
 import bdv.util.volatiles.VolatileViews;
 import net.haesleinhuepf.clij.CLIJ;
 import net.haesleinhuepf.clij2.CLIJ2;
-import net.haesleinhuepf.clijx.faclonheavy.CLIJxPool;
+import net.haesleinhuepf.clijx.parallel.CLIJxPool;
 import net.haesleinhuepf.clijx.imglib2cache.Clij2RichardsonLucyImglib2Cache;
 import net.haesleinhuepf.clijx.imglib2cache.Lazy;
 import net.haesleinhuepf.clijx.plugins.clij2fftWrapper;
@@ -86,16 +86,6 @@ public class InteractiveSelfContainedImgLib2CacheDeconvolve {
 		clij2.show(img, "img");
 		clij2.show(psf, "psf");
 
-		// Pfou, not clean
-		int[] nThreadPerGpu = new int[deviceNames.size()];
-		for (int i = 0; i< deviceNames.size(); i++) {
-			nThreadPerGpu[i] = 1;
-		}
-
-		CLIJxPool gpuPool = CLIJxPool.fromDeviceNames(deviceNames.toArray(new String[0]), nThreadPerGpu); // uses all gpus, 1 thread per gpu
-		// Multiple threads per gpu can be used, simply duplicate the same gpu name:
-		// .useGPUs(deviceNames.get(0),deviceNames.get(0),deviceNames.get(0))
-
 		// Create the version of clij2 RL that works on cells
 		Clij2RichardsonLucyImglib2Cache op =
 				Clij2RichardsonLucyImglib2Cache.builder()
@@ -104,8 +94,7 @@ public class InteractiveSelfContainedImgLib2CacheDeconvolve {
 						.regularizationFactor(0.001f)
 						.numberOfIterations(50)
 						.nonCirculant(false)
-						.useGPUPool(gpuPool) // direct specification of the pool
-						//.useGPU("RTX","Intel") // Alternative method - creation of the pool within the builder
+						.useGPUPool(CLIJxPool.getInstance()) // in fact this is the default behaviour, but one can specify a different pool if necessary here
 						.build();
 
 		// here we use the imglib2cache lazy 'generate' utility

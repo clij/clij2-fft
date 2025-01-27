@@ -48,7 +48,7 @@ public class InteractiveImgLib2CacheDeconvolve<T extends RealType<T> & NativeTyp
 		// create the version of clij2 RL that works on cells
 		Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
 				Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf)
-						.overlap(10).useGPU(new String[]{"A500"}, new int[]{1}).build();
+						.overlap(10).build();
 	
 		// here we use the imglib2cache lazy 'generate' utility
 		// first parameter is the image to process

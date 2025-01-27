@@ -124,7 +124,7 @@
 
 		<dependency>
 			<groupId>net.haesleinhuepf</groupId>
-			<artifactId>clijx-faclon-heavy_</artifactId>
+			<artifactId>clijx-parallel_</artifactId>
 			<version>0.30.1.14-SNAPSHOT</version>
 		</dependency>
 		

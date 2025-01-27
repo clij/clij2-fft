@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import net.haesleinhuepf.clijx.CLIJx;
-import net.haesleinhuepf.clijx.faclonheavy.CLIJxPool;
+import net.haesleinhuepf.clijx.parallel.CLIJxPool;
 import net.imglib2.type.numeric.real.FloatType;
 import org.scijava.app.StatusService;
 
@@ -168,7 +168,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			output.close();
 
 			// Set clij2 instance as available again
-			clijxPool.setCLIJxIdle(clijx, false);
+			clijxPool.setCLIJxIdle(clijx);
 
 			// get the valid part of the extended deconvolution (ie exclude the padded area)
 			RandomAccessibleInterval<T> valid = Views.zeroMin(Views.interval(
@@ -211,23 +211,6 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 
 		public Builder psf(RandomAccessibleInterval<? extends RealType<?>> rai) {
 			this.psf = rai;
-			return this;
-		}
-
-		/**
-		 * Specify the set of gpus that can be used for deconvolving tiles.
-		 * The same gpu name can be used to add multiple CLIJ2 instance per GPU
-		 * for instance .useGPUs("RTX","RTX","Intel")
-		 * <p>
-		 * The method useGPUPool can be used instead to specify directly the pool
-		 * @param gpuIds the list of gpu (can be a single one) to be used for deconvolution task
-		 * @return builder
-		 */
-		public Builder useGPU(String[] gpuIds, int[] number_of_instances_per_clij) {
-			if (this.pool!=null) {
-				System.err.println("The gpu pool was already defined and will be overridden");
-			}
-			pool = CLIJxPool.fromDeviceNames(gpuIds, number_of_instances_per_clij);
 			return this;
 		}
 
@@ -302,9 +285,10 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		 * @return Clij2RichardsonLucyImglib2Cache instance
 		 */
 		public Clij2RichardsonLucyImglib2Cache<FloatType, ? extends RealType<?>, ? extends RealType<?>> build() {
-			if (pool == null) pool = new CLIJxPool(new int[]{0}, new int[1]);
+
 			if (source == null) throw new IllegalArgumentException("A source to deconvolve has to be specified");
 			if (psf == null) throw new IllegalArgumentException("A point spread function has to be specified");
+			if (pool == null) pool = CLIJxPool.getInstance();
 
 			return new Clij2RichardsonLucyImglib2Cache<>(
 					source,
