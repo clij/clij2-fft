@@ -8,7 +8,7 @@
 	<parent>
         <groupId>org.scijava</groupId>
         <artifactId>pom-scijava</artifactId>
-        <version>37.0.0</version>
+        <version>40.0.0</version>
     </parent>
 
 	<groupId>net.haesleinhuepf</groupId>
@@ -121,10 +121,22 @@
 			<groupId>net.haesleinhuepf</groupId>
 			<artifactId>clijx_</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>net.haesleinhuepf</groupId>
+			<artifactId>clijx-parallel_</artifactId>
+			<version>0.30.1.14-SNAPSHOT</version>
+		</dependency>
 		
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>bigdataviewer-vistools</artifactId>
 			<scope>test</scope>
 		</dependency>
 		
