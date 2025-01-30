@@ -13,10 +13,12 @@ mvn install -Dgpg.skip
 # copy the javacpp wrapper to the resource folder
 case $PLATFORM in
     linux-x86_64)
-			cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
+      echo "copy jni wrapper"
+	cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
       ;;
     macosx-*)
-      echo "TODO"
+      echo "copy jni wrapper"
+	cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx/
       ;;
     windows-x86_64)
        	echo "copy jni wriapper"
