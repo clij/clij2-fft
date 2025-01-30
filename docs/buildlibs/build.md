@@ -41,8 +41,8 @@ You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/cl
 
 To build on macosx or mac m1/m2 (arm64) perform the following
 
-2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
-3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L56) and verify that OpenCL and clFFT are installed in the correct locations.
+1.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
+2.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L56) and verify that OpenCL and clFFT are installed in the correct locations.
 
 The macosx the native library libclij2fft needs to be modified with ```install_name_tool``` in order for it to find ```clFFT``` in it’s current directory (ie when both are installed in a conda environment and are in /mambaforge/envs/current_environment/lib)
 
@@ -55,7 +55,7 @@ If targeting both macosx and macosx-arm64 we need to build a universal binary us
 ```
 lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`
 ```
-4.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/macosx/``` directory. 
+3.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/macosx/``` directory. 
 
 We recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
 
