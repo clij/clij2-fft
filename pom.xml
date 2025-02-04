@@ -125,7 +125,7 @@
 		<dependency>
 			<groupId>net.haesleinhuepf</groupId>
 			<artifactId>clijx-parallel_</artifactId>
-			<version>0.30.1.14-SNAPSHOT</version>
+			<version>0.30.1.19</version>
 		</dependency>
 		
 		<dependency>
@@ -155,7 +155,7 @@
 		</repository>
 		<repository>
 			<id>clij</id>
-			<url>http://dl.bintray.com/haesleinhuepf/clij</url>
+			<url>https://dl.bintray.com/haesleinhuepf/clij</url>
 		</repository>
 	</repositories>
 
