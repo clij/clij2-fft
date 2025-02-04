@@ -4,6 +4,10 @@
 
 The c++ library 'clij2fft' implements several FFT based algorithms built on top of clFFT.  This library is indepentent of java. 
 
+Running the [javacppbuild.cpp script](https://github.com/clij/clij2-fft/blob/master/javacppbuild.sh) should orchestrate all parts of the build process by calling ```cppbuild.sh```, ```mvn install```, and then copying the native wrapper to the lib directory.  
+
+For completeness (and to help troubleshoot) the build process is described in more detail below. 
+
 ### Pre-requisites for all operating systems
 
 [clfft](https://github.com/clMathLibraries/clFFT/releases)
@@ -29,15 +33,19 @@ The c++ library 'clij2fft' implements several FFT based algorithms built on top 
 
 [gcc](https://gcc.gnu.org/)
 
-#### Linux/MacOSX Build Instructions
+#### Linux Build Instructions
 
 2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
 3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L28) and verify that OpenCL and clFFT are installed in the correct locations.
 4.  The updated library (clij2fft.so) and dependencies should now be in the ```clij2-fft/lib/linux64/``` directory.
 
-### MacOSX and Mac Silicon Native M1
+### MacOSX and Mac Silicon Native M1/M2/M3
+
+#### MacOSX pre-requisites
 
 You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/clfft) using [homebrew](https://brew.sh/).  
+
+#### MacOSX build instructions
 
 To build on macosx or mac m1/m2 (arm64) perform the following
 
@@ -50,14 +58,13 @@ The macosx the native library libclij2fft needs to be modified with ```install_n
 install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx-arm64/libclij2fft.dylib
 ```
 
-If targeting both macosx and macosx-arm64 we need to build a universal binary using 'lipo'
+If targeting both macosx and macosx-arm64 you can build a universal binary using 'lipo'
 
 ```
 lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`
 ```
-3.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/macosx/``` directory. 
 
-We recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
+3.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/macosx/``` or ```clij2-fft/lib/macosx-arm64``` directory. 
 
 ## Build Java Wrapper and Plugin
 
@@ -70,16 +77,21 @@ We recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple
 
 ```
 case $PLATFORM in
-  linux-x86_64
-        cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
-      ;;
-    macosx-*)
+    linux-x86_64)
       echo "copy jni wrapper"
-        cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/^Smacosx/
+	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
+      ;;
+    macosx-x86_64)
+      echo "copy jni wrapper"
+	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx/
+      ;;
+    macosx-arm64)
+      echo "copy jni wrapper"
+	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx-arm64/
       ;;
     windows-x86_64)
-        echo "copy jni wriapper"
-        cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll lib/win64/
+       	echo "copy jni wriapper"
+	      cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll lib/win64/
       ;;
     *)
       echo "Error: Platform \"$PLATFORM\" is not supported"
@@ -103,3 +115,5 @@ If you do not have a c compiler installed you may want to just build the java pa
 1.  Run 'mvn -Djavacpp.skip=true'
 2.  Copy the libraries in [lib/win64](https://github.com/clij/clij2-fft/tree/master/lib/win64) to your Fiji installation (Fiji.app/lib/win64).  (on linux copy to and from 'lib/linux64' on mac to and from 'lib/macosx').
 3. Copy the output jar ('target/clij2-fft-x.x.jar') to Fiji.app/jars. 
+
+We recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
