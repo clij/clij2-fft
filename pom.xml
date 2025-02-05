@@ -83,6 +83,8 @@
 		<package-name>net.haesleinhuepf</package-name>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Robert Haase, MPI CBG</license.copyrightOwners>
+		<!--<scijava.app.directory>C:/programs/fiji-win64/Fiji.app/</scijava.app.directory>
+		<scijava.app.directory>/home/rhaase/programs/fiji/Fiji.app/</scijava.app.directory>-->
 		<scijava.app.directory>/Applications/Fiji.app/</scijava.app.directory>
 	</properties>
 
@@ -95,7 +97,6 @@
                 </os>
             </activation>
             <properties>
-                <!-- <compiler.option>/std:c++17</compiler.option> -->
                 <folder.name>win64</folder.name>
             </properties>
         </profile>
@@ -107,7 +108,6 @@
                 </os>
             </activation>
             <properties>
-                <!-- <compiler.option>-std=c++17</compiler.option> -->
                 <folder.name>macosx</folder.name>
             </properties>
         </profile>
@@ -120,8 +120,31 @@
                 </os>
             </activation>
             <properties>
-                <!-- <compiler.option>-std=c++17</compiler.option> -->
                 <folder.name>linux64</folder.name>
+            </properties>
+        </profile>
+        <profile>
+            <id>macosx-arm64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <folder.name>macosx-arm64</folder.name>
+            </properties>
+        </profile>
+        <profile>
+            <id>macosx-x86-64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>x86_64</arch>
+                </os>
+            </activation>
+            <properties>
+                <folder.name>macosx</folder.name>
             </properties>
         </profile>
     </profiles>
@@ -228,9 +251,6 @@
 					</includePaths>
 					<linkPaths>
 						<linkPath>${basedir}/lib/${folder.name}/</linkPath>
-						<!-- <linkPath>${basedir}/lib/win64/</linkPath>
-						<linkPath>${basedir}/lib/linux64/</linkPath>
-						<linkPath>${basedir}/lib/macosx/</linkPath> -->
 					</linkPaths>
 					<copyLibs>true</copyLibs>
 				</configuration>
@@ -249,30 +269,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
-			<!-- copy native to jar -->
-			<!-- todo: use environment variable to set the path to the native libs -->
-			<plugin>
-		        <artifactId>maven-resources-plugin</artifactId>
-		        <executions>
-		          <execution>
-		            <id>copy</id>
-		            <phase>validate</phase>
-		            <goals>
-		              <goal>copy-resources</goal>
-		            </goals>
-		            <configuration>
-		              <outputDirectory>${project.basedir}/target/classes/net/clij2fft</outputDirectory>
-		              <resources>          
-		                <resource>
-						  <directory>lib</directory>
-		                  <filtering>false</filtering>
-		                </resource>
-		              </resources>              
-		            </configuration>            
-		          </execution>
-		        </executions>
-      		</plugin>
 			
 		</plugins>
 	</build>
