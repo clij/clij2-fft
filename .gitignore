@@ -1,5 +1,6 @@
-# from CLIJ2
+.DS_Store
 
+# from CLIJ2
 /target/
 /.idea/
 *.iml
