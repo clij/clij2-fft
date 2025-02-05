@@ -22,11 +22,11 @@ case $PLATFORM in
       ;;
     macosx-x86_64)
       echo "copy jni wrapper"
-	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx/
+	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx/
       ;;
     macosx-arm64)
       echo "copy jni wrapper"
-	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx-arm64/
+	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx-arm64/
       ;;
     windows-x86_64)
        	echo "copy jni wriapper"
