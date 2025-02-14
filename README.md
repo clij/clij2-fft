@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/clij/clij2/actions/workflows/build.yml/badge.svg)](https://github.com/clij/clij2/actions/workflows/build.yml)
+
 # clij2-fft: Fast OpenCL GPU FFT based image processing algorithms for Java, Python and C++. 
 
 The goal of clij2-fft is to provide the bio-imaging community with a fast but simple to use implementations of 2D and 3D FFT and FFT based algorithms that are usable from Java, Python, and C++ and can be used to create FFT based plugins (such as convolution and deconvolution) for many platforms.
