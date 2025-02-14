@@ -5,8 +5,9 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import bdv.util.volatiles.VolatileViews;
+import ij.IJ;
 import net.haesleinhuepf.clij.CLIJ;
-import net.haesleinhuepf.clij2.CLIJ2;
+import net.haesleinhuepf.clijx.parallel.CLIJPoolOptions;
 import net.haesleinhuepf.clijx.parallel.CLIJxPool;
 import net.haesleinhuepf.clijx.imglib2cache.Clij2RichardsonLucyImglib2Cache;
 import net.haesleinhuepf.clijx.imglib2cache.Lazy;
@@ -19,6 +20,7 @@ import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.img.basictypeaccess.AccessFlags;
 import net.imglib2.img.basictypeaccess.array.ArrayDataAccess;
 import net.imglib2.img.cell.Cell;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
@@ -33,7 +35,7 @@ import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -50,23 +52,20 @@ public class InteractiveSelfContainedImgLib2CacheDeconvolve {
 
 	final static ImageJ ij = new ImageJ();
 
-	public static void main(final String[] args) throws IOException {
+	public static void main(final String[] args) throws Exception {
 		// check the library path, can be useful for debugging
 		System.out.println(System.getProperty("java.library.path"));
 
 		clij2fftWrapper.diagnostic();
 
-		// launch IJ so we can interact with the inputs and outputs
-		ij.launch(args);
+		ij.ui().showUI();
 
-		ArrayList<String> deviceNames = CLIJ.getAvailableDeviceNames();
+		List<String> deviceNames = CLIJ.getAvailableDeviceNames();
 
-		if (deviceNames.size()<2) {
-			System.out.println("This demo requires 2 CLIJ devices");
+		if (deviceNames.isEmpty()) {
+			System.err.println("This demo requires at least one CLIJ compatible device.");
 			return;
 		}
-
-		final CLIJ2 clij2 = CLIJ2.getInstance(deviceNames.get(0));
 
 		// Gets PSF
 		File psfFile = DatasetHelper.getDataset("https://zenodo.org/records/5101351/files/PSFHuygens_confocal_Theopsf.tif");
@@ -82,9 +81,14 @@ public class InteractiveSelfContainedImgLib2CacheDeconvolve {
 		Dataset imgD = (Dataset) ij.io().open(imgFile.getAbsolutePath());
 		RandomAccessibleInterval<FloatType> img = (RandomAccessibleInterval<FloatType>) imgD.getImgPlus();
 
+		IJ.run("CLIJ Pool Options"); // Prompts user to specify pool
+		// Alternatively you can specify programmatically the pool with
+		// CLIJPoolOptions.set("0:2, 1:4"); // This means the device 0 has 2 threads and the device 1 has 4 threads
+		// CLIJPoolOptions.set sets a persistent IJ preference, it needs to be set before the first CLIJxPool.getInstance() call to have any effect
+
 		// show image and PSF
-		clij2.show(img, "img");
-		clij2.show(psf, "psf");
+		ImageJFunctions.show(img, "img");
+		ImageJFunctions.show(psf, "psf");
 
 		// Create the version of clij2 RL that works on cells
 		Clij2RichardsonLucyImglib2Cache op =
@@ -135,7 +139,7 @@ public class InteractiveSelfContainedImgLib2CacheDeconvolve {
 
 			Duration processingDuration = Duration.between(start, Instant.now());
 			System.out.println("Deconvolution duration = "+processingDuration.toMillis()+" ms");
-			clij2.show(decon, "decon");
+			ImageJFunctions.show(decon, "decon");
 		}
 
 	}

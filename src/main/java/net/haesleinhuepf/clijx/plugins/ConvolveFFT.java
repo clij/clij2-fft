@@ -231,7 +231,7 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 				longPointerPSF, longPointerOutput, correlate, l_context, l_queue,
 				l_device);
 		
-		clij2fftWrapper.cleanup();
+		// clij2fftWrapper.cleanup();
 
 		return true;
 	}
