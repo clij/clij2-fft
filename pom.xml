@@ -86,6 +86,9 @@
 		<!--<scijava.app.directory>C:/programs/fiji-win64/Fiji.app/</scijava.app.directory>
 		<scijava.app.directory>/home/rhaase/programs/fiji/Fiji.app/</scijava.app.directory>-->
 		<scijava.app.directory>/Applications/Fiji.app/</scijava.app.directory>
+
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 	</properties>
 
 	<profiles>
