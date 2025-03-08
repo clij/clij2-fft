@@ -21,7 +21,8 @@ The bars test image can be found [here](https://www.dropbox.com/scl/fo/49jvlu3cp
 
 ###  Open CLIJ 3D Deconvolution Plugin
 
-If you have many plugins installed you will have to scroll to near the bottom of the plugin menu then choose ```CLIJ->Deconvolution->CLIJ 3D Deconvolution GUI```
+If you have many plugins installed you will have to scroll to near the bottom of the plugin menu then choose ```CLIJ->Deconvolution->CLIJ 3D Deconvolution GUI```  
+
 ![image](https://github.com/user-attachments/assets/8b3584b4-d4d2-41b2-b17d-6a6a7cdb8131)
 
 ###  Deconvolve Bars Image 
