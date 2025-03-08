@@ -9,7 +9,6 @@ Or alternively build from source
 ### Verify native libs are in the right location
 
 Find your Fiji installation directory then go to the ```lib``` subdirectory (it should look as below, except you may not have subdirs for all os, only the current os)  
-
 ![image](https://github.com/user-attachments/assets/ef367696-4a57-4106-897f-6c2f87b07c2f)  
 
 Now go into the ```lib``` directory and verify the ```clFFT```, ```clij2fft```, and ```jniclij2fftWrapper``` libs are there (extension and version will be slightly different for each os).  
@@ -22,9 +21,8 @@ The bars test image can be found [here](https://www.dropbox.com/scl/fo/49jvlu3cp
 
 ###  Open CLIJ 3D Deconvolution Plugin
 
-If you have many plugins installed you will have to scroll to near the bottom of the plugin menu....  
-
-![image](https://github.com/user-attachments/assets/7626b4d6-b4de-4bbb-a89b-51c2fd1f9b46)  
+If you have many plugins installed you will have to scroll to near the bottom of the plugin menu then choose ```CLIJ->Deconvolution->CLIJ 3D Deconvolution GUI```
+![image](https://github.com/user-attachments/assets/8b3584b4-d4d2-41b2-b17d-6a6a7cdb8131)
 
 ###  Deconvolve Bars Image 
 
