@@ -1,6 +1,6 @@
 [![Build Status](https://github.com/clij/clij2/actions/workflows/build.yml/badge.svg)](https://github.com/clij/clij2/actions/workflows/build.yml)
 
-Update 2025-03-12:  If you are looking to work with Clij2-fft deconvolution in Fiji please follow [these instructions[(https://github.com/clij/clij2-fft/blob/master/docs/fiji/test_installation.md)
+Update 2025-03-12:  If you are looking to work with Clij2-fft deconvolution in Fiji please follow [these instructions](https://github.com/clij/clij2-fft/blob/master/docs/fiji/test_installation.md)
 
 # clij2-fft: Fast OpenCL GPU FFT based image processing algorithms for Java, Python and C++. 
 
