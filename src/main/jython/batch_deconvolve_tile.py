@@ -18,6 +18,7 @@ from net.haesleinhuepf.clij2 import CLIJ2;
 from net.imglib2.img.display.imagej import ImageJFunctions;
 from net.haesleinhuepf.clijx.plugins import DeconvolveRichardsonLucyFFT;
 from net.haesleinhuepf.clij.coremem.enums import NativeTypeEnum;
+from io.scif.img import ImgSaver;
 
 clij2 = CLIJ2.getInstance()
 
@@ -61,5 +62,8 @@ for file in files:
 		ui.show(new_name, decon)
 	
 	print('deconvolved name', deconvolved_name)
-	io.save(decon, deconvolved_name)
+	#io.save(decon, deconvolved_name)
+	saver = ImgSaver()
+	saver.saveImg(deconvolved_name, decon)
+	
 	
