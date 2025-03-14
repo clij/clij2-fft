@@ -6,6 +6,7 @@
 # @OpService ops
 # @Boolean(value=False) use_tiles
 # @Boolean(value=False) show_decon
+# @DatasetService ds
 
 import os
 from net.haesleinhuepf.clijx.plugins import clij2fftWrapper;
@@ -18,7 +19,6 @@ from net.haesleinhuepf.clij2 import CLIJ2;
 from net.imglib2.img.display.imagej import ImageJFunctions;
 from net.haesleinhuepf.clijx.plugins import DeconvolveRichardsonLucyFFT;
 from net.haesleinhuepf.clij.coremem.enums import NativeTypeEnum;
-from io.scif.img import ImgSaver;
 
 clij2 = CLIJ2.getInstance()
 
@@ -41,18 +41,19 @@ for file in files:
 	#ui.show(img)
 	
 	if use_tiles:
-		print('using tiles')
+		print('deconvolving', base_name,'using tiles')
 		op = Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).regularizationFactor(0.0002).numberOfIterations(100).useGPUPool(CLIJxPool.getInstance()).build();	
 		decon = Lazy.generate(img, [img.dimension(0)/2, img.dimension(1)/2, img.dimension(2)], FloatType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
 		decon.getCells().forEach(lambda cell: cell.getData())
 	else:
+		print('deconvolving', base_name)
 		gpu_psf = clij2.push(psf);
 		gpu_image = clij2.push(img);
 		gpu_decon = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float)
 		
 		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_decon, 100, 0.0002, True);
 		
-		decon = clij2.pull(gpu_decon)
+		decon = clij2.pullRAI(gpu_decon)
 		
 		gpu_psf.close()
 		gpu_image.close()
@@ -61,9 +62,6 @@ for file in files:
 	if show_decon:
 		ui.show(new_name, decon)
 	
-	print('deconvolved name', deconvolved_name)
-	#io.save(decon, deconvolved_name)
-	saver = ImgSaver()
-	saver.saveImg(deconvolved_name, decon)
+	io.save(ds.create(decon), deconvolved_name)
 	
 	
