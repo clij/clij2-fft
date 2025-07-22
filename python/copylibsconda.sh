@@ -31,7 +31,7 @@ case $KERNEL in
         ;;
     *)
     echo 'not linux or mac (probably Windows)'
-        cp -r ./lib/win64/* /c/Users/bnort/miniconda3/envs/dresden-decon-test1/Library/bin/
+        cp -r ./lib/win64/* /c/Users/bnort/miniconda3/envs/decon_env_ts_python311/Library/bin/
     ;;
 esac
 
