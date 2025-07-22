@@ -355,6 +355,9 @@ public class RichardsonLucyModelController {
 			log.info("cell xy "+this.xyCellSize);
 			log.info("cell z "+this.zCellSize);
 			
+			
+			
+			
 			Img<FloatType> img = ImageJFunctions.convertFloat(imp);
 
 			log.info("image size x "+img.dimension(0));
@@ -369,7 +372,7 @@ public class RichardsonLucyModelController {
 			
 			// create the version of clij2 RL that works on cells
 			Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
-					Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).build();
+					Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).numberOfIterations(iterations).build();
 			
 			op.setUpStatus(status, numCells);
 
