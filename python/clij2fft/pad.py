@@ -33,7 +33,10 @@ def next_smooth(x):
     Returns:
         [type]: next smooth number larger than x
     """
-    z = int(10*math.log2(x))
+    if x == 0:
+        return 0
+    
+    z = int(16*math.log2(x))
     delta = 0.000001
 
     a = np.zeros(z)
