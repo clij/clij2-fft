@@ -96,8 +96,13 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 		try {
 			if (this.status != null) {
 				this.status.showStatus(current, total, "deconvolving cell " + current + " of " + total );
-				current = current + 1;
 			}
+			
+			current = current + 1;
+			
+			System.out.println(" ");
+			System.out.println("========================================================");
+			System.out.println("deconvolving cell " + current + " of " + total);
 
 			// min and max of the cell we are computing values for
 			final long[] min = new long[]{cell.min(0), cell.min(1), cell.min(2)};
@@ -114,7 +119,6 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			// if at start or end of the image set overlap size to 0 otherwise use the
 			// input overlap
 			for (int d = 0; d < cell.numDimensions(); d++) {
-				System.out.println("min/max source " + source.realMin(d) + " " + source.realMax(d));
 				System.out.println("min/max cell " + min[d] + " " + max[d]);
 				overlapmin[d] = overlap[d];
 				overlapmax[d] = overlap[d];
@@ -136,10 +140,26 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			maxe[1] = max[1] + overlapmax[1];
 			maxe[2] = max[2] + overlapmax[2];
 
-			// get the input RAI (using the min and max interval computed above)
-			RandomAccessibleInterval<S> inputRAI = Views.interval(source, mine, maxe);
+			for (int d = 0; d < cell.numDimensions(); d++) {
+				if (maxe[d] > source.max(d)) {
+                    maxe[d] = source.max(d);
+                }
+			}
+			
+			System.out.println("mine " + Arrays.toString(mine)+")");
+			System.out.println("maxe " + Arrays.toString(maxe)+")");
+			
+			RandomAccessibleInterval<S> inputRAI = null;
 
-			// Getting one CLIJ2 instance
+			try {
+				// get the input RAI (using the min and max interval computed above)
+				inputRAI = Views.interval(source, mine, maxe);
+			} catch (Exception e) {
+				System.out.println("Error getting Cell");
+				e.printStackTrace();
+				return;
+			}
+				// Getting one CLIJ2 instance
 			// - if one is available, gets one instantly, and lock it while it is not recycled
 			// - if none is available:
 			//   - or waits for one to be available (Thread will park, it's not busy waiting)
