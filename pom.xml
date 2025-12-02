@@ -8,7 +8,7 @@
 	<parent>
         <groupId>org.scijava</groupId>
         <artifactId>pom-scijava</artifactId>
-        <version>40.0.0</version>
+        <version>43.0.0</version>
     </parent>
 
 	<groupId>net.haesleinhuepf</groupId>
@@ -56,6 +56,11 @@
 			<name>Brian Northan</name>
 			<url>http://truenorth-ia.com</url>
 		</contributor>
+		<contributor>
+			<name>Nicolas Chiaruttini</name>
+			<url>http://biop.epfl.ch/INFO_Facility.html</url>
+			<properties><id>NicoKiaru</id></properties>
+		</contributor>
 	</contributors>
 
   <mailingLists>
@@ -75,81 +80,62 @@
 		<system>GitHub Issues</system>
 		<url>https://github.com/clij/clij2/issues</url>
 	</issueManagement>
+
 	<ciManagement>
-		<system>None</system>
+		<system>GitHub Actions</system>
+		<url>https://github.com/clij/clij2-fft/actions</url>
 	</ciManagement>
 
 	<properties>
 		<package-name>net.haesleinhuepf</package-name>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Robert Haase, MPI CBG</license.copyrightOwners>
-		<!--<scijava.app.directory>C:/programs/fiji-win64/Fiji.app/</scijava.app.directory>
-		<scijava.app.directory>/home/rhaase/programs/fiji/Fiji.app/</scijava.app.directory>-->
-		<scijava.app.directory>/Applications/Fiji.app/</scijava.app.directory>
-
+		<!--<scijava.app.directory>Put your Fiji app path here</scijava.app.directory>-->
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
+		<clijx-parallel_.version>0.30.1.22</clijx-parallel_.version>
 	</properties>
 
 	<profiles>
-        <profile>
-            <id>win</id>
-            <activation>
-                <os>
-                    <family>Windows</family>
-                </os>
-            </activation>
-            <properties>
-                <folder.name>win64</folder.name>
-            </properties>
-        </profile>
-        <profile>
-            <id>mac</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                </os>
-            </activation>
-            <properties>
-                <folder.name>macosx</folder.name>
-            </properties>
-        </profile>
-        <profile>
-            <id>linux</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>Linux</name>
-                </os>
-            </activation>
-            <properties>
-                <folder.name>linux64</folder.name>
-            </properties>
-        </profile>
-        <profile>
-            <id>macosx-arm64</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                    <arch>aarch64</arch>
-                </os>
-            </activation>
-            <properties>
-                <folder.name>macosx-arm64</folder.name>
-            </properties>
-        </profile>
-        <profile>
-            <id>macosx-x86-64</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                    <arch>x86_64</arch>
-                </os>
-            </activation>
-            <properties>
-                <folder.name>macosx</folder.name>
-            </properties>
-        </profile>
+		<profile>
+			<id>win</id>
+			<activation>
+				<os><family>Windows</family></os>
+			</activation>
+			<properties>
+				<folder.name>windows-x86_64</folder.name>
+			</properties>
+		</profile>
+		<profile>
+			<id>mac</id>
+			<activation>
+				<os><family>mac</family></os>
+			</activation>
+			<properties>
+				<folder.name>macosx-x86_64</folder.name>
+			</properties>
+		</profile>
+		<profile>
+			<id>macosx-arm64</id>
+			<activation>
+				<os>
+					<family>mac</family>
+					<arch>aarch64</arch>
+				</os>
+			</activation>
+			<properties>
+				<folder.name>macosx-arm64</folder.name>
+			</properties>
+		</profile>
+		<profile>
+			<id>linux</id>
+			<activation>
+				<os><family>unix</family><name>Linux</name></os>
+			</activation>
+			<properties>
+				<folder.name>linux-x86_64</folder.name>
+			</properties>
+		</profile>
     </profiles>
 
 	<dependencies>
@@ -189,7 +175,7 @@
 		<dependency>
 			<groupId>net.haesleinhuepf</groupId>
 			<artifactId>clijx-parallel_</artifactId>
-			<version>0.30.1.22</version>
+			<version>${clijx-parallel_.version}</version>
 		</dependency>
 		
 		<dependency>
@@ -234,10 +220,37 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.4.1</version>
 				<configuration>
 					<argLine>-Xmx2G</argLine>
 				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-natives</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.outputDirectory}/net/haesleinhuepf/clijx/plugins</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${basedir}/lib</directory>
+									<includes>
+										<include>linux-x86_64/*.so</include>
+										<include>windows-x86_64/*.dll</include>
+										<include>macosx-x86_64/*.dylib</include>
+										<include>macosx-arm64/*.dylib</include>
+									</includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			
 			<!-- Use JavaCpp to create wrappers to native libraries -->

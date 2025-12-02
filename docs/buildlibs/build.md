@@ -1,119 +1,103 @@
 # Building the code
 
-## Build and install native libraries
+## Overview
+The C++ library **clij2fft** implements several FFT-based algorithms built on top of [clFFT](https://github.com/clMathLibraries/clFFT). This library is independent of Java.
 
-The c++ library 'clij2fft' implements several FFT based algorithms built on top of clFFT.  This library is indepentent of java. 
+**Note:** For Java, native libraries are now included in the JAR, so there is no need to manually copy them to an update site or Fiji installation.
 
-Running the [javacppbuild.cpp script](https://github.com/clij/clij2-fft/blob/master/javacppbuild.sh) should orchestrate all parts of the build process by calling ```cppbuild.sh```, ```mvn install```, and then copying the native wrapper to the lib directory.  
+---
 
-For completeness (and to help troubleshoot) the build process is described in more detail below. 
+## Building Native Libraries
 
-### Pre-requisites for all operating systems
+### **Using GitHub Actions (Recommended)**
+- **No local native builds are required or recommended.**
+- If you modify the native code, push your changes to GitHub with the commit message containing `[build natives]`.
+- GitHub Actions will build the native libraries for all platforms and commit the updated libraries back to the repo.
+- Pull the latest changes to get the updated native libraries.
 
-[clfft](https://github.com/clMathLibraries/clFFT/releases)
+## Java release cycle
 
-### Windows
+### Building the Java Plugin
 
-#### Windows pre-requisites
+If you modified the native, code, **build the new natives following the new workflow**. Then run the following Maven command to build the jar:
+   ```sh
+   mvn clean package "-Dgpg.skip=true" "-Djavacpp.skip=true"
+   ```
 
-[Visual Studio Community 2019 c++ compiler](https://visualstudio.microsoft.com/vs/community/)    
-[Git for Windows with Bash Terminal](https://gitforwindows.org/)  
+### Installation of the Java plugin in your local Fiji
 
-#### Windows build Instructions 
+Once the Java plugin is built, copy the JAR (`./target/clij2-fft-{version}.jar`) to your Fiji installation (`Fiji.app/plugins/`).
 
-1.  From Start menu run 'x64 Native Tools Command Prompt for VS 2019'
-2.  From the Command Prompt start a bash shell “C:\Program Files\Git\bin\sh.exe”  
-3.  Run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
-4.  If step 3 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L26) and verify that OpenCL and clFFT are installed in the correct locations.  
-5.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/win64/``` directory. 
+### Java releases to scijava maven
+To create a release:
+1. Ensure all native libraries are up-to-date (built via GitHub Actions).
+2. Use the `release-version.sh` script from [scijava-scripts](https://github.com/scijava/scijava-scripts) with the following arguments to skip native builds and GPG signing:
+   ```sh
+   ./release-version.sh -Darguments="-Dgpg.skip=true -Djavacpp.skip=true"
+   ```
 
-### Linux
+## Troubleshooting
+- Search the [Image.sc Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.
+- Ask questions on the forum if previous discussions are unclear.
 
-#### Linux Pre-requisites  
+---
+<details>
+<summary>Building Native Libraries Locally - Legacy (Click to expand)</summary>
+## Building Native Libraries - Legacy
 
-[gcc](https://gcc.gnu.org/)
+### **Old Workflow (Local Builds)**
+If you still need to build natives locally (e.g., for testing or development), follow the instructions below.
 
-#### Linux Build Instructions
+#### **Prerequisites for All Operating Systems**
+- [clFFT](https://github.com/clMathLibraries/clFFT/releases)
 
-2.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
-3.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L28) and verify that OpenCL and clFFT are installed in the correct locations.
-4.  The updated library (clij2fft.so) and dependencies should now be in the ```clij2-fft/lib/linux64/``` directory.
+---
 
-### MacOSX and Mac Silicon Native M1/M2/M3
+#### **Windows**
+##### **Prerequisites**
+- [Visual Studio Community C++ Compiler](https://visualstudio.microsoft.com/vs/community/)
+- [Git for Windows with Bash Terminal](https://gitforwindows.org/)
 
-#### MacOSX pre-requisites
+##### **Build Instructions**
+1. From the Start menu, run **'x64 Native Tools Command Prompt for VS'**.
+2. From the Command Prompt, start a bash shell: `"C:\Program Files\Git\bin\sh.exe"`.
+3. Run [`./native/cppbuild.sh`](./native/cppbuild.sh).
+4. If step 3 fails, check [`./native/clij2fft/cppbuild.sh`](./native/clij2fft/cppbuild.sh) and verify that OpenCL and clFFT are installed in the correct locations.
+5. The updated library (`clij2fft.dll`) and dependencies will be in the `./lib/windows-x86_64/` directory.
 
-You will need to install `clFFT` from [here](https://formulae.brew.sh/formula/clfft) using [homebrew](https://brew.sh/).  
+#### **Linux**
+##### **Prerequisites**
+- [gcc](https://gcc.gnu.org/)
 
-#### MacOSX build instructions
+##### **Build Instructions**
+1. From a bash terminal, run [`./native/cppbuild.sh`](./native/cppbuild.sh).
+2. If step 1 fails, check [`./native/clij2fft/cppbuild.sh`](./native/clij2fft/cppbuild.sh) and verify that OpenCL and clFFT are installed in the correct locations.
+3. The updated library (`clij2fft.so`) and dependencies will be in the `./lib/linux-x86_64/` directory.
 
-To build on macosx or mac m1/m2 (arm64) perform the following
+#### **macOS (Intel and Apple Silicon M1/M2/M3)**
+##### **Prerequisites**
+- `clFFT` needs to be built from source
+  ```sh
+   brew install cmake || true
+   git clone https://github.com/clMathLibraries/clFFT.git
+   cd clFFT/src
+   sed -i.bak 's/cmake_minimum_required( VERSION 3.1 )/cmake_minimum_required( VERSION 3.6 )/' CMakeLists.txt
+   mkdir build && cd build
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.lib_prefix }}
+   make -j$(sysctl -n hw.ncpu) && sudo make install
+  ```
 
-1.  From a bash terminal run [native/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/cppbuild.sh)  
-2.  If step 1 fails check [native/clij2fft/cppbuild.sh](https://github.com/clij/clij2-fft/blob/master/native/clij2fft/cppbuild.sh#L56) and verify that OpenCL and clFFT are installed in the correct locations.
+##### **Build Instructions**
+1. From a bash terminal, run [`./native/cppbuild.sh`](./native/cppbuild.sh).
+2. If step 1 fails, check [`./native/clij2fft/cppbuild.sh`](./native/clij2fft/cppbuild.sh) and verify that OpenCL and clFFT are installed in the correct locations.
+3. For macOS, the native library `libclij2fft` needs to be modified with `install_name_tool` to find `clFFT` in its current directory:
+   ```sh
+   install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx-arm64/libclij2fft.dylib
+   ```
+4. If targeting both Intel and Apple Silicon, you can build a universal binary using `lipo`:
+   ```sh
+   lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx-x86_64/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib
+   ```
+5. The updated library (`clij2fft.dylib`) and dependencies will be in the `./lib/macosx-x86_64/` or `./lib/macosx-arm64/` directory.
 
-The macosx the native library libclij2fft needs to be modified with ```install_name_tool``` in order for it to find ```clFFT``` in it’s current directory (ie when both are installed in a conda environment and are in /mambaforge/envs/current_environment/lib)
-
-```
-install_name_tool -change libclFFT.2.dylib @rpath/libclFFT.2.dylib ../../../lib/macosx-arm64/libclij2fft.dylib
-```
-
-If targeting both macosx and macosx-arm64 you can build a universal binary using 'lipo'
-
-```
-lipo -create -output lib/macosx-universal2/libclFFT.dylib lib/macosx/libclFFT.dylib lib/macosx-arm64/libclFFT.dylib`
-```
-
-3.  The updated library (clij2fft.dll) and dependencies should now be in the ```clij2-fft/lib/macosx/``` or ```clij2-fft/lib/macosx-arm64``` directory. 
-
-## Build Java Wrapper and Plugin
-
-1.  A 64 bit c++ compiler is needed to create the wrapper.  In windows from Start menu run ‘x64 Native Tools Command Prompt for VS 2019'.  In Linux/MacOsx make sure a 64 bit c++ compiler (ie gcc) is installed. 
-
-2. Run 'mvn install -Dgpg.skip' from the command line or GUI.
-   NOTE:  -Dgpg.skip is needed to skip signing if building for testing or local installation.  
-   
-3. If the javacpp part of the native build is successful a wrapper libary called ```jniclij2fftWrapper``` will be created and put into the ```target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/``` directory.  We want to copy the library into the top level lib folder (currently we store the libraries in github).  That can be done with the following bash snippet....
-
-```
-case $PLATFORM in
-    linux-x86_64)
-      echo "copy jni wrapper"
-	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
-      ;;
-    macosx-x86_64)
-      echo "copy jni wrapper"
-	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx/
-      ;;
-    macosx-arm64)
-      echo "copy jni wrapper"
-	    cp target/classes/net/haesinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx-arm64/
-      ;;
-    windows-x86_64)
-       	echo "copy jni wriapper"
-	      cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll lib/win64/
-      ;;
-    *)
-      echo "Error: Platform \"$PLATFORM\" is not supported"
-      ;;
-```
-
-### Push to Fiji update site 
-
-There is a fiji update site at ```https://sites.imagej.net/clijx-deconvolution``` where we push the artifacts.  After a build you need to 
-
-1.  Copy ```clij2-fft_{version}.jar``` to the ```Fiji.app/plugins``` directory.
-2.  Copy ```lib/{platform}/{lib}clij2fft.{dll/so/dylib}``` to the corresponding location in ```Fiji.app/lib```.
-3.  Copy ```lib/{platform}/{lib}jniclij2fftWrapper.{dll/so/dylib}``` to the corresponding location in ```Fiji.app/lib```.
-
-Then perform Fiji update site steps.  A description of how to work with update sites can be found [here](https://imagej.net/update-sites/setup).
-
-## Build Plugin Only and Install in Fiji
-
-If you do not have a c compiler installed you may want to just build the java part of the plugin. 
-
-1.  Run 'mvn -Djavacpp.skip=true'
-2.  Copy the libraries in [lib/win64](https://github.com/clij/clij2-fft/tree/master/lib/win64) to your Fiji installation (Fiji.app/lib/win64).  (on linux copy to and from 'lib/linux64' on mac to and from 'lib/macosx').
-3. Copy the output jar ('target/clij2-fft-x.x.jar') to Fiji.app/jars. 
-
-We recommend searching the [ImageSC Forum](https://forum.image.sc/search?q=apple%20M1%20clij%20deconvolution) for more information.  Please ask questions on the forum if previous discussions are unclear.  
+</details>
