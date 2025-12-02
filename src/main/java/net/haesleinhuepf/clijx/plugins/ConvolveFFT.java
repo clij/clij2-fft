@@ -23,6 +23,10 @@ import org.scijava.plugin.Plugin;
 
 import ij.IJ;
 
+/**
+ * This plugin applies convolution using Fast Fourier Transform (FFT) via the clFFT library.
+ * It supports both 2D and 3D images and can perform either convolution or correlation.
+ */
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_convolveFFT")
 public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassifiedInputOutput, IsCategorized
@@ -37,7 +41,12 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		if (ctx == null) ctx = new Context(CommandService.class, OpService.class);
 		ops = ctx.getService(OpService.class);
 	}
-	
+
+	/**
+	 * Executes the FFT-based convolution or correlation using the provided arguments.
+	 *
+	 * @return true if the operation was successful
+	 */
 	@Override
 	public boolean executeCL() {
 		
@@ -55,13 +64,15 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	}
 
 	/**
-	 * Convert image to float if not already float, extend, then convolve 
-	 * 
-	 * @param clij2
-	 * @param input
-	 * @param psf
-	 * @param convolved
-	 * @return
+	 * Converts input and kernel to float if necessary, extends them to the next supported FFT size,
+	 * and performs FFT-based convolution or correlation.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image buffer
+	 * @param psf the kernel (point spread function) buffer
+	 * @param convolved the output buffer for the convolved image
+	 * @param correlate if true, performs correlation instead of convolution
+	 * @return true if the operation was successful
 	 */
 	public static boolean convolveFFT(CLIJ2 clij2, ClearCLBuffer input,
 		ClearCLBuffer psf, ClearCLBuffer convolved, boolean correlate)
@@ -86,20 +97,23 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 			psfConverted=true;
 		}
 
-		// extended input
+		// Extend input to the next supported FFT size
 		ClearCLBuffer inputExtended = padFFTInputZeros(clij2, input, psf, ops);
 		
 		// create memory for extended psf and convolved
 		ClearCLBuffer psf_extended = clij2.create(inputExtended);
 		ClearCLBuffer convolvedExtended = clij2.create(inputExtended);
-		
-		// extend kernel
+
+		// Extend and shift the kernel
 		padShiftFFTKernel(clij2, psfFloat, psf_extended);
-		
+
+		// Perform convolution or correlation
 		runConvolve(clij2, inputExtended, psf_extended, convolvedExtended, correlate);
-	
+
+		// Crop the result to the original size
 		OpenCLFFTUtility.cropExtended(clij2, convolvedExtended, convolved);
-	
+
+		// Release temporary buffers
 		clij2.release(psf_extended);
 		clij2.release(inputExtended);
 		clij2.release(convolvedExtended);
@@ -117,13 +131,14 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 	
 
 	/**
-	 * run convolution
-	 * 
-	 * @param gpuImg - need to prepad to supported FFT size (see
-	 *          padInputFFTAndPush)
-	 * @param gpuPSF - need to prepad to supported FFT size (see
-	 *          padKernelFFTAndPush)
-	 * @return
+	 * Performs FFT-based convolution or correlation.
+	 * The input and kernel must already be extended to the next supported FFT size.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param gpuImg the extended input image buffer
+	 * @param gpuPSF the extended kernel buffer
+	 * @param output the output buffer for the convolved image
+	 * @param correlate if true, performs correlation instead of convolution
 	 */
 	public static void runConvolve(CLIJ2 clij2, ClearCLBuffer gpuImg,
 		ClearCLBuffer gpuPSF, ClearCLBuffer output, boolean correlate)
@@ -136,75 +151,121 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		// now create a buffer for the complex output
 		ClearCLBuffer complexOutput = clij2.create(gpuFFTImg.getDimensions(), NativeTypeEnum.Float);
 
-		// Perform convolution by mulitplying in the frequency domain (see https://en.wikipedia.org/wiki/Convolution_theorem)
+		// Multiply in frequency domain (convolution theorem)
 		MultiplyComplexImages.multiplyComplexImages(clij2, gpuFFTImg, gpuFFTPSF, complexOutput);
 
-		// now get convolved spatian signal by performing inverse 
+		// Perform inverse FFT to get the spatial result
 		InverseFFT.runInverseFFT(clij2, complexOutput, output);
-		
+
+		// Release temporary buffers
 		complexOutput.close();
 		gpuFFTImg.close();
 		gpuFFTPSF.close();
 	
 	}
 
-
+	/**
+	 * Creates an output buffer with the same dimensions as the input.
+	 *
+	 * @param input the input buffer
+	 * @return the output buffer
+	 */
 	@Override
 	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
 		ClearCLBuffer in = (ClearCLBuffer) args[0];
 		return getCLIJ2().create(in.getDimensions(), NativeTypeEnum.Float);
 	}
 
+	/**
+	 * Provides a description of the plugin's parameters.
+	 *
+	 * @return a string describing the input and output parameters
+	 */
 	@Override
 	public String getParameterHelpText() {
 		return "Image input, Image convolution_kernel, ByRef Image destination, Boolean correlate";
 	}
 
+	/**
+	 * Provides a description of the plugin's functionality.
+	 *
+	 * @return a string describing what the plugin does
+	 */
 	@Override
 	public String getDescription() {
 		return "Applies convolution using a Fast Fourier Transform using the clFFT library.";
 	}
 
+	/**
+	 * Specifies the dimensions supported by this plugin.
+	 *
+	 * @return a string indicating the supported dimensions
+	 */
 	@Override
 	public String getAvailableForDimensions() {
 		return "2D, 3D";
 	}
 
+	/**
+	 * Provides the names of the plugin's authors.
+	 *
+	 * @return the authors' names
+	 */
 	@Override
 	public String getAuthorName() {
-		return "Brian Northon, Robert Haase";
+		return "Brian Northan, Robert Haase";
 	}
 
+	/**
+	 * Specifies the type of input expected by this plugin.
+	 *
+	 * @return a string describing the input type
+	 */
 	@Override
 	public String getInputType() {
 		return "Image";
 	}
 
+	/**
+	 * Specifies the type of output produced by this plugin.
+	 *
+	 * @return a string describing the output type
+	 */
 	@Override
 	public String getOutputType() {
 		return "Image";
 	}
 
+	/**
+	 * Specifies the category under which this plugin is classified.
+	 *
+	 * @return a string describing the plugin's category
+	 */
 	@Override
 	public String getCategories() {
 		return "Filter";
 	}
-	
+
+	/**
+	 * Provides default values for the plugin's parameters.
+	 *
+	 * @return an array of default parameter values
+	 */
 	@Override
 	public Object[] getDefaultValues() {
 		return new Object[] {null, null, null, 0};
 	}
 
 	/**
-	 * (WIP)
-	 * run convolution using the conv3d_32f_lp API.  This only works for 3D because we don't have a conv2d_32f_lp.
-	 * 
-	 * @param clij2
-	 * @param gpuImg
-	 * @param gpuPSF
-	 * @param output
-	 * @param correlate
-	 * @return
+	 * Performs convolution or correlation using the native conv3d_32f_lp API.
+	 * This method currently only works for 3D images.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param gpuImg the input image buffer
+	 * @param gpuPSF the kernel buffer
+	 * @param output the output buffer for the convolved image
+	 * @param correlate if true, performs correlation instead of convolution
+	 * @return true if the operation was successful
 	 */
 	public static boolean runConvolve2(CLIJ2 clij2, ClearCLBuffer gpuImg,
 										 ClearCLBuffer gpuPSF, ClearCLBuffer output, boolean correlate)

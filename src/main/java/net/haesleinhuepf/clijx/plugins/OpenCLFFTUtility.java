@@ -17,11 +17,20 @@ import net.imglib2.type.numeric.complex.ComplexFloatType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
+/**
+ * Utility class for FFT-related operations on GPU images using CLij2.
+ * Provides methods for padding, cropping, and normalizing images and kernels for FFT-based convolution and deconvolution.
+ */
 public class OpenCLFFTUtility {
 
-	static Img<ComplexFloatType> copyAsComplex(
-		RandomAccessibleInterval<FloatType> in)
-	{
+	/**
+	 * Copies a real-valued image into a complex-valued image.
+	 * The output image has half the width of the input, as required for real-to-complex FFTs.
+	 *
+	 * @param in the input real-valued image
+	 * @return a complex-valued image with half the width of the input
+	 */
+	static Img<ComplexFloatType> copyAsComplex(RandomAccessibleInterval<FloatType> in) {
 		float[] temp = new float[(int) (in.dimension(0) * in.dimension(1))];
 		int i = 0;
 		for (FloatType f : Views.iterable(in)) {
@@ -34,17 +43,16 @@ public class OpenCLFFTUtility {
 	
 	
 	/**
-	 * Pad a GPU image to the next supported FFT size using mirror out of bounds strategy.  
-	 * Note.  This function is not fully implemented on the GPU, thus the image is pulled 
-	 * onto the CPU, extended, then pushed back to GPU
+	 * Pads a GPU image to the next supported FFT size using a mirror out-of-bounds strategy.
+	 * The image is pulled onto the CPU, extended, and then pushed back to the GPU.
 	 *
 	 * TODO fully implement this on the GPU
-	 * 
-	 * @param clij2
-	 * @param input
-	 * @param psf
-	 * @param ops
-	 * @return
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image to pad
+	 * @param psf the point spread function (PSF) used to determine padding size
+	 * @param ops the ImageJ OpService for image operations
+	 * @return the padded image as a ClearCLBuffer
 	 */
 	public static ClearCLBuffer padFFTInputMirror(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer psf, OpService ops) {
 		
@@ -69,17 +77,14 @@ public class OpenCLFFTUtility {
 	}
 	
 	/**
-	 * Pad a GPU image to the next supported FFT size using zeros out of bounds strategy.  
-	 * Note.  This function is not fully implemented on the GPU, thus the image is pulled 
-	 * onto the CPU, extended, then pushed back to GPU
+	 * Pads a GPU image to the next supported FFT size using a zero out-of-bounds strategy.
+	 * The image is pulled onto the CPU, extended, and then pushed back to the GPU.
 	 *
-	 * TODO fully implement this on the GPU
-	 * 
-	 * @param clij2
-	 * @param input
-	 * @param psf
-	 * @param ops
-	 * @return
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image to pad
+	 * @param psf the point spread function (PSF) used to determine padding size
+	 * @param ops the ImageJ OpService for image operations
+	 * @return the padded image as a ClearCLBuffer
 	 */
 	public static ClearCLBuffer padFFTInputZeros(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer psf, OpService ops) {
 		ClearCLBuffer extended = null;
@@ -139,11 +144,11 @@ public class OpenCLFFTUtility {
 	}
 
 	/**
-	 * crop an image that has been extended for FFT back to original size
-	 * 
-	 * @param clij2
-	 * @param extended - the extended image
-	 * @param cropped - cropped, should be same size as the original image the extended image will be cropped to this size
+	 * Crops an extended image back to its original size.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param extended the extended image to crop
+	 * @param cropped the target buffer for the cropped image (must be the same size as the original image)
 	 */
 	public static void cropExtended(CLIJ2 clij2, ClearCLBuffer extended, ClearCLBuffer cropped)
 	{
@@ -165,13 +170,13 @@ public class OpenCLFFTUtility {
 	}
 	
 	/**
-	 * pad a kernel (PSF) and move origin to center.  This needs to be done as a pre-processing step before 
-	 * calling FFT based convolution and/or deconvolution
-	 * 
-	 * @param clij2
-	 * @param convolution_kernel - the psf
-	 * @param extendedKernel - the extended and shifted psf will be written here
-	 * @return
+	 * Pads a kernel (PSF) and shifts its origin to the center.
+	 * This is a preprocessing step for FFT-based convolution and deconvolution.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param convolution_kernel the input kernel (PSF)
+	 * @param extendedKernel the output buffer for the extended and shifted kernel
+	 * @return the extended and shifted kernel as a ClearCLBuffer
 	 */
 	public static ClearCLBuffer padShiftFFTKernel(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
 									ClearCLBuffer extendedKernel)
@@ -220,12 +225,12 @@ public class OpenCLFFTUtility {
 	}
 
 	/**
-	 * normalize a PSF so the sum of all voxels is 1.0
-	 * 
-	 * @param clij2
-	 * @param input
-	 * @param destination
-	 * @return
+	 * Normalizes a PSF so that the sum of all voxels is 1.0.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input PSF
+	 * @param destination the output buffer for the normalized PSF
+	 * @return true if normalization was successful
 	 */
 	public static boolean normalize(CLIJ2 clij2, ClearCLBuffer input, ClearCLBuffer destination)
 	{
@@ -238,7 +243,15 @@ public class OpenCLFFTUtility {
 
 
 	/**
-	 * Moves a quadrant of an image stack in a corner by mirroring it
+	 * Moves a quadrant of a 3D image stack to a corner by mirroring it.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param convolution_kernel the input image
+	 * @param temp a temporary buffer for cropping
+	 * @param extendedKernel the output buffer for the mirrored quadrant
+	 * @param factorX the factor for the x-direction (0 or 1)
+	 * @param factorY the factor for the y-direction (0 or 1)
+	 * @param factorZ the factor for the z-direction (0 or 1)
 	 */
 	private static void moveCorner(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
 								   ClearCLBuffer temp, ClearCLBuffer extendedKernel, int factorX, int factorY,
@@ -253,7 +266,14 @@ public class OpenCLFFTUtility {
 	}
 
 	/**
-	 * Moves a quadrant of an image stack in a corner by mirroring it
+	 * Moves a quadrant of a 2D image to a corner by mirroring it.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param convolution_kernel the input image
+	 * @param temp a temporary buffer for cropping
+	 * @param extendedKernel the output buffer for the mirrored quadrant
+	 * @param factorX the factor for the x-direction (0 or 1)
+	 * @param factorY the factor for the y-direction (0 or 1)
 	 */
 	private static void moveCorner2D(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
 								   ClearCLBuffer temp, ClearCLBuffer extendedKernel, int factorX, int factorY)

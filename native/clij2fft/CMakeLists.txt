@@ -13,7 +13,7 @@ find_package(Python3 COMPONENTS Interpreter)
 
 add_custom_target(
     generate_preamble ALL
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/stringify.py ${CMAKE_CURRENT_SOURCE_DIR}/totalvariationterm.cl ${CMAKE_CURRENT_SOURCE_DIR}/kernels/ 
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/stringify.py ${CMAKE_CURRENT_SOURCE_DIR}/totalvariationterm.cl ${CMAKE_CURRENT_SOURCE_DIR}/kernels/
     COMMENT "Converting totalvarationterm.cl to string."
 )
 

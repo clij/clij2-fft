@@ -18,6 +18,10 @@ Implementation of python wrappers to the RL algorithm with non-circulant edge ha
 
 # Java
 
+## 2.2.0.19
+
+1.  Natives for all OSes and arch are now included in the jar file.
+
 ## 2.2.0.14
 
 1.  Total Variation regularization option added.  This option is useful when deconvolving noisy images.  

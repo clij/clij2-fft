@@ -4,17 +4,6 @@
 
 Add following update site https://sites.imagej.net/clijx-deconvolution/
 
-Or alternively build from source
-
-### Verify native libs are in the right location
-
-Find your Fiji installation directory then go to the ```lib``` subdirectory (it should look as below, except you may not have subdirs for all os, only the current os)  
-![image](https://github.com/user-attachments/assets/ef367696-4a57-4106-897f-6c2f87b07c2f)  
-
-Now go into the ```lib``` directory and verify the ```clFFT```, ```clij2fft```, and ```jniclij2fftWrapper``` libs are there (extension and version will be slightly different for each os).  
-
-![image](https://github.com/user-attachments/assets/a21b55c1-c515-4790-b2c7-2ee5c3f9e441)
-
 ### Get bars test image
 
 The bars test image can be found [here](https://www.dropbox.com/scl/fo/49jvlu3cpay647m1z84t1/AO3JePK-TP7rrz1KcYm_rVA?rlkey=jhsm89ififo518f7foovdh4e5&st=g4xkwpj1&dl=0)
