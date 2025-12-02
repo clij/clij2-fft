@@ -14,17 +14,34 @@ import net.haesleinhuepf.clij2.utilities.HasAuthor;
 import net.haesleinhuepf.clij2.utilities.HasClassifiedInputOutput;
 import net.haesleinhuepf.clij2.utilities.IsCategorized;
 
+/**
+ * This plugin performs a forward Fast Fourier Transform (FFT) on a GPU buffer.
+ * It supports both 2D and 3D images and outputs the FFT in a packed complex format.
+ * The input image must be pre-extended to an FFT-friendly size.
+ */
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_forwardFFT")
-public class ForwardFFT  extends AbstractCLIJ2Plugin implements
-CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassifiedInputOutput, IsCategorized
-{
-	
+public class ForwardFFT extends AbstractCLIJ2Plugin implements
+		CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassifiedInputOutput, IsCategorized {
+
+	/**
+	 * Executes the forward FFT using the provided arguments.
+	 *
+	 * @return true if the operation was successful
+	 */
 	@Override
 	public boolean executeCL() {
 		boolean result = runFFT(getCLIJ2(), (ClearCLBuffer) (args[0]), (ClearCLBuffer) (args[1]));
 		return result;
 	}
-	
+
+	/**
+	 * Runs the forward FFT on the input buffer and returns the result in a new buffer.
+	 * The output buffer will have dimensions suitable for storing the complex FFT result.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param gpuImg the input image buffer
+	 * @return the output buffer containing the FFT result
+	 */
 	public static ClearCLBuffer runFFT(CLIJ2 clij2, ClearCLBuffer gpuImg) {
 		
 		long[] dimensions = getFFTDimensions(gpuImg);
@@ -39,11 +56,13 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 
 	
 	/**
-	 * Run FFT on a CLBuffer
-	 * 
-	 * @param gpuImg input CLBuffer (needs to be pre-extended to an FFT friendly
-	 *          size this can be done by using the padInputAndPush function)
-	 * @return - output FFT as CLBuffer
+	 * Runs the forward FFT on the input buffer and writes the result to the output buffer.
+	 * The input buffer must be pre-extended to an FFT-friendly size.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param gpuImg the input image buffer (must be pre-extended to an FFT-friendly size)
+	 * @param gpuFFT the output buffer for the FFT result
+	 * @return true if the operation was successful
 	 */
 	public static boolean runFFT(CLIJ2 clij2, ClearCLBuffer gpuImg, ClearCLBuffer gpuFFT) {
 		
@@ -86,7 +105,14 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 		
 		return true;
 	}
-	
+
+	/**
+	 * Calculates the appropriate dimensions for the FFT output buffer.
+	 * For real-to-complex FFTs, the width is adjusted to 2*(N/2+1) to store the complex result.
+	 *
+	 * @param in the input buffer
+	 * @return the dimensions for the FFT output buffer
+	 */
 	private static long[] getFFTDimensions(ClearCLBuffer in) {
 		long[] dimensions=new long[in.getDimensions().length];
 		
@@ -98,7 +124,13 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 		
 		return dimensions;
 	}
-	
+
+	/**
+	 * Creates an output buffer with dimensions suitable for storing the FFT result.
+	 *
+	 * @param input the input buffer
+	 * @return the output buffer for the FFT result
+	 */
 	@Override
 	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
 		ClearCLBuffer in = (ClearCLBuffer) args[0];
@@ -108,36 +140,71 @@ CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassif
 		return getCLIJ2().create(dimensions, NativeTypeEnum.Float);
 	}
 
+	/**
+	 * Provides a description of the plugin's parameters.
+	 *
+	 * @return a string describing the input and output parameters
+	 */
 	@Override
 	public String getParameterHelpText() {
 		return "Image input, ByRef Image destination";
 	}
 
+	/**
+	 * Provides a description of the plugin's functionality.
+	 *
+	 * @return a string describing what the plugin does
+	 */
 	@Override
 	public String getDescription() {
 		return "Performs forward FFT, currently only works on power of 2 or prime factorable numbers";
 	}
 
+	/**
+	 * Specifies the dimensions supported by this plugin.
+	 *
+	 * @return a string indicating the supported dimensions
+	 */
 	@Override
 	public String getAvailableForDimensions() {
 		return "2D, 3D";
 	}
 
+	/**
+	 * Provides the name of the plugin's author.
+	 *
+	 * @return the author's name
+	 */
 	@Override
 	public String getAuthorName() {
 		return "Brian Northan";
 	}
 
+	/**
+	 * Specifies the type of input expected by this plugin.
+	 *
+	 * @return a string describing the input type
+	 */
 	@Override
 	public String getInputType() {
 		return "Image";
 	}
 
+	/**
+	 * Specifies the type of output produced by this plugin.
+	 *
+	 * @return a string describing the output type
+	 */
 	@Override
 	public String getOutputType() {
 		return "Image";
 	}
 
+	/**
+	 * Specifies the category under which this plugin is classified.
+	 *
+	 * @return a string describing the plugin's category
+	 */
 	@Override
 	public String getCategories() {
 		return "Filter";

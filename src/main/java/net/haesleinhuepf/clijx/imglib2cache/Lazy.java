@@ -32,21 +32,23 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
 
 /**
- * Convenience methods to create lazy evaluated cached cell images with ops or consumers.
- *
- * @author Stephan Saalfeld
+ * Provides convenience methods to create lazily evaluated, cached cell images
+ * using {@link CellLoader} or {@link Consumer} for cell generation.
+ * This is useful for large images where only parts of the image are accessed at a time,
+ * allowing efficient memory usage and on-demand computation.
  */
 public interface Lazy {
 
 	/**
-	 * Create a memory {@link CachedCellImg} with a cell {@link Cache}.  Unless
-	 * you are doing something special, you will likely not use this method.
+	 * Creates a memory-backed {@link CachedCellImg} with a custom cell {@link Cache}.
+	 * This method is typically used for advanced or specialized use cases.
 	 *
-	 * @param grid
-	 * @param cache
-	 * @param type
-	 * @param accessFlags
-	 * @return
+	 * @param <T> the pixel type of the image
+	 * @param grid the cell grid defining the partitioning of the image
+	 * @param cache the cache to store loaded cells
+	 * @param type the pixel type of the image
+	 * @param accessFlags flags to control memory access behavior
+	 * @return a new {@link CachedCellImg} instance, or null if the type is not supported
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static <T extends NativeType<T>> CachedCellImg<T, ?> createImg(
@@ -76,16 +78,16 @@ public interface Lazy {
 	}
 
 	/**
-	 * Create a memory {@link CachedCellImg} with a {@link CellLoader}.
-	 * Unless you are doing something special, you will likely not use this
-	 * method.
+	 * Creates a memory-backed {@link CachedCellImg} with a {@link CellLoader}.
+	 * The loader is responsible for loading or computing the content of each cell.
 	 *
-	 * @param targetInterval
-	 * @param blockSize
-	 * @param type
-	 * @param accessFlags
-	 * @param loader
-	 * @return
+	 * @param <T> the pixel type of the image
+	 * @param targetInterval the interval defining the dimensions of the image
+	 * @param blockSize the size of each cell block
+	 * @param type the pixel type of the image
+	 * @param accessFlags flags to control memory access behavior
+	 * @param loader the loader to generate or load cell content
+	 * @return a new {@link CachedCellImg} instance
 	 */
 	public static <T extends NativeType<T>> CachedCellImg<T, ?> createImg(
 			final Interval targetInterval,
@@ -105,17 +107,17 @@ public interface Lazy {
 	}
 
 	/**
-	 * Create a memory {@link CachedCellImg} with a cell generator implemented
-	 * as a {@link Consumer}.  This is the most general purpose method for
-	 * anything new.  Note that any inputs are managed by the cell generator,
-	 * not but this method.
+	 * Creates a memory-backed {@link CachedCellImg} with a cell generator implemented
+	 * as a {@link Consumer}. This is the most general-purpose method for creating
+	 * lazily evaluated images. The consumer is called to generate the content of each cell.
 	 *
-	 * @param targetInterval
-	 * @param blockSize
-	 * @param type
-	 * @param accessFlags
-	 * @param op
-	 * @return
+	 * @param <T> the pixel type of the image
+	 * @param targetInterval the interval defining the dimensions of the image
+	 * @param blockSize the size of each cell block
+	 * @param type the pixel type of the image
+	 * @param accessFlags flags to control memory access behavior
+	 * @param op the consumer that generates the content of each cell
+	 * @return a new {@link CachedCellImg} instance
 	 */
 	public static <T extends NativeType<T>> CachedCellImg<T, ?> generate(
 			final Interval targetInterval,

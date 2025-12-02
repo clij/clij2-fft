@@ -35,10 +35,14 @@ import net.imglib2.view.Views;
 
 import ij.IJ;
 
+/**
+ * This plugin applies Richardson-Lucy deconvolution using Fast Fourier Transform (FFT)
+ * via the clFFT library. It supports 3D images and includes options for regularization
+ * and non-circulant boundary conditions.
+ */
 @Plugin(type = CLIJMacroPlugin.class, name = "CLIJx_deconvolveRichardsonLucyFFT")
 public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
-	CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassifiedInputOutput, IsCategorized
-{
+		CLIJMacroPlugin, CLIJOpenCLProcessor, OffersDocumentation, HasAuthor, HasClassifiedInputOutput, IsCategorized {
 
 	private static OpService ops;
 	private static Context ctx;
@@ -50,6 +54,11 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		ops = ctx.getService(OpService.class);
 	}
 
+	/**
+	 * Executes the Richardson-Lucy deconvolution using the provided arguments.
+	 *
+	 * @return true if the operation was successful
+	 */
 	@Override
 	public boolean executeCL() {
 		
@@ -71,13 +80,34 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			(ClearCLBuffer) (args[1]), (ClearCLBuffer) (args[2]), asInteger(args[3]), regularizationFactor, nonCirculant);
 		return result;
 	}
- 	
+
+	/**
+	 * Runs Richardson-Lucy deconvolution with default parameters.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image buffer
+	 * @param psf the point spread function buffer
+	 * @param deconvolved the output buffer for the deconvolved image
+	 * @param num_iterations the number of iterations to perform
+	 * @return true if the operation was successful
+	 */
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 							ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations) 
 	{
 		return deconvolveRichardsonLucyFFT(clij2, input, psf, deconvolved, num_iterations, 0.0f, false); 
 	}
-	
+
+	/**
+	 * Runs Richardson-Lucy deconvolution with a specified regularization factor.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image buffer
+	 * @param psf the point spread function buffer
+	 * @param deconvolved the output buffer for the deconvolved image
+	 * @param num_iterations the number of iterations to perform
+	 * @param regularizationFactor the regularization factor to dampen noise
+	 * @return true if the operation was successful
+	 */
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 		ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, float regularizationFactor) 
 	{
@@ -85,15 +115,17 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	}
 	
 	/**
-	 * Convert images to float (if not already float), normalize PSF and call Richardson Lucy 
-	 * 
-	 * @param clij2
-	 * @param input
-	 * @param psf
-	 * @param deconvolved
-	 * @param num_iterations
-	 * 
-	 * @return true if successful
+	 * Runs Richardson-Lucy deconvolution with full parameter control.
+	 * Converts input and PSF to float if necessary, normalizes the PSF, and performs the deconvolution.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image buffer
+	 * @param psf the point spread function buffer
+	 * @param deconvolved the output buffer for the deconvolved image
+	 * @param num_iterations the number of iterations to perform
+	 * @param regularizationFactor the regularization factor to dampen noise
+	 * @param nonCirculant if true, uses non-circulant boundary conditions
+	 * @return true if the operation was successful
 	 */
 	public static boolean deconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 													  ClearCLBuffer psf, ClearCLBuffer deconvolved, int num_iterations, 
@@ -146,19 +178,18 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		return true;
 	}
 
-  /**
-   * Extend image and PSF to next supported FFT size and call Richardson Lucy
-   * 
-   * @param clij2
-   * @param input
-   * @param psf
-   * @param output
-   * @param num_iterations
-   * 
-   * @return true if successful
-   * 
-   * TODO error handling
-   */
+	/**
+	 * Extends the input image and PSF to the next supported FFT size and runs Richardson-Lucy deconvolution.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param input the input image buffer
+	 * @param psf the point spread function buffer
+	 * @param output the output buffer for the deconvolved image
+	 * @param num_iterations the number of iterations to perform
+	 * @param regularizationFactor the regularization factor to dampen noise
+	 * @param nonCirculant if true, uses non-circulant boundary conditions
+	 * @return true if the operation was successful
+	 */
 	private static boolean extendAndDeconvolveRichardsonLucyFFT(CLIJ2 clij2, ClearCLBuffer input,
 										ClearCLBuffer psf, ClearCLBuffer output, int num_iterations, float regularizationFactor, boolean nonCirculant)
 	{
@@ -212,16 +243,16 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 
 
 	/**
-	 * run Richardson Lucy deconvolution
-	 * 
-	 * @param clij2
-	 * @param gpuImg
-	 * @param gpuPSF
-	 * @param output
-	 * @param num_iterations
-	 * 
-	 * @return Deconvolved CLBuffer
-	 * TODO proper error handling
+	 * Runs the Richardson-Lucy deconvolution on the GPU.
+	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param gpuImg the input image buffer
+	 * @param gpuPSF the point spread function buffer
+	 * @param output the output buffer for the deconvolved image
+	 * @param gpuNormal the normalization factor buffer (can be null)
+	 * @param num_iterations the number of iterations to perform
+	 * @param regularizationFactor the regularization factor to dampen noise
+	 * @return true if the operation was successful
 	 */
 	public static boolean runRichardsonLucyGPU(CLIJ2 clij2, ClearCLBuffer gpuImg,
 										 ClearCLBuffer gpuPSF, ClearCLBuffer output, ClearCLBuffer gpuNormal, 
@@ -262,10 +293,13 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 	}
 	
 	/**
-	 * Calculate non-circulant normalization factor. This is used as part of the
-	 * Boundary condition handling scheme described here
-	 * http://bigwww.epfl.ch/deconvolution/challenge2013/index.html?p=doc_math_rl)
+	 * Creates a normalization factor for non-circulant boundary conditions.
 	 *
+	 * @param clij2 the CLij2 instance for GPU operations
+	 * @param paddedDimensions the dimensions of the padded image
+	 * @param originalDimensions the dimensions of the original image
+	 * @param psf the point spread function buffer
+	 * @return the normalization factor buffer
 	 */
 	private static ClearCLBuffer createNormalizationFactor(CLIJ2 clij2, final Dimensions paddedDimensions,
 		final Dimensions originalDimensions, ClearCLBuffer psf) {
@@ -304,49 +338,94 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		
 		return gpunormal;
 	}
-	
 
+	/**
+	 * Creates an output buffer with the same dimensions as the input.
+	 *
+	 * @param input the input buffer
+	 * @return the output buffer
+	 */
 	@Override
 	public ClearCLBuffer createOutputBufferFromSource(ClearCLBuffer input) {
 		ClearCLBuffer in = (ClearCLBuffer) args[0];
 		return getCLIJ2().create(in.getDimensions(), NativeTypeEnum.Float);
 	}
 
+	/**
+	 * Provides default values for the plugin's parameters.
+	 *
+	 * @return an array of default parameter values
+	 */
 	@Override
 	public Object[] getDefaultValues() {
 		return new Object[] {null, null, null, 100, 0, 0};
 	}
 
+	/**
+	 * Provides a description of the plugin's parameters.
+	 *
+	 * @return a string describing the input and output parameters
+	 */
 	@Override
 	public String getParameterHelpText() {
 		return "Image input, Image convolution_kernel, ByRef Image destination, Number num_iterations";
 	}
 
+	/**
+	 * Provides a description of the plugin's functionality.
+	 *
+	 * @return a string describing what the plugin does
+	 */
 	@Override
 	public String getDescription() {
 		return "Applies Richardson-Lucy deconvolution using a Fast Fourier Transform using the clFFT library.  Currently 3D images only";
 	}
 
+	/**
+	 * Specifies the dimensions supported by this plugin.
+	 *
+	 * @return a string indicating the supported dimensions
+	 */
 	@Override
 	public String getAvailableForDimensions() {
 		return "3D";
 	}
 
+	/**
+	 * Provides the names of the plugin's authors.
+	 *
+	 * @return the authors' names
+	 */
 	@Override
 	public String getAuthorName() {
 		return "Brian Northan, Robert Haase";
 	}
 
+	/**
+	 * Specifies the type of input expected by this plugin.
+	 *
+	 * @return a string describing the input type
+	 */
 	@Override
 	public String getInputType() {
 		return "Image";
 	}
 
+	/**
+	 * Specifies the type of output produced by this plugin.
+	 *
+	 * @return a string describing the output type
+	 */
 	@Override
 	public String getOutputType() {
 		return "Image";
 	}
 
+	/**
+	 * Specifies the categories under which this plugin is classified.
+	 *
+	 * @return a string describing the plugin's categories
+	 */
 	@Override
 	public String getCategories() {
 		return "Filter,Deconvolve";
