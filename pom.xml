@@ -241,7 +241,7 @@
 								<resource>
 									<directory>${basedir}/lib</directory>
 									<includes>
-										<include>linux-x86_64/*.so</include>
+										<include>linux-x86_64/*.so*</include>
 										<include>windows-x86_64/*.dll</include>
 										<include>macosx-x86_64/*.dylib</include>
 										<include>macosx-arm64/*.dylib</include>
