@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/clij/clij2-actions/workflows/build.yml/badge.svg)](https://github.com/clij/clij2-actions/workflows/build.yml)
+[![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml)
 
 Update 2025-03-12: If you are looking to work with Clij2-fft deconvolution in Fiji, please follow [these instructions](./docs/fiji/test_installation.md).
 
