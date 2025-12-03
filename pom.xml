@@ -68,10 +68,10 @@
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:git://github.com/clij/clij2</connection>
-        <developerConnection>scm:git:git@github.com/clij/clij2</developerConnection>
+		<connection>scm:git:git://github.com/clij/clij2-fft</connection>
+        <developerConnection>scm:git:git@github.com/clij/clij2-fft</developerConnection>
         <tag>HEAD</tag>
-		<url>https://github.com/clij/clij2</url>
+		<url>https://github.com/clij/clij2-fft</url>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
