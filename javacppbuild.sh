@@ -18,11 +18,11 @@ mvn install -Dgpg.skip
 case $PLATFORM in
     linux-x86_64)
       echo "copy jni wrapper"
-	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux64/
+	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux-x86_64/
       ;;
     macosx-x86_64)
       echo "copy jni wrapper"
-	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx/
+	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.dylib lib/macosx-x86_64/
       ;;
     macosx-arm64)
       echo "copy jni wrapper"
@@ -30,7 +30,7 @@ case $PLATFORM in
       ;;
     windows-x86_64)
        	echo "copy jni wriapper"
-	      cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll lib/win64/
+	      cp target/classes/net/haesleinhuepf/clijx/plugins/windows-x86_64/jniclij2fftWrapper.dll lib/windows-x86_64/
       ;;
     *)
       echo "Error: Platform \"$PLATFORM\" is not supported"
