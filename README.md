@@ -1,10 +1,12 @@
 [![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml)
 
-Update 2025-03-12: If you are looking to work with Clij2-fft deconvolution in Fiji, please follow [these instructions](./docs/fiji/test_installation.md).
+# Fiji Update Site
+
+If you are looking to work with Clij2-fft deconvolution in Fiji, please follow [these instructions](./docs/fiji/test_installation.md).
 
 # clij2-fft: Fast OpenCL GPU FFT based image processing algorithms for Java, Python and C++
 
-The goal of clij2-fft is to provide the bio-imaging community with fast but simple-to-use implementations of 2D and 3D FFT and FFT-based algorithms that are usable from Java, Python, and C++. This allows the same code to be called from multiple languages and used to create FFT-based plugins (such as convolution and deconvolution) for many platforms.
+The clij2-fft project provides fast, easy-to-use 2D/3D FFT and FFT-based algorithms that work from Java, Python, and C++, so the same code can power plugins (e.g., convolution, deconvolution) across platforms.
 
 There are many GPU deconvolution projects in Python, which are probably easier to use for Python programmers. clij2-fft is available in Python but is also designed so the same code can be called from Java (or from C++). Thus, the build process is a bit more complex than for Python-only implementations.
 
