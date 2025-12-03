@@ -69,14 +69,14 @@
 
 	<scm>
 		<connection>scm:git:https://github.com/clij/clij2-fft</connection>
-		<developerConnection>scm:git:git@github.com/clij/clij2-fft</developerConnection>
+		<developerConnection>scm:git:git@github.com:clij/clij2-fft.git</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/clij/clij2-fft</url>
 	</scm>
 
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/clij/clij2/issues</url>
+		<url>https://github.com/clij/clij2-fft/issues</url>
 	</issueManagement>
 
 	<ciManagement>
@@ -204,14 +204,6 @@
 			<url>https://dl.bintray.com/haesleinhuepf/clij</url>
 		</repository>
 	</repositories>
-
-	<distributionManagement>
-		<repository>
-			<id>bintray-haesleinhuepf-snapshots</id>
-			<name>bintray-snapshots</name>
-			<url>https://api.bintray.com/maven/haesleinhuepf/clij/clij2_/;publish=1</url>
-		</repository>
-	</distributionManagement>
 
 	<build>
 		<plugins>
