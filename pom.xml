@@ -10,7 +10,7 @@
 
 	<groupId>net.haesleinhuepf</groupId>
 	<artifactId>clij2-fft_</artifactId>
-	<version>2.2.0.21-SNAPSHOT</version>
+	<version>2.2.0.21</version>
 
 	<name>clij2-fft</name>
 	<description>clij2 fft</description>
@@ -70,7 +70,7 @@
 	<scm>
 		<connection>scm:git:https://github.com/clij/clij2-fft</connection>
 		<developerConnection>scm:git:git@github.com/clij/clij2-fft</developerConnection>
-		<tag>HEAD</tag>
+		<tag>clij2-fft_-2.2.0.21</tag>
 		<url>https://github.com/clij/clij2-fft</url>
 	</scm>
 
