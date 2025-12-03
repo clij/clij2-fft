@@ -54,9 +54,15 @@ If you still need to build natives locally (e.g., for testing or development), f
 ---
 
 #### **Windows**
+
 ##### **Prerequisites**
 - [Visual Studio Community C++ Compiler](https://visualstudio.microsoft.com/vs/community/)
 - [Git for Windows with Bash Terminal](https://gitforwindows.org/)
+- [Open CL-Headers and Library](https://github.com/KhronosGroup/OpenCL-Headers)
+   (copy the ```CL``` directory to c:/OpenCL/include)
+- Open CL Libary (OpenCL.lib)
+   Option 1: If Cuda installed copy from ```C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\vxx.x\lib\x64```
+   Option 2: build from source
 
 ##### **Build Instructions**
 1. From the Start menu, run **'x64 Native Tools Command Prompt for VS'**.
