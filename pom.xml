@@ -10,7 +10,7 @@
 
 	<groupId>net.haesleinhuepf</groupId>
 	<artifactId>clij2-fft_</artifactId>
-	<version>2.2.0.20-SNAPSHOT</version>
+	<version>2.2.0.21-SNAPSHOT</version>
 
 	<name>clij2-fft</name>
 	<description>clij2 fft</description>
