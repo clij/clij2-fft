@@ -28,7 +28,7 @@ clij2-fft requires [clij2](https://clij.github.io). Follow [these instructions](
 
 You can then access Richardson-Lucy Deconvolution via the CLIJ2-assistant, as shown in [this video](./docs/deconvolution/clij-decon.mp4).
 
-To build the code, follow [these instructions](./docs/buildlibs/build).
+To build the code, follow [these instructions](./docs/buildlibs/build.md).
 
 Currently, clij2-fft is a work in progress. The best way to learn how to use clij2-fft is to study the examples and then follow up with questions on the [Image.sc Forum](https://forum.image.sc/).
 
