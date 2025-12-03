@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-20.04  # Uses GLIBC 2.31
             platform: linux-x86_64
             arch: x86_64
             lib_prefix: /usr/local/lib
