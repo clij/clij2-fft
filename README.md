@@ -1,10 +1,7 @@
-[![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml)
-
-# Fiji Update Site
-
-If you are looking to work with Clij2-fft deconvolution in Fiji, please follow [these instructions](./docs/fiji/test_installation.md).
-
 # clij2-fft: Fast OpenCL GPU FFT based image processing algorithms for Java, Python and C++
+
+[![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml)
+[![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build.yml)
 
 The clij2-fft project provides fast, easy-to-use 2D/3D FFT and FFT-based algorithms that work from Java, Python, and C++, so the same code can power plugins (e.g., convolution, deconvolution) across platforms.
 
@@ -15,6 +12,10 @@ Currently, most of the focus has been on an implementation of Richardson-Lucy De
 Latest features and updates are tracked in the [Release Log](https://clij.github.io/clij2-fft/docs/releaselog), though this code is still in very early development. If you are experimenting with this codebase, please feel free to submit an issue or ping us on the [Imaging Forum](https://forum.image.sc/).
 
 The clij2-fft project is built upon [clFFT](https://github.com/arrayfire/clFFT).
+
+# Fiji Update Site
+
+If you are looking to work with Clij2-fft deconvolution in Fiji, please follow [these instructions](./docs/fiji/test_installation.md).
 
 ## Python
 
