@@ -21,7 +21,7 @@ If you are looking to work with Clij2-fft deconvolution in Fiji, please follow [
 
 The Python version is now available on [PyPI](https://pypi.org/project/clij2-fft/).
 
-If you are a Python programmer, take a look at the `python` sub-directory for the experimental Python distribution. See [these installation instructions](./docs/python/clij-fft-python.md), and also this [Python example](./python/clij2fft/test_richardson_lucy.py) may be helpful. In addition, if you are deconvolving large images, this [Dask example](./python/clij2fft/test_richardson_lucy_dask.py) may be useful.
+If you are a Python programmer, take a look at the `python` sub-directory for the experimental Python distribution. See [these installation instructions](./docs/python/clij-fft-python.md), and also this [Python example](./python/interactive tests/test_richardson_lucy.py) may be helpful. In addition, if you are deconvolving large images, this [Dask example](./python/interactive tests/test_richardson_lucy_dask.py) may be useful.
 
 Please note that thus far, only a small subset of potential algorithms have been implemented. For example, we have implemented 3D deconvolution but not 2D, and 2D FFT but not 3D. If you are in need of a particular FFT flavor or FFT-based algorithm, please ask questions on the forum. We can prioritize future work based on that feedback and also help others implement additional algorithms.
 
