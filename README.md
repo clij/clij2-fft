@@ -2,6 +2,7 @@
 
 [![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build-and-deploy.yml)
 [![Build Status](https://github.com/clij/clij2-fft/actions/workflows/build.yml/badge.svg)](https://github.com/clij/clij2-fft/actions/workflows/build.yml)
+[![Maven Scijava Version](https://img.shields.io/github/v/tag/clij/clij2-fft?label=Version-[Maven%20Scijava])](https://maven.scijava.org/#browse/browse:releases:net%2Fhaesleinhuepf%2Fclij2-fft_)
 
 The clij2-fft project provides fast, easy-to-use 2D/3D FFT and FFT-based algorithms that work from Java, Python, and C++, so the same code can power plugins (e.g., convolution, deconvolution) across platforms.
 
