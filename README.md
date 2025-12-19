@@ -28,7 +28,7 @@ Please note that thus far, only a small subset of potential algorithms have been
 
 ## Java and ImageJ
 
-clij2-fft requires [clij2](https://clij.github.io). Follow [these instructions](https://clij.github.io/clij2-docs/installationInFiji) to install clij2. You will also need to add the following update site https://sites.imagej.net/clijx-deconvolution/
+clij2-fft requires [clij2](https://clij.github.io) and clij update sites. Follow [these instructions](https://clij.github.io/clij2-docs/installationInFiji) to install clij2. You will also need to add the `clijx-deconvolution` update site.
 
 You can then access Richardson-Lucy Deconvolution via the CLIJ2-assistant, as shown in [this video](./docs/deconvolution/clij-decon.mp4).
 
