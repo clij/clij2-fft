@@ -2,7 +2,10 @@
 
 ### Add clij2-fft update site or build from source
 
-Add following update site https://sites.imagej.net/clijx-deconvolution/
+Add the following update sites:
+* clijx-deconvolution
+* clij2
+* clij
 
 ### Get bars test image
 
