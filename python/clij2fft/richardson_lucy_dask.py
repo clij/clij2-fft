@@ -197,8 +197,11 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
     
     import time
 
+    # --- 2) Tell Dask the output type so it doesn't need to probe as much ---
+    meta = np.empty((0, 0, 0), dtype=np.float32)
+
     start_time = time.time()
-    out = dimg.map_overlap(rl_dask_task, depth={0:0, 1:overlap, 2:overlap}, dtype=np.float32, psf=psf, numiterations=numiterations, regularizationfactor=regularizationfactor, lib=lib)
+    out = dimg.map_overlap(rl_dask_task, depth={0:0, 1:overlap, 2:overlap}, dtype=np.float32, meta=meta, psf=psf, numiterations=numiterations, regularizationfactor=regularizationfactor, lib=lib)
     out_img = out.compute(num_workers=num_devices)
     end_time = time.time()
     execution_time = end_time - start_time
