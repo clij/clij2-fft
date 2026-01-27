@@ -166,7 +166,9 @@ def richardson_lucy_dask(img, psf, numiterations, regularizationfactor, non_circ
     import traceback
 
     def rl_dask_task(img, psf, numiterations, regularizationfactor=0, lib=None, block_info=None, block_id=None, thread_id=None):
-        
+        if block_info is None or img.size == 0:
+            return img.astype(np.float32, copy=False)
+
         try:
             print()
             device_num=queue.get()
