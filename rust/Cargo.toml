@@ -1,0 +1,11 @@
+[package]
+name = "clij2fft"
+version = "0.1.0"
+edition = "2021"
+description = "Richardson-Lucy deconvolution on the GPU, through clij2-fft's native library"
+license = "BSD-3-Clause"
+publish = false
+
+[dependencies]
+libloading = "0.8"
+ndarray = "0.17"
