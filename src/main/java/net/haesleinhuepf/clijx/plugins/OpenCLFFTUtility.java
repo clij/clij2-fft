@@ -148,6 +148,8 @@ public class OpenCLFFTUtility {
 			start[2]=(long)(Math.floor((extendedSize[2]-input.getDimensions()[2])/2));
 			
 			extended = clij2.create(extendedSize, NativeTypeEnum.Float);
+			// create() does not initialize the memory, so set the padding to zero explicitly
+			clij2.set(extended, 0);
 			clij2.paste(input, extended, start[0], start[1], start[2]);
 		}
 		else {
@@ -168,7 +170,9 @@ public class OpenCLFFTUtility {
 			start[1]=(long)(Math.floor((extendedSize[1]-input.getDimensions()[1])/2));
 			
 			extended = clij2.create(extendedSize, NativeTypeEnum.Float);
-			clij2.paste(input, extended, start[0], start[1]); 
+			// create() does not initialize the memory, so set the padding to zero explicitly
+			clij2.set(extended, 0);
+			clij2.paste(input, extended, start[0], start[1]);
 		}
 		
 		return extended;
