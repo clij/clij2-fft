@@ -27,9 +27,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04  # Uses GLIBC 2.31
+          - os: ubuntu-22.04  # Uses GLIBC 2.35
             platform: linux-x86_64
             arch: x86_64
+            lib_prefix: /usr/local/lib
+          - os: ubuntu-22.04-arm  # Uses GLIBC 2.35
+            platform: linux-arm64
+            arch: arm64
             lib_prefix: /usr/local/lib
           - os: macos-13
             platform: macosx-x86_64
@@ -111,7 +115,7 @@ jobs:
           path: |
             /usr/local/include/clFFT*
             /usr/local/lib*/libclFFT*
-          key: clfft-linux-v1
+          key: clfft-linux-${{ matrix.arch }}-v1
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -123,7 +127,12 @@ jobs:
         if: runner.os == 'Linux' && steps.cache-clfft-linux.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/clMathLibraries/clFFT.git
-          cd clFFT/src && mkdir build && cd build
+          cd clFFT/src
+          # clFFT adds -m64 for GCC, which only exists on x86
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            sed -i 's/"-m64 /"/' CMakeLists.txt
+          fi
+          mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
           make -j$(nproc) && sudo make install && sudo ldconfig
 
@@ -131,8 +140,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo ldconfig
-          mkdir -p lib/linux-x86_64
-          sudo cp -P /usr/local/lib*/libclFFT.so* lib/linux-x86_64/ 2>/dev/null || sudo cp -P /usr/local/lib/libclFFT.so* lib/linux-x86_64/
+          mkdir -p lib/${{ matrix.platform }}
+          sudo cp -P /usr/local/lib*/libclFFT.so* lib/${{ matrix.platform }}/ 2>/dev/null || sudo cp -P /usr/local/lib/libclFFT.so* lib/${{ matrix.platform }}/
 
       # ========== MACOS SETUP ==========
       - name: Cache clFFT (macOS)

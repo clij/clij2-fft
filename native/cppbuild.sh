@@ -34,7 +34,7 @@ case $ARCH in
     arm32)
         ARCH=arm32
         ;;
-    arm64)
+    arm64|aarch64)
         ARCH=arm64
         ;;
     i386|i486|i586|i686)

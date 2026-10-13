@@ -19,14 +19,14 @@ if [[ -z "$PLATFORM" ]]; then
 fi
 
 case $PLATFORM in
-    linux-x86_64)
-        ln -sf libclFFT.so.2 ../../../lib/linux-x86_64/libclFFT.so
+    linux-x86_64|linux-arm64)
+        ln -sf libclFFT.so.2 ../../../lib/$PLATFORM/libclFFT.so
         $CMAKE -DCMAKE_BUILD_TYPE=Release \
-               -DCMAKE_INSTALL_PREFIX="../../../lib/linux-x86_64/" \
+               -DCMAKE_INSTALL_PREFIX="../../../lib/$PLATFORM/" \
                -DCMAKE_CXX_COMPILER="/usr/bin/g++" \
                -DCMAKE_CUDA_HOST_COMPILER="/usr/bin/g++" \
                -DOPENCL_INCLUDE_DIR="/usr/local/cuda/include/" \
-               -DCLFFT_LIBRARY_DIR="../../../lib/linux-x86_64" ..
+               -DCLFFT_LIBRARY_DIR="../../../lib/$PLATFORM" ..
         make
         make install
         ;;
@@ -71,5 +71,6 @@ case $PLATFORM in
         ;;
     *)
         echo "Error: Platform \"$PLATFORM\" is not supported"
+        exit 1
         ;;
 esac

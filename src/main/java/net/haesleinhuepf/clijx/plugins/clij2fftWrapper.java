@@ -51,7 +51,9 @@ import org.bytedeco.javacpp.annotation.Properties;
 	@Platform(value = "linux-x86_64",
 			includepath = {"/usr/local/cuda-10.0/include/"}, 
 			linkpath = {
-			"/usr/local/cuda-10.0/lib64/" }, 
+			"/usr/local/cuda-10.0/lib64/" },
+			preload = { "clFFT" }),
+	@Platform(value = "linux-arm64",
 			preload = { "clFFT" }) })
 public class clij2fftWrapper {
 
