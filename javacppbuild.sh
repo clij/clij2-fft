@@ -16,9 +16,9 @@ mvn install -Dgpg.skip
 
 # now copy the native wrapper from the target directory to the lib/{platform} directory
 case $PLATFORM in
-    linux-x86_64)
+    linux-x86_64|linux-arm64)
       echo "copy jni wrapper"
-	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/linux-x86_64/
+	    cp target/classes/net/haesleinhuepf/clijx/plugins/$PLATFORM/libjniclij2fftWrapper.so lib/$PLATFORM/
       ;;
     macosx-x86_64)
       echo "copy jni wrapper"

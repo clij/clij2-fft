@@ -27,24 +27,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04  # Uses GLIBC 2.31
+          - os: ubuntu-22.04  # Uses GLIBC 2.35
             platform: linux-x86_64
             arch: x86_64
             lib_prefix: /usr/local/lib
-          - os: macos-13
+          - os: ubuntu-22.04-arm  # Uses GLIBC 2.35
+            platform: linux-arm64
+            arch: arm64
+            lib_prefix: /usr/local/lib
+          # the libraries require the macOS version set in macos_target
+          # (by default, the macOS version of the runner)
+          - os: macos-15-intel
             platform: macosx-x86_64
             arch: x86_64
             lib_prefix: /usr/local
+            macos_target: '13.0'
           - os: macos-14
             platform: macosx-arm64
             arch: arm64
             lib_prefix: /opt/homebrew
+            macos_target: '14.0'
           - os: windows-latest
             platform: windows-x86_64
             arch: x86_64
             lib_prefix: C:\clFFT
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      # only used on macOS, empty elsewhere
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
 
     steps:
       - name: Checkout repository
@@ -67,6 +79,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          # stop at the first failing command, not only at failing cmdlets
+          $PSNativeCommandUseErrorActionPreference = $true
           git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git C:\OpenCL-temp\headers
           New-Item -ItemType Directory -Force -Path "C:\OpenCL\include\CL"
           Copy-Item "C:\OpenCL-temp\headers\CL\*" "C:\OpenCL\include\CL\" -Force
@@ -75,10 +89,13 @@ jobs:
           cd C:\OpenCL-ICD-Loader
           New-Item -ItemType Directory -Force -Path build
           cd build
-          cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DOPENCL_ICD_LOADER_HEADERS_DIR="C:\OpenCL\include"
-          cmake --build . --config Release
+          # NMake uses the MSVC environment set up above, whatever the Visual Studio version
+          cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DOPENCL_ICD_LOADER_HEADERS_DIR="C:\OpenCL\include"
+          cmake --build .
           New-Item -ItemType Directory -Force -Path "C:\OpenCL\lib"
-          Copy-Item "Release\OpenCL.lib" "C:\OpenCL\lib\" -Force
+          $openclLib = Get-ChildItem -Recurse -Filter OpenCL.lib | Select-Object -First 1
+          if (-not $openclLib) { Write-Error "OpenCL.lib was not built" }
+          Copy-Item $openclLib.FullName "C:\OpenCL\lib\" -Force
 
       - name: Download pre-built clFFT (Windows)
         if: runner.os == 'Windows' && steps.cache-clfft-windows.outputs.cache-hit != 'true'
@@ -111,7 +128,7 @@ jobs:
           path: |
             /usr/local/include/clFFT*
             /usr/local/lib*/libclFFT*
-          key: clfft-linux-v1
+          key: clfft-linux-${{ matrix.arch }}-v1
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -123,7 +140,12 @@ jobs:
         if: runner.os == 'Linux' && steps.cache-clfft-linux.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/clMathLibraries/clFFT.git
-          cd clFFT/src && mkdir build && cd build
+          cd clFFT/src
+          # clFFT adds -m64 for GCC, which only exists on x86
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            sed -i 's/"-m64 /"/' CMakeLists.txt
+          fi
+          mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
           make -j$(nproc) && sudo make install && sudo ldconfig
 
@@ -131,8 +153,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo ldconfig
-          mkdir -p lib/linux-x86_64
-          sudo cp -P /usr/local/lib*/libclFFT.so* lib/linux-x86_64/ 2>/dev/null || sudo cp -P /usr/local/lib/libclFFT.so* lib/linux-x86_64/
+          mkdir -p lib/${{ matrix.platform }}
+          sudo cp -P /usr/local/lib*/libclFFT.so* lib/${{ matrix.platform }}/ 2>/dev/null || sudo cp -P /usr/local/lib/libclFFT.so* lib/${{ matrix.platform }}/
 
       # ========== MACOS SETUP ==========
       - name: Cache clFFT (macOS)
