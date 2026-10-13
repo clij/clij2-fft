@@ -209,6 +209,12 @@ public class OpenCLFFTUtility {
 	 * Pads a kernel (PSF) and shifts its origin to the center.
 	 * This is a preprocessing step for FFT-based convolution and deconvolution.
 	 *
+	 * The center of the kernel is the pixel at index size/2 in each dimension. It is moved
+	 * to index 0 of the extended kernel: the part of the kernel from the center on is
+	 * pasted at the start of the extended kernel, the part before the center is wrapped
+	 * around to its end. For an odd size the part from the center on is one pixel larger
+	 * than the part before it, so each corner is cropped with its own size.
+	 *
 	 * @param clij2 the CLij2 instance for GPU operations
 	 * @param convolution_kernel the input kernel (PSF)
 	 * @param extendedKernel the output buffer for the extended and shifted kernel
@@ -217,47 +223,60 @@ public class OpenCLFFTUtility {
 	public static ClearCLBuffer padShiftFFTKernel(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
 									ClearCLBuffer extendedKernel)
 	{
-		
-		if (convolution_kernel.getDimensions().length==3) {
-			long psfHalfWidth = convolution_kernel.getWidth() / 2;
-			long psfHalfHeight = convolution_kernel.getHeight() / 2;
-			long psfHalfDepth = convolution_kernel.getDepth() / 2;
-	
-			clij2.set(extendedKernel, 0);
-	
-			ClearCLBuffer temp = clij2.create(psfHalfWidth, psfHalfHeight,
-					psfHalfDepth);
-	
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 0);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 0, 1);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 0);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 0, 1, 1);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 0);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 0, 1);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 0);
-			moveCorner(clij2, convolution_kernel, temp, extendedKernel, 1, 1, 1);
-	
-			clij2.release(temp);
-	
-			return extendedKernel;
-		} else if (convolution_kernel.getDimensions().length==2) {
-			long psfHalfWidth = convolution_kernel.getWidth() / 2;
-			long psfHalfHeight = convolution_kernel.getHeight() / 2;
-			
-			clij2.set(extendedKernel, 0);
-			ClearCLBuffer temp = clij2.create(psfHalfWidth, psfHalfHeight);
-	
-			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 0, 0);
-			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 0, 1);
-			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 1, 0);
-			moveCorner2D(clij2, convolution_kernel, temp, extendedKernel, 1, 1);
-	
-			clij2.release(temp);
-	
-			return extendedKernel;
+		final int numDimensions = convolution_kernel.getDimensions().length;
+
+		if (numDimensions!=2 && numDimensions!=3) {
+			return null;
 		}
-		
-		return null;
+
+		final long[] kernelSize = convolution_kernel.getDimensions();
+		final long[] extendedSize = extendedKernel.getDimensions();
+
+		clij2.set(extendedKernel, 0);
+
+		// each bit of 'corner' tells, for one dimension, whether this corner is the part
+		// of the kernel from the center on (1) or the part before the center (0)
+		for (int corner = 0; corner < (1 << numDimensions); corner++) {
+			long[] cornerSize = new long[numDimensions];
+			long[] cropStart = new long[numDimensions];
+			long[] pasteStart = new long[numDimensions];
+			boolean empty = false;
+
+			for (int d = 0; d < numDimensions; d++) {
+				long half = kernelSize[d] / 2;
+				if (((corner >> d) & 1) == 1) {
+					cornerSize[d] = kernelSize[d] - half;
+					cropStart[d] = half;
+					pasteStart[d] = 0;
+				} else {
+					cornerSize[d] = half;
+					cropStart[d] = 0;
+					pasteStart[d] = extendedSize[d] - half;
+				}
+				// a size 1 dimension has nothing before its center
+				if (cornerSize[d] == 0) {
+					empty = true;
+				}
+			}
+
+			if (empty) {
+				continue;
+			}
+
+			ClearCLBuffer temp = clij2.create(cornerSize, convolution_kernel.getNativeType());
+
+			if (numDimensions==3) {
+				clij2.crop(convolution_kernel, temp, cropStart[0], cropStart[1], cropStart[2]);
+				clij2.paste(temp, extendedKernel, pasteStart[0], pasteStart[1], pasteStart[2]);
+			} else {
+				clij2.crop(convolution_kernel, temp, cropStart[0], cropStart[1]);
+				clij2.paste(temp, extendedKernel, pasteStart[0], pasteStart[1]);
+			}
+
+			clij2.release(temp);
+		}
+
+		return extendedKernel;
 	}
 
 	/**
@@ -277,49 +296,6 @@ public class OpenCLFFTUtility {
 		return true;
 	}
 
-
-	/**
-	 * Moves a quadrant of a 3D image stack to a corner by mirroring it.
-	 *
-	 * @param clij2 the CLij2 instance for GPU operations
-	 * @param convolution_kernel the input image
-	 * @param temp a temporary buffer for cropping
-	 * @param extendedKernel the output buffer for the mirrored quadrant
-	 * @param factorX the factor for the x-direction (0 or 1)
-	 * @param factorY the factor for the y-direction (0 or 1)
-	 * @param factorZ the factor for the z-direction (0 or 1)
-	 */
-	private static void moveCorner(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
-								   ClearCLBuffer temp, ClearCLBuffer extendedKernel, int factorX, int factorY,
-								   int factorZ)
-	{
-		clij2.crop(convolution_kernel, temp, temp.getWidth() * factorX, temp
-				.getHeight() * factorY, temp.getDepth() * factorZ);
-		clij2.paste(temp, extendedKernel, (extendedKernel.getWidth() - temp
-				.getWidth()) * (1.0 - factorX), (extendedKernel.getHeight() - temp
-				.getHeight()) * (1.0 - factorY), (extendedKernel.getDepth() - temp
-				.getDepth()) * (1.0 - factorZ));
-	}
-
-	/**
-	 * Moves a quadrant of a 2D image to a corner by mirroring it.
-	 *
-	 * @param clij2 the CLij2 instance for GPU operations
-	 * @param convolution_kernel the input image
-	 * @param temp a temporary buffer for cropping
-	 * @param extendedKernel the output buffer for the mirrored quadrant
-	 * @param factorX the factor for the x-direction (0 or 1)
-	 * @param factorY the factor for the y-direction (0 or 1)
-	 */
-	private static void moveCorner2D(CLIJ2 clij2, ClearCLBuffer convolution_kernel,
-								   ClearCLBuffer temp, ClearCLBuffer extendedKernel, int factorX, int factorY)
-	{
-		clij2.crop(convolution_kernel, temp, temp.getWidth() * factorX, temp
-				.getHeight() * factorY);
-		clij2.paste(temp, extendedKernel, (extendedKernel.getWidth() - temp
-				.getWidth()) * (1.0 - factorX), (extendedKernel.getHeight() - temp
-				.getHeight()) * (1.0 - factorY));
-	}
 
 
 }
