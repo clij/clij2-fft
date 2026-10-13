@@ -36,6 +36,7 @@ package net.haesleinhuepf.clijx.tests;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -64,12 +65,20 @@ public class PadShiftFFTKernelTest {
 
 	@BeforeClass
 	public static void getCLIJ2() {
-		clij2 = CLIJ2.getInstance();
+		// skip the tests on machines without OpenCL, e.g. the CI runners
+		try {
+			clij2 = CLIJ2.getInstance();
+		}
+		catch (Throwable t) {
+			Assume.assumeNoException("No OpenCL device available", t);
+		}
 	}
 
 	@AfterClass
 	public static void releaseCLIJ2() {
-		clij2.clear();
+		if (clij2 != null) {
+			clij2.clear();
+		}
 	}
 
 	@Test
