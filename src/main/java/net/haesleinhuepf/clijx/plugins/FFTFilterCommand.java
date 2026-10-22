@@ -114,6 +114,7 @@ public class FFTFilterCommand implements Command {
 		// the complex numbers are stored in the loat array in interleaving format
 		// that is (real1, imag1, real2, imag2,... realn, imagn)
 		// TODO in the future it would be nice if CLIJ supported a complex format
+		clij2.set(filter, 0);
 		clij2.drawBox(filter, 0, 0, N0 / 8, N1 / 16);
 		clij2.drawBox(filter, 0, 15 * N1 / 16, N0 / 8, N1 / 16);
 

@@ -43,6 +43,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import org.scijava.app.StatusService;
 
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
+import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij.converters.implementations.ClearCLBufferToRandomAccessibleIntervalConverter;
 import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.imglib2.FinalInterval;
@@ -215,8 +216,9 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			// convert input RAI to ClearCLBuffer
 			final ClearCLBuffer input = clijx.push(Views.zeroMin(inputRAI));
 
-			// create temporary buffer for output
-			final ClearCLBuffer output = clijx.create(input);
+			// create temporary buffer for output, always float so that an integer input
+			// does not truncate the result (it is converted to the cell type when copied)
+			final ClearCLBuffer output = clijx.create(input.getDimensions(), NativeTypeEnum.Float);
 
 			if (!psfPushed.containsKey(clijx)) {
 				psfPushed.put(clijx, clijx.push(psf)); // Push one psf buffer per CLIJ2 only
@@ -228,7 +230,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			// at this point the result contains the padded area
 			final ClearCLBufferToRandomAccessibleIntervalConverter cl2rai = new ClearCLBufferToRandomAccessibleIntervalConverter();
 			cl2rai.setCLIJ(clijx.getCLIJ());
-			final RandomAccessibleInterval<T> result = cl2rai.convert(output);
+			final RandomAccessibleInterval<FloatType> result = cl2rai.convert(output);
 
 			input.close();
 			output.close();
@@ -237,7 +239,7 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			clijxPool.setCLIJxIdle(clijx);
 
 			// get the valid part of the extended deconvolution (ie exclude the padded area)
-			RandomAccessibleInterval<T> valid = Views.zeroMin(Views.interval(
+			RandomAccessibleInterval<FloatType> valid = Views.zeroMin(Views.interval(
 					result, new FinalInterval(new long[]{overlapmin[0], overlapmin[1], overlapmin[2]},
 							new long[]{result.dimension(0) - overlapmax[0] - 1, result.dimension(
 									1) - overlapmax[1] - 1, result.dimension(2) - overlapmax[2] - 1})));
