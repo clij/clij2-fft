@@ -403,7 +403,8 @@ public class RichardsonLucyModelController {
 			
 			// create the version of clij2 RL that works on cells
 			Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
-					Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).numberOfIterations(iterations).build();
+					Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).numberOfIterations(iterations)
+					.regularizationFactor(regularizaitonFactor).build();
 			
 			op.setUpStatus(status, numCells);
 
