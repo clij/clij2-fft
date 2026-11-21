@@ -84,6 +84,52 @@ newer pom-scijava. If a Java slicer/planner grows that both projects want, split
 it into a small shared artifact then. Borrow fiji-skopkit's axis spec syntax
 (`"x y z c! t"`) if the GUI ever needs an axis field.
 
+## D. Automatic cell sizing
+
+Today the user ticks "Divide into cells" and types a cell size. The defaults
+(256 x 256 x 128) give 128 cells for one channel of the LLS7 data, and because
+every cell is padded by the PSF (128 deep in z), most of the GPU work is padding.
+Instead, compute the cells from the image, the PSF and the GPU.
+
+### One sizing rule, shared by Java and Python
+
+Both call the same C++/OpenCL RL, so both should size tiles the same way.
+
+- **Padded size, per axis:** next 7-smooth number of
+  `piece + overlap on the sides that have a neighbor + 2*floor(psf/2)`. This is
+  what the non-circulant path allocates (Python's `richardson_lucy_nc` pads by
+  `2*floor(psf/2)`; Java's `padFFTInputZeros` by `psf`, within a pixel).
+  Python's `rl_mem_footprint` currently adds only `psf/2`, so it underestimates
+  its own padding; fix it to match.
+- **Memory per tile:** `factor x 4 bytes x padded voxels`, with factor 11. Counted
+  buffers at padded size N: image, PSF, estimate and normalization factor (caller,
+  4N), reblurred (1N), estimate and PSF spectra (about 2N), total-variation term
+  when regularizing (1N): about 8N, plus clFFT's temporary buffer and, in Java,
+  the unpadded tile and its output. Must fit in a budget of 80% of the device's
+  global memory, as an extra margin until the factor is measured.
+- **Largest single buffer:** a complex spectrum, `8 x (N0/2+1) x N1 x N2` bytes,
+  must fit the device's maximum allocation (`CL_DEVICE_MAX_MEM_ALLOC_SIZE`; 6 GB
+  of 24 GB on an RTX 3090). Neither side checks this today.
+- **Choice:** among the splits `(nx, ny, nz)` that fit, take the least total
+  padded volume (the sum over tiles, which is the GPU work). Splitting z costs a
+  25% penalty, so z is split only when it is needed or clearly cheaper: the PSF
+  is usually long in z, which is why the Python side never splits z.
+- **Java padded size:** Java currently pads with ImageJ Ops `fftSize`, Python with
+  its own 7-smooth function. They should use the same rule so the estimate
+  matches what is allocated.
+
+### Steps
+
+1. `CellPlanner` in Java, pure (no GPU, no GUI), with unit tests.
+2. Log what it would choose when the input and PSF are selected. Manual cells
+   keep working.
+3. Auto mode: "Cells: Auto / Manual", auto fills the cell size fields.
+4. Fix Python's `rl_mem_footprint` and add the allocation limit there.
+5. Measure peak GPU memory for a few tile sizes and set the factor from that.
+
+For iterative GUI testing use a crop of the LLS7 data that needs about 4 cells,
+both channels, and test the full image last.
+
 ## Phases
 
 1. **Feedback only.** When an input image is selected (or is the default at
