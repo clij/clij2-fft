@@ -33,6 +33,7 @@
 package net.clij2fft.deconvolution;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
@@ -56,6 +57,7 @@ import org.scijava.ui.UIService;
 
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.measure.Calibration;
 import net.clij2fft.deconvolution.RichardsonLucyModelController.PSFTypeEnum;
 import net.imagej.ops.OpService;
 import net.imglib2.img.Img;
@@ -78,6 +80,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.ItemEvent;
 import javax.swing.JCheckBox;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
@@ -106,12 +109,15 @@ public class RichardsonLucyGUI extends JFrame {
         // Set the layout manager for the content pane
         getContentPane().setLayout(new BorderLayout());
         
+        // settings on top (inputs left, PSF tabs right), log full width below.
+        // Resize weight 0: the top keeps the height of its tallest tab, the log gets the rest.
         JSplitPane splitPane = new JSplitPane();
         splitPane.setResizeWeight(0.5);
-        getContentPane().add(splitPane, BorderLayout.CENTER);
-        
-        JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        splitPane2.setResizeWeight(0.5);
+
+        JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        mainSplit.setResizeWeight(0.0);
+        mainSplit.setTopComponent(splitPane);
+        getContentPane().add(mainSplit, BorderLayout.CENTER);
        
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
         
@@ -459,9 +465,8 @@ public class RichardsonLucyGUI extends JFrame {
         
         JPanel panel = new JPanel();
         JPanel panel2 = new JPanel();
-        splitPane.setLeftComponent(splitPane2);
-        splitPane2.setTopComponent(panel);
-        splitPane2.setBottomComponent(panel2);
+        splitPane.setLeftComponent(panel);
+        mainSplit.setBottomComponent(panel2);
         
         GridBagLayout gbl_panel2 = new GridBagLayout();
         gbl_panel2.columnWidths = new int[] {0, 0};
@@ -479,12 +484,11 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_progressBar.gridy = 0;
         panel2.add(progressBar, gbc_progressBar);
         
-        JTextArea textArea = new JTextArea();
-        textArea.setLineWrap(true);
-        textArea.setEditable(false);
+        LogPane textArea = new LogPane();
 
-        // Wrap the text area in a scroll pane
+        // Wrap the log in a scroll pane
         JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(600, 200));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
         GridBagConstraints gbc_textArea = new GridBagConstraints();
@@ -516,7 +520,17 @@ public class RichardsonLucyGUI extends JFrame {
         
         ImageJPopupMenuListener popupMenuListener2 = new ImageJPopupMenuListener(imagePlusCombo2);
         comboBoxInput.addPopupMenuListener(popupMenuListener2);
-    
+
+        // report the dimensionality of the selected input, so the user can check it
+        final ImagePlus[] lastDescribed = { null };
+        comboBoxInput.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                describeInput((ImagePlus) e.getItem(), textArea, lastDescribed);
+            }
+        });
+        SwingUtilities.invokeLater(() ->
+            describeInput((ImagePlus) comboBoxInput.getSelectedItem(), textArea, lastDescribed));
+
         GridBagConstraints gbc_comboBoxInput = new GridBagConstraints();
         gbc_comboBoxInput.insets = new Insets(0, 0, 5, 0);
         gbc_comboBoxInput.fill = GridBagConstraints.HORIZONTAL;
@@ -721,30 +735,24 @@ public class RichardsonLucyGUI extends JFrame {
 
             @Override
             public void showStatus(int progress, int maximum, String message) {
-            	if (SwingUtilities.isEventDispatchThread()) {
-	            	textArea.append(message);
-	            	textArea.append("\n");
+            	if (message != null && !message.isEmpty()) textArea.info(message);
+            	Runnable progressUpdate = () -> {
 	            	progressBar.setMaximum(maximum);
 	            	progressBar.setValue(progress);
-            	}
-            	else {
-	            	SwingUtilities.invokeLater(() -> {
-		            	textArea.append(message);
-		            	textArea.append("\n");
-		            	progressBar.setMaximum(maximum);
-		            	progressBar.setValue(progress);
-	            	});
-            	}
+            	};
+            	if (SwingUtilities.isEventDispatchThread()) progressUpdate.run();
+            	else SwingUtilities.invokeLater(progressUpdate);
             }
 
             @Override
             public void showStatus(int progress, int maximum, String message, boolean warn) {
-                System.out.println("Progress: " + progress + " out of " + maximum + ", Status message: " + message + ", Warn: " + warn);
+                if (warn) textArea.warn(message);
+                else showStatus(progress, maximum, message);
             }
 
             @Override
             public void warn(String message) {
-                System.out.println("Warning: " + message);
+                textArea.warn(message);
             }
 
             @Override
@@ -797,8 +805,29 @@ public class RichardsonLucyGUI extends JFrame {
         
 
     }
-       
-    
+
+    /**
+     * Writes one line describing the input image's dimensions to the status text.
+     * Skips the image it described last, since refreshing the image list re-selects.
+     */
+    private static void describeInput(ImagePlus imp, LogPane log, ImagePlus[] lastDescribed) {
+        if (imp == null || imp == lastDescribed[0]) return;
+        lastDescribed[0] = imp;
+
+        Calibration cal = imp.getCalibration();
+        int c = imp.getNChannels(), z = imp.getNSlices(), t = imp.getNFrames();
+        log.section("Input image selected: " + imp.getTitle());
+        log.info(String.format(
+            "%d x %d x %d (XYZ), %d channel%s, %d timepoint%s, %d-bit, voxel %.4g x %.4g x %.4g %s",
+            imp.getWidth(), imp.getHeight(), z,
+            c, c == 1 ? "" : "s", t, t == 1 ? "" : "s", imp.getBitDepth(),
+            cal.pixelWidth, cal.pixelHeight, cal.pixelDepth, cal.getUnit()));
+        if (c > 1 || t > 1) {
+            log.warn(String.format(
+                "This is %d 3D volumes. Deconvolution currently expects a single 3D volume.", c * t));
+        }
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new RichardsonLucyGUI().setVisible(true));
     }
