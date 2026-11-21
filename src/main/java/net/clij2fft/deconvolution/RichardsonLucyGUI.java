@@ -88,6 +88,9 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 
 import java.awt.Component;
+import net.haesleinhuepf.clijx.imglib2cache.CellPlanner;
+import java.util.Locale;
+import net.haesleinhuepf.clij2.CLIJ2;
 
 //Functional interface with three parameters and no return value
 interface TriConsumer<A, B, C> {
@@ -98,8 +101,14 @@ public class RichardsonLucyGUI extends JFrame {
 	
 	StatusService statusService;
 	
-	RichardsonLucyModelController modelController;  
-	
+	RichardsonLucyModelController modelController;
+
+	// GPU limits for the cell planner, read in the background when the GUI opens
+	private volatile String gpuName;
+	private volatile long gpuMemoryBytes, gpuMaxAllocationBytes;
+	// re-estimates the automatic cells; replaced once the controls exist
+	private Runnable replanCells = () -> {};
+
 	public void initiateModel(OpService ops, LogService log, StatusService status) {
 		this.modelController = new RichardsonLucyModelController(ops, log, this.statusService);
 	}
@@ -521,15 +530,29 @@ public class RichardsonLucyGUI extends JFrame {
         ImageJPopupMenuListener popupMenuListener2 = new ImageJPopupMenuListener(imagePlusCombo2);
         comboBoxInput.addPopupMenuListener(popupMenuListener2);
 
+        // sensible defaults: the active image as input, an image named like a PSF as PSF
+        ImagePlus activeImage = WindowManager.getCurrentImage();
+        if (activeImage != null) comboBoxInput.setSelectedItem(activeImage);
+        for (int i = 0; i < imagePlusCombo1.getSize(); i++) {
+            ImagePlus candidate = imagePlusCombo1.getElementAt(i);
+            if (candidate != null && candidate.getTitle().toLowerCase(Locale.ROOT).contains("psf")) {
+                comboBoxPSF.setSelectedItem(candidate);
+                break;
+            }
+        }
+
         // report the dimensionality of the selected input, so the user can check it
         final ImagePlus[] lastDescribed = { null };
         comboBoxInput.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 describeInput((ImagePlus) e.getItem(), textArea, lastDescribed);
+                replanCells.run();
             }
         });
-        SwingUtilities.invokeLater(() ->
-            describeInput((ImagePlus) comboBoxInput.getSelectedItem(), textArea, lastDescribed));
+        SwingUtilities.invokeLater(() -> {
+            describeInput((ImagePlus) comboBoxInput.getSelectedItem(), textArea, lastDescribed);
+            replanCells.run();
+        });
 
         GridBagConstraints gbc_comboBoxInput = new GridBagConstraints();
         gbc_comboBoxInput.insets = new Insets(0, 0, 5, 0);
@@ -635,10 +658,125 @@ public class RichardsonLucyGUI extends JFrame {
         	for (Component c : cellControls) c.setEnabled(chckbxNewCheckBox.isSelected());
         });
         for (Component c : cellControls) c.setEnabled(false);
+
+        // GPU memory the automatic cell estimate may plan for. Lower it to leave room
+        // for other programs, or to force cells on a small test image.
+        JLabel lblGpuMemory = new JLabel("GPU memory to use (GB)");
+        GridBagConstraints gbc_lblGpuMemory = new GridBagConstraints();
+        gbc_lblGpuMemory.anchor = GridBagConstraints.WEST;
+        gbc_lblGpuMemory.insets = new Insets(0, 0, 5, 5);
+        gbc_lblGpuMemory.gridx = 0;
+        gbc_lblGpuMemory.gridy = 7;
+        panel.add(lblGpuMemory, gbc_lblGpuMemory);
+
+        JSpinner spinnerGpuMemory = new JSpinner(new SpinnerNumberModel(4.0, 0.5, 1024.0, 0.5));
+        spinnerGpuMemory.setToolTipText("GPU memory the automatic cell estimate plans for; defaults to 80% of the GPU");
+        GridBagConstraints gbc_spinnerGpuMemory = new GridBagConstraints();
+        gbc_spinnerGpuMemory.fill = GridBagConstraints.HORIZONTAL;
+        gbc_spinnerGpuMemory.insets = new Insets(0, 0, 5, 0);
+        gbc_spinnerGpuMemory.gridx = 1;
+        gbc_spinnerGpuMemory.gridy = 7;
+        panel.add(spinnerGpuMemory, gbc_spinnerGpuMemory);
+
         GridBagConstraints gbc_btnRun = new GridBagConstraints();
         gbc_btnRun.gridx = 1;
-        gbc_btnRun.gridy = 7;
+        gbc_btnRun.gridy = 8;
         panel.add(btnRun, gbc_btnRun);
+
+        // estimate automatic cells (report only for now; Run still uses the manual setting)
+        final String[] lastPlanKey = { null };
+        replanCells = () -> {
+            if (gpuMemoryBytes == 0) return; // GPU limits not read yet
+            ImagePlus imp = (ImagePlus) comboBoxInput.getSelectedItem();
+            if (imp == null) return;
+            long[] psfSize;
+            String psfSource;
+            int tab = tabbedPane.getSelectedIndex();
+            if (tab == 0) {
+                ImagePlus psfImp = (ImagePlus) comboBoxPSF.getSelectedItem();
+                if (psfImp == null) return;
+                psfSize = new long[] { psfImp.getWidth(), psfImp.getHeight(), psfImp.getNSlices() };
+                psfSource = "measured PSF " + psfImp.getTitle();
+            }
+            else if (tab == 1) {
+                long xy = ((Number) spinnerXYSize.getValue()).longValue();
+                psfSize = new long[] { xy, xy, ((Number) spinnerZSize.getValue()).longValue() };
+                psfSource = "Gibson-Lanni PSF";
+            }
+            else if (tab == 2) {
+                // approximate size of the Gaussian kernel ops creates: about 3 sigma each side
+                long xy = 2 * (long) Math.ceil(3 * ((Number) spinnerSigmaXY.getValue()).doubleValue()) + 1;
+                long z = 2 * (long) Math.ceil(3 * ((Number) spinnerSigmaZ.getValue()).doubleValue()) + 1;
+                psfSize = new long[] { xy, xy, z };
+                psfSource = "Gaussian PSF (approximate size)";
+            }
+            else {
+                return; // the bead PSF's size is only known once it is extracted
+            }
+            long[] volume = { imp.getWidth(), imp.getHeight(), imp.getNSlices() };
+            double budgetGB = ((Number) spinnerGpuMemory.getValue()).doubleValue();
+            String key = imp.getID() + " " + Arrays.toString(volume) + " " + Arrays.toString(psfSize) + " " + budgetGB;
+            if (key.equals(lastPlanKey[0])) return;
+            lastPlanKey[0] = key;
+
+            CellPlanner.Plan plan = CellPlanner.plan(volume, psfSize, new long[] { 10, 10, 10 },
+                (long) (budgetGB * (1L << 30)), gpuMaxAllocationBytes,
+                CellPlanner.DEFAULT_MEMORY_FACTOR, 1.0, CellPlanner.DEFAULT_Z_SPLIT_PENALTY);
+            textArea.section("Automatic cells (estimate only; Run still uses the manual setting)");
+            textArea.info(String.format(Locale.ROOT, "%d x %d x %d volume, %s %d x %d x %d, GPU memory to use %.1f GB",
+                volume[0], volume[1], volume[2], psfSource, psfSize[0], psfSize[1], psfSize[2], budgetGB));
+            for (String line : plan.describe().split("\n")) {
+                if (!plan.feasible || line.startsWith("Splits z")) textArea.warn(line);
+                else textArea.info(line);
+            }
+            long xyCell = ((Number) spinner_1.getValue()).longValue(), zCell = ((Number) spinner_2.getValue()).longValue();
+            long manualCells = ((volume[0] + xyCell - 1) / xyCell) * ((volume[1] + xyCell - 1) / xyCell)
+                * ((volume[2] + zCell - 1) / zCell);
+            textArea.info("For comparison: 'Divide into cells' with " + xyCell + " x " + xyCell + " x " + zCell
+                + " makes " + manualCells + " cell" + (manualCells == 1 ? "" : "s") + ".");
+        };
+        comboBoxPSF.addItemListener(e -> { if (e.getStateChange() == ItemEvent.SELECTED) replanCells.run(); });
+        tabbedPane.addChangeListener(e -> replanCells.run());
+        for (JSpinner s : new JSpinner[] { spinnerGpuMemory, spinnerXYSize, spinnerZSize, spinnerSigmaXY,
+            spinnerSigmaZ }) {
+            s.addChangeListener(e -> replanCells.run());
+        }
+
+        // read the GPU's limits once, off the event thread (creating the OpenCL context takes a moment)
+        new Thread(() -> {
+            try {
+                CLIJ2 clij2 = CLIJ2.getInstance("RTX"); // same device the deconvolution uses
+                gpuName = clij2.getGPUName();
+                gpuMaxAllocationBytes = clij2.getCLIJ().getClearCLContext().getDevice()
+                    .getMaxMemoryAllocationSizeInBytes();
+                long total = clij2.getCLIJ().getGPUMemoryInBytes();
+                SwingUtilities.invokeLater(() -> {
+                    textArea.section("GPU: " + gpuName);
+                    textArea.info(String.format(Locale.ROOT, "%.1f GB, largest single buffer %.1f GB",
+                        total / (double) (1L << 30), gpuMaxAllocationBytes / (double) (1L << 30)));
+                    gpuMemoryBytes = total;
+                    // default to 80% of the GPU, or to the clij2fft.gpuMemoryGB system property
+                    // (dev scripts lower it to force cells on small test images);
+                    // setting it re-runs the estimate
+                    double defaultGB = Math.floor(0.8 * total / (double) (1L << 30) * 2) / 2;
+                    String override = System.getProperty("clij2fft.gpuMemoryGB");
+                    if (override != null) {
+                        try {
+                            defaultGB = Double.parseDouble(override);
+                            textArea.warn("GPU memory to use set to " + defaultGB + " GB by clij2fft.gpuMemoryGB");
+                        }
+                        catch (NumberFormatException nfe) {
+                            textArea.warn("Ignoring clij2fft.gpuMemoryGB=" + override + " (not a number)");
+                        }
+                    }
+                    if (((Number) spinnerGpuMemory.getValue()).doubleValue() == defaultGB) replanCells.run();
+                    else spinnerGpuMemory.setValue(defaultGB);
+                });
+            }
+            catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> textArea.warn("Could not read GPU memory: " + ex));
+            }
+        }, "GPU info").start();
         
         btnRun.addActionListener(new ActionListener() {
         	public void actionPerformed(ActionEvent e) {
