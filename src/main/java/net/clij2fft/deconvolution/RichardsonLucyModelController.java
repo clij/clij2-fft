@@ -359,13 +359,12 @@ public class RichardsonLucyModelController {
 			return;
 		}
 
-		ClearCLBuffer gpu_psf = clij2.push(psf);
-		ClearCLBuffer gpu_image = clij2.push(imp);
-		
-		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
-		
-		
 		if (!this.useCells) {
+			// whole-image mode: the image, PSF and output all live on the GPU at once
+			ClearCLBuffer gpu_psf = clij2.push(psf);
+			ClearCLBuffer gpu_image = clij2.push(imp);
+			ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
+
 			this.status.showStatus(1, 2, "cell mode is off");
 			this.status.showStatus(1, 2, "deconvolving volume using " + iterations + " iterations" );
 			
