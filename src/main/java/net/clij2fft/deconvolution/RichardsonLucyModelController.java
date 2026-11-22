@@ -35,7 +35,9 @@ package net.clij2fft.deconvolution;
 import org.scijava.app.StatusService;
 import org.scijava.log.LogService;
 
+import ij.CompositeImage;
 import ij.ImagePlus;
+import ij.plugin.RGBStackMerge;
 import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
 import net.haesleinhuepf.clij.coremem.enums.NativeTypeEnum;
 import net.haesleinhuepf.clij2.CLIJ2;
@@ -45,6 +47,7 @@ import net.haesleinhuepf.clijx.plugins.DeconvolveRichardsonLucyFFT;
 import net.imagej.ops.OpService;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealLocalizable;
 import net.imglib2.algorithm.labeling.ConnectedComponents.StructuringElement;
 import net.imglib2.cache.img.CachedCellImg;
@@ -57,6 +60,10 @@ import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.roi.labeling.LabelRegion;
 import net.imglib2.roi.labeling.LabelRegions;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.view.Views;
+import net.imglib2.converter.Converter;
+import net.imglib2.converter.Converters;
+import net.imglib2.type.numeric.RealType;
 
 public class RichardsonLucyModelController {
 	
@@ -74,7 +81,8 @@ public class RichardsonLucyModelController {
 	int iterations;
 	float regularizaitonFactor;
 	boolean useCells;
-	int xyCellSize;
+	int xCellSize;
+	int yCellSize;
 	int zCellSize;
 	float xySpacing;
 	float zSpacing;
@@ -142,12 +150,20 @@ public class RichardsonLucyModelController {
 	    this.useCells = useCells;
 	}
 
-	public int getXyCellSize() {
-	    return xyCellSize;
+	public int getXCellSize() {
+	    return xCellSize;
 	}
 
-	public void setXyCellSize(int xyCellSize) {
-	    this.xyCellSize = xyCellSize;
+	public void setXCellSize(int xCellSize) {
+	    this.xCellSize = xCellSize;
+	}
+
+	public int getYCellSize() {
+	    return yCellSize;
+	}
+
+	public void setYCellSize(int yCellSize) {
+	    this.yCellSize = yCellSize;
 	}
 
 	public int getzCellSize() {
@@ -344,8 +360,11 @@ public class RichardsonLucyModelController {
 	}
 		
 	
-	public void runDeconvolution(ImagePlus imp, Img psf, int numIterations) {
-		
+	/**
+	 * Deconvolves every channel of {@code imp} (first time point only) as its own 3D
+	 * volume, channel c with {@code psfs[c]}, and shows the channels merged into one image.
+	 */
+	public void runDeconvolution(ImagePlus imp, Img[] psfs) {
 
 		CLIJ2 clij2=null;
 		
@@ -359,76 +378,126 @@ public class RichardsonLucyModelController {
 			return;
 		}
 
-		if (!this.useCells) {
-			// whole-image mode: the image, PSF and output all live on the GPU at once
-			ClearCLBuffer gpu_psf = clij2.push(psf);
-			ClearCLBuffer gpu_image = clij2.push(imp);
-			ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
+		int nChannels = imp.getNChannels();
+		if (imp.getNFrames() > 1) {
+			this.status.warn("Only the first of " + imp.getNFrames() + " time points is deconvolved.");
+		}
+		if (psfs.length < nChannels) {
+			this.status.warn("Got " + psfs.length + " PSFs for " + nChannels + " channels; stopping.");
+			return;
+		}
 
-			this.status.showStatus(1, 2, "cell mode is off");
-			this.status.showStatus(1, 2, "deconvolving volume using " + iterations + " iterations" );
-			
-			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, iterations, regularizaitonFactor, true);
+		// a float view of the image, no copy; ImageJFunctions drops singleton
+		// dimensions, so the axes are X Y [C] Z [T]
+		RandomAccessibleInterval<FloatType> all = floatView(imp);
+		if (imp.getNFrames() > 1) all = Views.hyperSlice(all, all.numDimensions() - 1, 0);
 
-			ImagePlus out = clij2.pull(gpu_deconvolved);
-			out.show();
-			out.setTitle("Deconvolved");
-			
-			gpu_psf.close();
-			gpu_image.close();
-			gpu_deconvolved.close();
+		ImagePlus[] outputs = new ImagePlus[nChannels];
+		for (int c = 0; c < nChannels; c++) {
+			RandomAccessibleInterval<FloatType> channel = nChannels > 1 ? Views.hyperSlice(all, 2, c) : all;
+			if (channel.numDimensions() != 3) {
+				this.status.warn("Expected a 3D volume per channel but got " + channel.numDimensions()
+					+ " dimensions; stopping.");
+				return;
+			}
+			String label = nChannels > 1 ? "Channel " + (c + 1) + " of " + nChannels + ": " : "";
+			outputs[c] = this.useCells ? deconvolveCells(channel, psfs[c], label)
+				: deconvolveWhole(clij2, channel, psfs[c], label);
+			// ImageJFunctions and CLIJ may label the third axis of a 3D result as channels;
+			// it is z, which the channel merge below relies on
+			outputs[c].setDimensions(1, outputs[c].getStackSize(), 1);
+		}
+
+		ImagePlus out;
+		if (nChannels == 1) out = outputs[0];
+		else {
+			// merge keeps the display settings simple: one composite, one channel per input channel
+			out = RGBStackMerge.mergeChannels(outputs, false);
+			for (ImagePlus o : outputs) o.close();
+		}
+		out.setTitle("Deconvolved " + imp.getTitle());
+		out.setCalibration(imp.getCalibration().copy());
+		// keep the input's colors: its channel LUTs and composite mode, with the
+		// contrast reset for the deconvolved values
+		if (out instanceof CompositeImage) {
+			CompositeImage comp = (CompositeImage) out;
+			CompositeImage in = imp instanceof CompositeImage ? (CompositeImage) imp : null;
+			for (int c = 1; c <= nChannels; c++) {
+				if (in != null) comp.setChannelLut(in.getChannelLut(c), c);
+				comp.setC(c);
+				comp.resetDisplayRange();
+			}
+			if (in != null) comp.setMode(in.getMode());
+			comp.setC(1);
 		}
 		else {
-			
-			log.info("Performing Cell deconvolution "+this.useCells);
-		
-			
-			log.info("cell xy "+this.xyCellSize);
-			log.info("cell z "+this.zCellSize);
-			
-			
-			
-			
-			Img<FloatType> img = ImageJFunctions.convertFloat(imp);
-
-			log.info("image size x "+img.dimension(0));
-			log.info("image size y "+img.dimension(1));
-			log.info("image size z "+img.dimension(2));
-			
-			int numDivisionsX = (int)(Math.ceil((float)img.dimension(0)/(float)this.xyCellSize));
-			int numDivisionsY = (int)(Math.ceil((float)img.dimension(1)/(float)this.xyCellSize));
-			int numDivisionsZ = (int)(Math.ceil((float)img.dimension(2)/(float)this.zCellSize));
-			
-			int numCells = numDivisionsX*numDivisionsY*numDivisionsZ;
-			
-			// create the version of clij2 RL that works on cells
-			Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
-					Clij2RichardsonLucyImglib2Cache.builder().rai(img).psf(psf).overlap(10,10,10).numberOfIterations(iterations)
-					.regularizationFactor(regularizaitonFactor).build();
-			
-			op.setUpStatus(status, numCells);
-
-			// here we use the imglib2cache lazy 'generate' utility
-			// first parameter is the image to process
-			// second parameter is the cell size (which we set to half the original dimension in each direction)
-			
-			CachedCellImg<FloatType, ArrayDataAccess<FloatType>> decon = (CachedCellImg) Lazy.generate(img,
-					new int[] { (int) this.xyCellSize, (int) this.xyCellSize, (int) this.zCellSize },
-					new FloatType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
-			
-			// trigger processing of the entire volume
-			// (otherwise processing will be triggerred as we view different parts of the volume,
-			// which is sometimes the behavior we want, but sometiems we'd rather process everything before hand,
-			// so viewing is responsive)
-			// so in this case the main reason for using imglib2 cache is as a convenient mechanism for chunking the image
-			// and we don't fully take advantage of the 'just in time' aspect. 
-			decon.getCells().forEach(Cell::getData);
-			
-			ImagePlus out = ImageJFunctions.show(decon, "Deconvolution");
-			
+			if (imp.isComposite()) out.getProcessor().setLut(((CompositeImage) imp).getChannelLut(1));
+			else if (imp.getProcessor() != null && imp.getProcessor().getLut() != null && !imp.getProcessor().isDefaultLut()) {
+				out.getProcessor().setLut(imp.getProcessor().getLut());
+			}
+			out.resetDisplayRange();
 		}
+		out.show();
+
 		// reset progress
 		this.status.showStatus(0, 2, "");
+	}
+
+	/** A float view of the image without copying it (ImageJFunctions.wrapFloat only wraps 32-bit). */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private static RandomAccessibleInterval<FloatType> floatView(ImagePlus imp) {
+		if (imp.getBitDepth() == 32) return ImageJFunctions.wrapFloat(imp);
+		RandomAccessibleInterval real = ImageJFunctions.wrapReal(imp);
+		return Converters.convert(real, (Converter<RealType, FloatType>) (a, b) -> b.setReal(a.getRealFloat()),
+			new FloatType());
+	}
+
+	/** Whole-volume mode: the volume, PSF and output all live on the GPU at once. */
+	private ImagePlus deconvolveWhole(CLIJ2 clij2, RandomAccessibleInterval<FloatType> volume, Img psf, String label) {
+		ClearCLBuffer gpu_psf = clij2.push(psf);
+		ClearCLBuffer gpu_image = clij2.push(volume);
+		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
+
+		this.status.showStatus(1, 2, label + "deconvolving the volume in one piece, " + iterations + " iterations");
+		
+		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, iterations, regularizaitonFactor, true);
+
+		ImagePlus out = clij2.pull(gpu_deconvolved);
+		
+		gpu_psf.close();
+		gpu_image.close();
+		gpu_deconvolved.close();
+		return out;
+	}
+
+	/** Cell mode: the volume is deconvolved cell by cell, each cell padded by the overlap. */
+	private ImagePlus deconvolveCells(RandomAccessibleInterval<FloatType> volume, Img psf, String label) {
+		log.info(label + "cell deconvolution, cell size " + this.xCellSize + " x " + this.yCellSize + " x " + this.zCellSize
+			+ ", volume " + volume.dimension(0) + " x " + volume.dimension(1) + " x " + volume.dimension(2));
+		
+		int numDivisionsX = (int)(Math.ceil((float)volume.dimension(0)/(float)this.xCellSize));
+		int numDivisionsY = (int)(Math.ceil((float)volume.dimension(1)/(float)this.yCellSize));
+		int numDivisionsZ = (int)(Math.ceil((float)volume.dimension(2)/(float)this.zCellSize));
+		int numCells = numDivisionsX*numDivisionsY*numDivisionsZ;
+		this.status.showStatus(0, numCells, label + "deconvolving " + numCells + " cells, " + iterations + " iterations");
+		
+		// create the version of clij2 RL that works on cells
+		Clij2RichardsonLucyImglib2Cache<FloatType, ?, ?> op =
+				Clij2RichardsonLucyImglib2Cache.builder().rai(volume).psf(psf).overlap(10,10,10).numberOfIterations(iterations)
+				.regularizationFactor(regularizaitonFactor).build();
+		
+		op.setUpStatus(status, numCells);
+
+		// the imglib2 cache 'generate' utility is used here as a convenient way to split the
+		// volume into cells; every cell is computed right away (getData) instead of on view,
+		// so the result is complete and responsive when shown
+		CachedCellImg<FloatType, ArrayDataAccess<FloatType>> decon = (CachedCellImg) Lazy.generate(volume,
+				new int[] { this.xCellSize, this.yCellSize, this.zCellSize },
+				new FloatType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
+		decon.getCells().forEach(Cell::getData);
+		
+		// copy into a regular ImageJ image so the channels can be merged and saved
+		return ImageJFunctions.wrapFloat(decon, "Deconvolution").duplicate();
 	}
 
 }

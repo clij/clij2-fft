@@ -32,6 +32,9 @@
  */
 package net.clij2fft.deconvolution;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.swing.DefaultComboBoxModel;
 
 import ij.ImagePlus;
@@ -44,15 +47,25 @@ public class ImagePlusComboBox extends DefaultComboBoxModel<ImagePlus> {
 		refreshList();
 	}
 	
+	/**
+	 * Brings the list up to date with the open images. Only closed images are
+	 * removed and new ones added, so the selection (and its listeners) stay put
+	 * unless the selected image was closed.
+	 */
 	public void refreshList() {
-		removeAllElements();
-		
+		List<ImagePlus> open = new ArrayList<>();
 		final int[] ids = WindowManager.getIDList();
-		
-		if (ids!=null) {
-			for (int id: ids) {
-				addElement(WindowManager.getImage(id));
+		if (ids != null) {
+			for (int id : ids) {
+				ImagePlus imp = WindowManager.getImage(id);
+				if (imp != null) open.add(imp);
 			}
+		}
+		for (int i = getSize() - 1; i >= 0; i--) {
+			if (!open.contains(getElementAt(i))) removeElementAt(i);
+		}
+		for (ImagePlus imp : open) {
+			if (getIndexOf(imp) < 0) addElement(imp);
 		}
 	}
 }
