@@ -251,6 +251,14 @@ cl_program makeProgram(cl_context context, cl_device_id deviceID, const char * s
 /**
  * Call a kernel on a vector (or an image stored contigously that can be treated as a vector)
  * **/
+/**
+ * Smallest multiple of multiple that is >= n, in integer arithmetic.
+ * Used for kernel global work sizes, which must cover every element.
+ * **/
+static size_t roundUpToMultiple(size_t n, size_t multiple) {
+  return ((n + multiple - 1) / multiple) * multiple;
+}
+
 cl_int callInPlaceKernel(cl_kernel kernel, cl_mem in1, const unsigned int n, cl_command_queue commandQueue, size_t globalItemSize, size_t localItemSize) {
    // Set arguments for kernel
 	cl_int ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&in1);
@@ -857,8 +865,10 @@ int conv3d_32f_lp(size_t N0, size_t N1, size_t N2, long long l_image, long long 
   
   // compute item sizes 
   size_t localItemSize=64;
-	size_t globalItemSize= ceil((N2*N1*N0)/(float)localItemSize)*localItemSize;
-	size_t globalItemSizeFreq = ceil((nFreq)/(float)localItemSize)*localItemSize;
+	// round up in integers: going through float loses precision above 2^24 voxels, and
+	// rounding down leaves the last voxels unprocessed (RL then diverges to NaN)
+	size_t globalItemSize= roundUpToMultiple(N2*N1*N0, localItemSize);
+	size_t globalItemSizeFreq = roundUpToMultiple(nFreq, localItemSize);
   //printf("nFreq %lu glbalItemSizeFreq %lu\n",nFreq, globalItemSizeFreq);
  
   // FFT of PSF
@@ -1085,8 +1095,10 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
 
   // compute item sizes 
   size_t localItemSize=64;
-	size_t globalItemSize= ceil((N2*N1*N0)/(float)localItemSize)*localItemSize;
-	size_t globalItemSizeFreq = ceil((nFreq+1000)/(float)localItemSize)*localItemSize;
+	// round up in integers: going through float loses precision above 2^24 voxels, and
+	// rounding down leaves the last voxels unprocessed (RL then diverges to NaN)
+	size_t globalItemSize= roundUpToMultiple(N2*N1*N0, localItemSize);
+	size_t globalItemSizeFreq = roundUpToMultiple(nFreq, localItemSize);
   //printf("nFreq %lu glbalItemSizeFreq %lu\n",nFreq, globalItemSizeFreq);
   
    // FFT of PSF

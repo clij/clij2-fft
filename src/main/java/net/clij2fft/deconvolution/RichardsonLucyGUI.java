@@ -550,23 +550,39 @@ public class RichardsonLucyGUI extends JFrame {
         ImageJPopupMenuListener popupMenuListener2 = new ImageJPopupMenuListener(imagePlusCombo2);
         comboBoxInput.addPopupMenuListener(popupMenuListener2);
 
-        // sensible defaults: the active image as input, an image named like a PSF as PSF
+        // defaults: the active image as input (unless it looks like a PSF and something
+        // else is open); as PSF and bead image, an image named like one, never the input.
+        // With no such image the dropdown starts empty, so a wrong PSF is never used silently.
         ImagePlus activeImage = WindowManager.getCurrentImage();
         if (activeImage != null) comboBoxInput.setSelectedItem(activeImage);
-        for (int i = 0; i < imagePlusCombo1.getSize(); i++) {
-            ImagePlus candidate = imagePlusCombo1.getElementAt(i);
-            if (candidate != null && candidate.getTitle().toLowerCase(Locale.ROOT).contains("psf")) {
-                comboBoxPSF.setSelectedItem(candidate);
-                break;
+        ImagePlus input = (ImagePlus) comboBoxInput.getSelectedItem();
+        if (input != null && looksLike(input, "psf")) {
+            for (int i = 0; i < imagePlusCombo2.getSize(); i++) {
+                ImagePlus candidate = imagePlusCombo2.getElementAt(i);
+                if (candidate != null && !looksLike(candidate, "psf")) {
+                    comboBoxInput.setSelectedItem(candidate);
+                    input = candidate;
+                    break;
+                }
             }
         }
+        selectByTitle(comboBoxPSF, "psf", input);
+        selectByTitle(comboBoxBeads, "bead", input);
 
         // report the dimensionality of the selected input, so the user can check it
         final ImagePlus[] lastDescribed = { null };
         comboBoxInput.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                describeInput((ImagePlus) e.getItem(), textArea, lastDescribed);
-                setPsfChannels(((ImagePlus) e.getItem()).getNChannels());
+                ImagePlus newInput = (ImagePlus) e.getItem();
+                describeInput(newInput, textArea, lastDescribed);
+                // a PSF or bead field showing the new input image gets the default instead
+                for (JComboBox<ImagePlus> combo : psfFields.all()) {
+                    if (combo.getSelectedItem() == newInput) selectByTitle(combo, "psf", newInput);
+                }
+                for (JComboBox<ImagePlus> combo : beadFields.all()) {
+                    if (combo.getSelectedItem() == newInput) selectByTitle(combo, "bead", newInput);
+                }
+                setPsfChannels(newInput.getNChannels());
                 replanCells.run();
             }
         });
@@ -1133,6 +1149,25 @@ public class RichardsonLucyGUI extends JFrame {
             sigmaXYFields, sigmaZFields }) {
             f.setChannels(nChannels);
         }
+    }
+
+    private static boolean looksLike(ImagePlus imp, String hint) {
+        return imp.getTitle().toLowerCase(Locale.ROOT).contains(hint);
+    }
+
+    /**
+     * Selects the first image whose title contains {@code hint} and that is not
+     * {@code exclude}; with none, leaves the dropdown empty.
+     */
+    private static void selectByTitle(JComboBox<ImagePlus> combo, String hint, ImagePlus exclude) {
+        for (int i = 0; i < combo.getModel().getSize(); i++) {
+            ImagePlus candidate = combo.getModel().getElementAt(i);
+            if (candidate != null && candidate != exclude && looksLike(candidate, hint)) {
+                combo.setSelectedItem(candidate);
+                return;
+            }
+        }
+        combo.setSelectedItem(null);
     }
 
     /** Another image dropdown like {@code first}, starting on the same image. */

@@ -67,7 +67,7 @@ If you still need to build natives locally (e.g., for testing or development), f
 ##### **Build Instructions**
 1. From the Start menu, run **'x64 Native Tools Command Prompt for VS'**.
 2. From the Command Prompt, start a bash shell: `"C:\Program Files\Git\bin\sh.exe"`.
-3. Run [`./native/cppbuild.sh`](./native/cppbuild.sh).
+3. Run [`cppbuild.sh`](../../native/cppbuild.sh) from the `native` folder: `cd native && ./cppbuild.sh` (it looks for the `clij2fft` project in the current folder; run from elsewhere it prints `Warning: Project "clij2fft" not found` and builds nothing).
 4. If step 3 fails, check [`./native/clij2fft/cppbuild.sh`](./native/clij2fft/cppbuild.sh) and verify that OpenCL and clFFT are installed in the correct locations.
 5. The updated library (`clij2fft.dll`) and dependencies will be in the `./lib/windows-x86_64/` directory.
 
@@ -76,7 +76,7 @@ If you still need to build natives locally (e.g., for testing or development), f
 - [gcc](https://gcc.gnu.org/)
 
 ##### **Build Instructions**
-1. From a bash terminal, run [`./native/cppbuild.sh`](./native/cppbuild.sh).
+1. From a bash terminal, run [`cppbuild.sh`](../../native/cppbuild.sh) from the `native` folder: `cd native && ./cppbuild.sh` (it looks for the `clij2fft` project in the current folder; run from elsewhere it prints `Warning: Project "clij2fft" not found` and builds nothing).
 2. If step 1 fails, check [`./native/clij2fft/cppbuild.sh`](./native/clij2fft/cppbuild.sh) and verify that OpenCL and clFFT are installed in the correct locations.
 3. The updated library (`clij2fft.so`) and dependencies will be in the `./lib/linux-x86_64/` directory.
 
@@ -94,7 +94,7 @@ If you still need to build natives locally (e.g., for testing or development), f
   ```
 
 ##### **Build Instructions**
-1. From a bash terminal, run [`./native/cppbuild.sh`](./native/cppbuild.sh).
+1. From a bash terminal, run [`cppbuild.sh`](../../native/cppbuild.sh) from the `native` folder: `cd native && ./cppbuild.sh` (it looks for the `clij2fft` project in the current folder; run from elsewhere it prints `Warning: Project "clij2fft" not found` and builds nothing).
 2. If step 1 fails, check [`./native/clij2fft/cppbuild.sh`](./native/clij2fft/cppbuild.sh) and verify that OpenCL and clFFT are installed in the correct locations.
 3. For macOS, the native library `libclij2fft` needs to be modified with `install_name_tool` to find `clFFT` in its current directory:
    ```sh
