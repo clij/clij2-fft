@@ -1,6 +1,19 @@
 from clij2fft.libs import getlib
 import numpy as np
-from clij2fft.pad import pad, get_pad_size, get_next_smooth, unpad
+from clij2fft.pad import pad, get_pad_size, get_next_fft_size, unpad
+
+# what the common error codes from the native calls mean
+_ERRORS = {
+    -1001: "no OpenCL platform found: the GPU driver isn't available (check nvidia-smi)",
+    -4: "the GPU ran out of memory (CL_MEM_OBJECT_ALLOCATION_FAILURE)",
+    -5: "CL_OUT_OF_RESOURCES, usually the GPU running out of memory",
+    -6: "the computer ran out of memory (CL_OUT_OF_HOST_MEMORY)",
+}
+
+def _check(ret, call):
+    """ raise if a native call failed; otherwise its output is not a result """
+    if ret != 0:
+        raise RuntimeError(f"clij2fft {call} failed with error {ret}: {_ERRORS.get(ret, 'see the OpenCL error codes')}")
 
 def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess=None, lib=None, platform=0, device=0):
     """ perform Richardson-Lucy on img using psf.  The image is extended to the next smooth size 
@@ -26,8 +39,8 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
 
     padded_size=[max(x,y) for x,y in zip(img.shape, psf.shape)]
     
-    # native code only works with 7-smooth sizes
-    extended_size = get_next_smooth(padded_size)
+    # native code only works with 7-smooth sizes, so extend to a length from the FFT size table
+    extended_size = get_next_fft_size(padded_size)
 
     # pad image and psf to next smooth size
     img, _ = pad(img, extended_size,'reflect')
@@ -55,13 +68,14 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
         cleanup = False
 
     # deconvolution using clij2fft
-    if regularizationfactor==0:
-        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
-    else:
-        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
-
-    if cleanup==True:
-        lib.cleanup()
+    try:
+        if regularizationfactor==0:
+            _check(lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f")
+        else:
+            _check(lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f_tv")
+    finally:
+        if cleanup==True:
+            lib.cleanup()
 
     # unpad and return
     return unpad(result, original_size)
@@ -96,8 +110,8 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     # compute the extended size    
     extended_size = [img.shape[0]+2*int(psf.shape[0]/2), img.shape[1]+2*int(psf.shape[1]/2), img.shape[2]+2*int(psf.shape[2]/2)] 
     
-    # the native code also only works with 7-smooth sizes so extend further to the next smooth size
-    extended_size = get_next_smooth(extended_size)
+    # the native code also only works with 7-smooth sizes so extend further to a length from the FFT size table
+    extended_size = get_next_fft_size(extended_size)
 
     # pad image and psf to the extended size computed above
     img, padding = pad(img, extended_size,'constant')
@@ -133,22 +147,23 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     else:
         cleanup = False
 
-    print('calling convcorr',platform, device)
-    # the normalization factor is the valid region correlated with the PSF
-    lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1,platform,device)
+    try:
+        print('calling convcorr',platform, device)
+        # the normalization factor is the valid region correlated with the PSF
+        _check(lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1,platform,device), "convcorr3d_32f")
 
-    # get rid of any zeros in the normal to avoid divide by zero issues
-    # TODO: clarify why this changed
-    #normal[normal<0.00001]=1
+        # get rid of any zeros in the normal to avoid divide by zero issues
+        # TODO: clarify why this changed
+        #normal[normal<0.00001]=1
 
-    # deconvolution using clij2fft
-    if regularizationfactor==0:
-        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
-    else:
-        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
-
-    if cleanup==True:
-        lib.cleanup()
+        # deconvolution using clij2fft
+        if regularizationfactor==0:
+            _check(lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f")
+        else:
+            _check(lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f_tv")
+    finally:
+        if cleanup==True:
+            lib.cleanup()
 
     # unpad and return
     return unpad(result, original_size)
@@ -188,8 +203,8 @@ def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0,
     # compute the extended size    
     extended_size = [img.shape[0]+2*int(psf.shape[0]/2), img.shape[1]+2*int(psf.shape[1]/2), img.shape[2]+2*int(psf.shape[2]/2)] 
 
-    # the native code also only works with 7-smooth sizes so extend further to the next smooth size
-    extended_size = get_next_smooth(extended_size)
+    # the native code also only works with 7-smooth sizes so extend further to a length from the FFT size table
+    extended_size = get_next_fft_size(extended_size)
     
     # pad image and psf and valid map to next smooth size
     img, _ = pad(img, extended_size,'constant')
@@ -215,13 +230,13 @@ def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0,
     normal=np.zeros(extended_size).astype(np.float32)
     
     # the normalization factor is the valid region correlated with the PSF
-    lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1, platform, device)
+    _check(lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1, platform, device), "convcorr3d_32f")
     
     # deconvolution using clij2fft
     if regularizationfactor==0:
-        lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
+        _check(lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f")
     else:
-        lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device)
+        _check(lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f_tv")
     
     # unpad and return
     return unpad(result, original_size), normal, valid
