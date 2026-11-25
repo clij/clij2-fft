@@ -296,6 +296,14 @@ public class OpenCLFFTUtility {
 		return true;
 	}
 
-
-
+	/** An OpenCL error code with its name, for the common ones. */
+	static String describeOpenCLError(int code) {
+		switch (code) {
+			case -4: return "OpenCL error -4 (CL_MEM_OBJECT_ALLOCATION_FAILURE)";
+			case -5: return "OpenCL error -5 (CL_OUT_OF_RESOURCES)";
+			case -6: return "OpenCL error -6 (CL_OUT_OF_HOST_MEMORY)";
+			case -1001: return "OpenCL error -1001 (CL_PLATFORM_NOT_FOUND_KHR)";
+			default: return "OpenCL error " + code;
+		}
+	}
 }

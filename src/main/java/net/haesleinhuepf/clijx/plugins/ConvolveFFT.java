@@ -318,14 +318,18 @@ public class ConvolveFFT extends AbstractCLIJ2Plugin implements
 		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 				.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
-		// call the decon wrapper (n iterations of RL)
-		clij2fftWrapper.conv3d_32f_lp(gpuImg.getDimensions()[0], gpuImg
+		// call the convolution wrapper; it returns 0, or the OpenCL error it stopped at
+		int ret = clij2fftWrapper.conv3d_32f_lp(gpuImg.getDimensions()[0], gpuImg
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerOutput, correlate, l_context, l_queue,
 				l_device);
-		
+
 		// clij2fftWrapper.cleanup();
 
+		// on an error the output is not a result
+		if (ret != 0) {
+			throw new RuntimeException("clij2fft conv3d_32f_lp failed with " + OpenCLFFTUtility.describeOpenCLError(ret));
+		}
 		return true;
 	}
 	

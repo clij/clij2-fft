@@ -188,24 +188,28 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		OpenCLFFTUtility.normalize(clij2, psfFloat, psf_normalized);
 		
 		long start = System.currentTimeMillis();
-		
-		// deconvolve
-		extendAndDeconvolveRichardsonLucyFFT(clij2, inputFloat, 
-			psf_normalized, deconvolved, num_iterations, regularizationFactor, nonCirculant);
+
+		// deconvolve; the buffers are released even if it fails (usually out of GPU memory),
+		// so the next attempt has the memory back
+		try {
+			extendAndDeconvolveRichardsonLucyFFT(clij2, inputFloat,
+				psf_normalized, deconvolved, num_iterations, regularizationFactor, nonCirculant);
+		}
+		finally {
+			if (inputConverted) {
+				inputFloat.close();
+			}
+
+			if (psfConverted) {
+				psfFloat.close();
+			}
+
+			psf_normalized.close();
+		}
 
 		long end = System.currentTimeMillis();
-		
-		System.out.println("Deconvolve time "+(end-start));
 
-		if (inputConverted) {
-			inputFloat.close();
-		}
-		
-		if (psfConverted) {
-			psfFloat.close();
-		}
-		
-		psf_normalized.close();
+		System.out.println("Deconvolve time "+(end-start));
 
 		return true;
 	}
@@ -237,37 +241,39 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 			inputExtended = padFFTInputZeros(clij2, input, psf, ops);
 		}
 		
-		ClearCLBuffer deconvolvedExtended = clij2.create(inputExtended);
-		ClearCLBuffer psfExtended = clij2.create(inputExtended);
-		
-		clij2.copy(inputExtended, deconvolvedExtended);
-		
-		padShiftFFTKernel(clij2, psf, psfExtended);
-		
-		long[] extendedDims = inputExtended.getDimensions();
-		long[] originalDims = input.getDimensions();
-	
+		ClearCLBuffer deconvolvedExtended = null;
+		ClearCLBuffer psfExtended = null;
 		ClearCLBuffer normalization_factor=null;
-		
-		if (nonCirculant) {
-			normalization_factor = createNormalizationFactor(clij2, new FinalDimensions(extendedDims[0],extendedDims[1],extendedDims[2]),  
-				new FinalDimensions(originalDims[0],originalDims[1],originalDims[2]), psfExtended);
-		
-			// for the non-circulant case the first guess needs to be a flat sheet
-			double mean=clij2.meanOfAllPixels(inputExtended);
-			clij2.set(deconvolvedExtended, mean);
-		}
-		
-		runRichardsonLucyGPU(clij2, inputExtended, psfExtended, deconvolvedExtended, normalization_factor, num_iterations, regularizationFactor);
 
-		cropExtended(clij2, deconvolvedExtended, output);
-		
-		clij2.release(psfExtended);
-		clij2.release(inputExtended);
-		clij2.release(deconvolvedExtended);
-		
-		if (nonCirculant) {
-			clij2.release(normalization_factor);
+		// the padded buffers are the bulk of the GPU memory; release them even if a step fails
+		try {
+			deconvolvedExtended = clij2.create(inputExtended);
+			psfExtended = clij2.create(inputExtended);
+
+			clij2.copy(inputExtended, deconvolvedExtended);
+
+			padShiftFFTKernel(clij2, psf, psfExtended);
+
+			long[] extendedDims = inputExtended.getDimensions();
+			long[] originalDims = input.getDimensions();
+
+			if (nonCirculant) {
+				normalization_factor = createNormalizationFactor(clij2, new FinalDimensions(extendedDims[0],extendedDims[1],extendedDims[2]),
+					new FinalDimensions(originalDims[0],originalDims[1],originalDims[2]), psfExtended);
+
+				// for the non-circulant case the first guess needs to be a flat sheet
+				double mean=clij2.meanOfAllPixels(inputExtended);
+				clij2.set(deconvolvedExtended, mean);
+			}
+
+			runRichardsonLucyGPU(clij2, inputExtended, psfExtended, deconvolvedExtended, normalization_factor, num_iterations, regularizationFactor);
+
+			cropExtended(clij2, deconvolvedExtended, output);
+		}
+		finally {
+			for (ClearCLBuffer b : new ClearCLBuffer[] { psfExtended, inputExtended, deconvolvedExtended, normalization_factor }) {
+				if (b != null) clij2.release(b);
+			}
 		}
 
 		return true;
@@ -313,16 +319,21 @@ public class DeconvolveRichardsonLucyFFT extends AbstractCLIJ2Plugin implements
 		long l_device = ((NativePointerObject) clij2.getCLIJ().getClearCLContext()
 				.getDevice().getPeerPointer().getPointer()).getNativePointer();
 
-		// call the decon wrapper (n iterations of RL)
-		clij2fftWrapper.deconv3d_32f_lp_tv(num_iterations, regularizationFactor, gpuImg.getDimensions()[0], gpuImg
+		// call the decon wrapper (n iterations of RL); it returns 0, or the OpenCL error it stopped at
+		int ret = clij2fftWrapper.deconv3d_32f_lp_tv(num_iterations, regularizationFactor, gpuImg.getDimensions()[0], gpuImg
 						.getDimensions()[1], gpuImg.getDimensions()[2], longPointerImg,
 				longPointerPSF, longPointerOutput, longPointerNormal, l_context, l_queue,
 				l_device);
-		
+
 		//clij2fftWrapper.cleanup(); // CAN'T USE MULTIPLE GPU IF UNCOMMENTED, see https://github.com/clij/clij2-fft/issues/37 TODO fix!
-		
+
+		// on an error the output is not a result
+		if (ret != 0) {
+			throw new RuntimeException("clij2fft deconv3d_32f_lp_tv failed with " + OpenCLFFTUtility.describeOpenCLError(ret));
+		}
 		return true;
 	}
+
 	
 	/**
 	 * Creates a normalization factor for non-circulant boundary conditions.

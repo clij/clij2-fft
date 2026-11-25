@@ -144,6 +144,24 @@ public class RichardsonLucyModelController {
 			+ "check that an OpenCL driver works (clinfo should list a device), then restart Fiji.";
 	}
 
+	/**
+	 * A log message for a deconvolution that failed: the cell, when in cell mode, and the
+	 * root cause, with a hint when the device ran out of memory.
+	 */
+	static String describeRunFailure(Throwable e) {
+		String where = "";
+		Throwable root = e;
+		for (Throwable t = e; t != null; t = t.getCause()) {
+			if (t instanceof Clij2RichardsonLucyImglib2Cache.CellFailedException) where = " in " + t.getMessage();
+			root = t;
+		}
+		String why = String.valueOf(root.getMessage());
+		String text = "Deconvolution failed" + where + ", stopping: " + why;
+		if (why.contains("ALLOCATION_FAILURE") || why.contains("OUT_OF_RESOURCES") || why.contains("OUT_OF_HOST_MEMORY")) {
+			text += ". The device ran out of memory; lower 'GPU memory to use' (smaller cells) and run again.";
+		}
+		return text;
+	}
 	
 	public float getXYSpacing() {
 		return xySpacing;
@@ -420,8 +438,16 @@ public class RichardsonLucyModelController {
 				return;
 			}
 			String label = nChannels > 1 ? "Channel " + (c + 1) + " of " + nChannels + ": " : "";
-			outputs[c] = this.useCells ? deconvolveCells(channel, psfs[c], label)
-				: deconvolveWhole(clij2, channel, psfs[c], label);
+			try {
+				outputs[c] = this.useCells ? deconvolveCells(channel, psfs[c], label)
+					: deconvolveWhole(clij2, channel, psfs[c], label);
+			}
+			catch (RuntimeException e) {
+				e.printStackTrace();
+				this.status.warn(label + describeRunFailure(e));
+				for (int done = 0; done < c; done++) outputs[done].close();
+				return;
+			}
 			// ImageJFunctions and CLIJ may label the third axis of a 3D result as channels;
 			// it is z, which the channel merge below relies on
 			outputs[c].setDimensions(1, outputs[c].getStackSize(), 1);
@@ -473,20 +499,24 @@ public class RichardsonLucyModelController {
 
 	/** Whole-volume mode: the volume, PSF and output all live on the GPU at once. */
 	private ImagePlus deconvolveWhole(CLIJ2 clij2, RandomAccessibleInterval<FloatType> volume, Img psf, String label) {
-		ClearCLBuffer gpu_psf = clij2.push(psf);
-		ClearCLBuffer gpu_image = clij2.push(volume);
-		ClearCLBuffer gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
+		ClearCLBuffer gpu_psf = null, gpu_image = null, gpu_deconvolved = null;
+		// released even if the deconvolution fails, so the device has its memory back
+		try {
+			gpu_psf = clij2.push(psf);
+			gpu_image = clij2.push(volume);
+			gpu_deconvolved = clij2.create(gpu_image.getDimensions(), NativeTypeEnum.Float);
 
-		this.status.showStatus(1, 2, label + "deconvolving the volume in one piece, " + iterations + " iterations");
-		
-		DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, iterations, regularizaitonFactor, true);
+			this.status.showStatus(1, 2, label + "deconvolving the volume in one piece, " + iterations + " iterations");
 
-		ImagePlus out = clij2.pull(gpu_deconvolved);
-		
-		gpu_psf.close();
-		gpu_image.close();
-		gpu_deconvolved.close();
-		return out;
+			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clij2, gpu_image, gpu_psf, gpu_deconvolved, iterations, regularizaitonFactor, true);
+
+			return clij2.pull(gpu_deconvolved);
+		}
+		finally {
+			for (ClearCLBuffer b : new ClearCLBuffer[] { gpu_psf, gpu_image, gpu_deconvolved }) {
+				if (b != null) b.close();
+			}
+		}
 	}
 
 	/** Cell mode: the volume is deconvolved cell by cell, each cell padded by the overlap. */

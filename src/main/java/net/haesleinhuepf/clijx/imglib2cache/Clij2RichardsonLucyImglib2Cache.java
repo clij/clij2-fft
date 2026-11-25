@@ -213,30 +213,38 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			CLIJx clijx = clijxPool.getIdleCLIJx();
 			// Using GPU named clij2.getGPUName()
 
-			// convert input RAI to ClearCLBuffer
-			final ClearCLBuffer input = clijx.push(Views.zeroMin(inputRAI));
+			ClearCLBuffer input = null;
+			ClearCLBuffer output = null;
+			final RandomAccessibleInterval<FloatType> result;
+			// the buffers are closed and the instance given back even if the cell fails;
+			// otherwise the next cell waits for the instance forever
+			try {
+				// convert input RAI to ClearCLBuffer
+				input = clijx.push(Views.zeroMin(inputRAI));
 
-			// create temporary buffer for output, always float so that an integer input
-			// does not truncate the result (it is converted to the cell type when copied)
-			final ClearCLBuffer output = clijx.create(input.getDimensions(), NativeTypeEnum.Float);
+				// create temporary buffer for output, always float so that an integer input
+				// does not truncate the result (it is converted to the cell type when copied)
+				output = clijx.create(input.getDimensions(), NativeTypeEnum.Float);
 
-			if (!psfPushed.containsKey(clijx)) {
-				psfPushed.put(clijx, clijx.push(psf)); // Push one psf buffer per CLIJ2 only
+				if (!psfPushed.containsKey(clijx)) {
+					psfPushed.put(clijx, clijx.push(psf)); // Push one psf buffer per CLIJ2 only
+				}
+
+				DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clijx, input, psfPushed.get(clijx), output, numberOfIterations, regularizationFactor, nonCirculant);
+
+				// convert CLBuffer result to RAI
+				// at this point the result contains the padded area
+				final ClearCLBufferToRandomAccessibleIntervalConverter cl2rai = new ClearCLBufferToRandomAccessibleIntervalConverter();
+				cl2rai.setCLIJ(clijx.getCLIJ());
+				result = cl2rai.convert(output);
 			}
+			finally {
+				if (input != null) input.close();
+				if (output != null) output.close();
 
-			DeconvolveRichardsonLucyFFT.deconvolveRichardsonLucyFFT(clijx, input, psfPushed.get(clijx), output, numberOfIterations, regularizationFactor, nonCirculant);
-
-			// convert CLBuffer result to RAI
-			// at this point the result contains the padded area
-			final ClearCLBufferToRandomAccessibleIntervalConverter cl2rai = new ClearCLBufferToRandomAccessibleIntervalConverter();
-			cl2rai.setCLIJ(clijx.getCLIJ());
-			final RandomAccessibleInterval<FloatType> result = cl2rai.convert(output);
-
-			input.close();
-			output.close();
-
-			// Set clij2 instance as available again
-			clijxPool.setCLIJxIdle(clijx);
+				// Set clij2 instance as available again
+				clijxPool.setCLIJxIdle(clijx);
+			}
 
 			// get the valid part of the extended deconvolution (ie exclude the padded area)
 			RandomAccessibleInterval<FloatType> valid = Views.zeroMin(Views.interval(
@@ -248,7 +256,15 @@ public class Clij2RichardsonLucyImglib2Cache<T extends RealType<T> & NativeType<
 			Util.copyReal(valid, Views.zeroMin(cell));
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			// stop the run: otherwise the cell stays empty and the next one is tried
+			throw new CellFailedException("cell " + current + " of " + total, e);
+		}
+	}
+
+	/** Thrown when deconvolving a cell fails; the message says which cell. */
+	public static class CellFailedException extends RuntimeException {
+		CellFailedException(String message, Throwable cause) {
+			super(message, cause);
 		}
 	}
 
