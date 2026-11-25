@@ -90,11 +90,12 @@ public class OpenCLFFTUtility {
 		
 		RandomAccessibleInterval img = clij2.pullRAI(input);
 
-		// compute extended dimensions based on image and PSF dimensions
+		// compute extended dimensions based on image and PSF dimensions, as FFT sizes;
+		// the op rounds to its own FFT sizes, which leaves these unchanged
 		long[] extendedSize = new long[img.numDimensions()];
 
 		for (int d = 0; d < img.numDimensions(); d++) {
-			extendedSize[d] = img.dimension(d) + psf.getDimensions()[d];
+			extendedSize[d] = FFTSizes.next(img.dimension(d) + psf.getDimensions()[d]);
 		}
 
 		FinalDimensions extendedDimensions = new FinalDimensions(extendedSize);
@@ -124,20 +125,12 @@ public class OpenCLFFTUtility {
 		// the below code isn't very DRY, we implemeent the same logic (compute extended size, compute
 		// next fast FFT size) for both 2D and 3D case)...  TODO: Refactor
 		if (input.getDimensions().length==3) {
-			Dimensions dimsExtended = new FinalDimensions(input.getDimensions()[0]+psf.getDimensions()[0],
+			// image plus PSF, padded to FFT sizes (the sizes the cell planner plans for)
+			long[] extendedSize = FFTSizes.next(new long[] { input.getDimensions()[0]+psf.getDimensions()[0],
 					input.getDimensions()[1]+psf.getDimensions()[1],
-					input.getDimensions()[2]+psf.getDimensions()[2]);
-				
-			// we can find the supported FFT size using ops.  So could re-use or re-implement this in CLIJ
-			long[][] nextFastFFTDimensions=ops.filter().fftSize(dimsExtended, false);
-		
-			long[] extendedSize = new long[input.getDimensions().length];
+					input.getDimensions()[2]+psf.getDimensions()[2] });
 			long[] start= new long[input.getDimensions().length];
-			
-			extendedSize[0]=nextFastFFTDimensions[0][0];
-			extendedSize[1]=nextFastFFTDimensions[0][1];
-			extendedSize[2]=nextFastFFTDimensions[0][2];
-			
+
 			// define the starting coordinates that will be used to paste the input within
 			// the larger extended space. 
 			// Note: if (extendedSize[n]-input.getDimension(n)) is odd the border size on each end will 
@@ -153,16 +146,9 @@ public class OpenCLFFTUtility {
 			clij2.paste(input, extended, start[0], start[1], start[2]);
 		}
 		else {
-			Dimensions dimsExtended = new FinalDimensions(input.getDimensions()[0]+psf.getDimensions()[0],
-						input.getDimensions()[1]+psf.getDimensions()[1]);
-		
-			// we can find the supported FFT size using ops.  So could re-use or re-implement this in CLIJ
-			long[][] nextFastFFTDimensions=ops.filter().fftSize(dimsExtended, false);
-			
-			long[] extendedSize = new long[input.getDimensions().length];
-			
-			extendedSize[0]=nextFastFFTDimensions[0][0];
-			extendedSize[1]=nextFastFFTDimensions[0][1];
+			// image plus PSF, padded to FFT sizes
+			long[] extendedSize = FFTSizes.next(new long[] { input.getDimensions()[0]+psf.getDimensions()[0],
+						input.getDimensions()[1]+psf.getDimensions()[1] });
 
 			long[] start= new long[input.getDimensions().length];
 

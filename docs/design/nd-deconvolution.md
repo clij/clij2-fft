@@ -95,18 +95,20 @@ Instead, compute the cells from the image, the PSF and the GPU.
 
 Both call the same C++/OpenCL RL, so both should size tiles the same way.
 
-- **Padded size, per axis:** next 7-smooth number of
-  `piece + overlap on the sides that have a neighbor + 2*floor(psf/2)`. This is
-  what the non-circulant path allocates (Python's `richardson_lucy_nc` pads by
-  `2*floor(psf/2)`; Java's `padFFTInputZeros` by `psf`, within a pixel).
-  Python's `rl_mem_footprint` currently adds only `psf/2`, so it underestimates
-  its own padding; fix it to match.
-- **Memory per tile:** `factor x 4 bytes x padded voxels`, with factor 11. Counted
+- **Padded size, per axis:** the next length from the FFT size table
+  (`FFTSizes.next` in Java) of
+  `piece + overlap on the sides that have a neighbor + psf`. This is what Java's
+  `padFFTInputZeros` allocates, and the planner calls the same function.
+  Python's `richardson_lucy_nc` pads by `2*floor(psf/2)` and rounds with its own
+  7-smooth function, and its `rl_mem_footprint` adds only `psf/2`; both should
+  move to the same table and padding.
+- **Memory per tile:** `factor x 4 bytes x padded voxels`, with factor 12. Counted
   buffers at padded size N: image, PSF, estimate and normalization factor (caller,
   4N), reblurred (1N), estimate and PSF spectra (about 2N), total-variation term
-  when regularizing (1N): about 8N, plus clFFT's temporary buffer and, in Java,
-  the unpadded tile and its output. Must fit in a budget of 80% of the device's
-  global memory, as an extra margin until the factor is measured.
+  when regularizing (1N): about 8N, plus clFFT's temporary buffers and, in Java,
+  the unpadded tile and its output. Measured peak on an RTX 4070: about 10.6N;
+  12 leaves a margin for other devices. Must fit in a budget of 80% of the
+  device's global memory.
 - **Largest single buffer:** a complex spectrum, `8 x (N0/2+1) x N1 x N2` bytes,
   must fit the device's maximum allocation (`CL_DEVICE_MAX_MEM_ALLOC_SIZE`; 6 GB
   of 24 GB on an RTX 3090). Neither side checks this today.
@@ -114,9 +116,8 @@ Both call the same C++/OpenCL RL, so both should size tiles the same way.
   padded volume (the sum over tiles, which is the GPU work). Splitting z costs a
   25% penalty, so z is split only when it is needed or clearly cheaper: the PSF
   is usually long in z, which is why the Python side never splits z.
-- **Java padded size:** Java currently pads with ImageJ Ops `fftSize`, Python with
-  its own 7-smooth function. They should use the same rule so the estimate
-  matches what is allocated.
+- **Java padded size:** the planner and the padding code both use
+  `FFTSizes.next`, so the estimate matches what is allocated.
 
 ### Steps
 

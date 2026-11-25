@@ -35,6 +35,8 @@ package net.haesleinhuepf.clijx.imglib2cache;
 
 import java.util.Locale;
 
+import net.haesleinhuepf.clijx.plugins.FFTSizes;
+
 /**
  * Chooses the cell (tile) size for non-circulant Richardson-Lucy so each cell fits
  * the GPU, while doing as little extra work on overlap and padding as possible.
@@ -43,8 +45,8 @@ import java.util.Locale;
  * reporting. The sizing rule (see docs/design/nd-deconvolution.md) is the one the
  * Python package should share:
  * <ul>
- * <li>padded length per axis: next 7-smooth number of
- * {@code piece + overlap on sides with a neighbor + 2*floor(psf/2)}</li>
+ * <li>padded length per axis: {@link FFTSizes#next(long)} of
+ * {@code piece + overlap on sides with a neighbor + psf}, as the padding code pads</li>
  * <li>GPU memory per cell: {@code memoryFactor x 4 bytes x padded voxels}, within
  * {@code budgetFraction} of the device's global memory</li>
  * <li>the largest buffer, a complex spectrum of {@code 8 x (N0/2+1) x N1 x N2}
@@ -58,7 +60,7 @@ import java.util.Locale;
 public final class CellPlanner {
 
 	/** GPU copies of the padded volume the RL needs, with a small margin. */
-	public static final double DEFAULT_MEMORY_FACTOR = 11;
+	public static final double DEFAULT_MEMORY_FACTOR = 12;
 	/** Fraction of the device's global memory to plan for. */
 	public static final double DEFAULT_BUDGET_FRACTION = 0.8;
 	/** Extra cost, as a fraction, for plans that split z. */
@@ -216,9 +218,9 @@ public final class CellPlanner {
 		}
 	}
 
-	/** Padded FFT length of one piece, for non-circulant RL. */
+	/** Padded FFT length of one piece, for non-circulant RL: what the padding code pads to. */
 	static long paddedLength(long piece, long overlapTotal, long psf) {
-		return nextSmooth(piece + overlapTotal + 2 * (psf / 2));
+		return FFTSizes.next(piece + overlapTotal + psf);
 	}
 
 	/** The cell size {@code Lazy.generate} gets for {@code n} cells along an axis. */
