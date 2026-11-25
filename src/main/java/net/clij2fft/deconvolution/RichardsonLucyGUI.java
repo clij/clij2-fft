@@ -44,6 +44,7 @@ import java.awt.Font;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -97,6 +98,7 @@ import javax.swing.JScrollPane;
 import java.awt.Component;
 import net.haesleinhuepf.clijx.imglib2cache.CellPlanner;
 import java.util.Locale;
+import net.haesleinhuepf.clij.CLIJ;
 import net.haesleinhuepf.clij2.CLIJ2;
 
 //Functional interface with three parameters and no return value
@@ -111,7 +113,8 @@ public class RichardsonLucyGUI extends JFrame {
 	RichardsonLucyModelController modelController;
 
 	// GPU limits for the cell planner, read in the background when the GUI opens
-	private volatile String gpuName;
+	// the device chosen in the device list, "RTX" (CLIJ's default order) until the list is read
+	private String deviceName = "RTX";
 	private volatile long gpuMemoryBytes, gpuMaxAllocationBytes;
 	// re-estimates the automatic cells; replaced once the controls exist
 	private Runnable replanCells = () -> {};
@@ -475,6 +478,7 @@ public class RichardsonLucyGUI extends JFrame {
         	public void actionPerformed(ActionEvent e) {
         		List<ImagePlus> beads = new ArrayList<>();
         		for (JComboBox<ImagePlus> combo : beadFields.all()) beads.add((ImagePlus) combo.getSelectedItem());
+        		modelController.setDeviceName(deviceName);
 
         		new Thread("Extract PSF Thread") {
         			@Override
@@ -686,6 +690,26 @@ public class RichardsonLucyGUI extends JFrame {
         };
         updateCellControls.run();
 
+        // the OpenCL device to deconvolve on; filled once the devices are read
+        JLabel lblDevice = new JLabel("Device");
+        GridBagConstraints gbc_lblDevice = new GridBagConstraints();
+        gbc_lblDevice.anchor = GridBagConstraints.WEST;
+        gbc_lblDevice.insets = new Insets(0, 0, 5, 5);
+        gbc_lblDevice.gridx = 0;
+        gbc_lblDevice.gridy = 9;
+        panel.add(lblDevice, gbc_lblDevice);
+
+        JComboBox<String> comboBoxDevice = new JComboBox<>();
+        comboBoxDevice.setToolTipText("OpenCL device for the deconvolution. Defaults to an RTX GPU, "
+            + "then any other GPU, then any other device such as a CPU.");
+        comboBoxDevice.setEnabled(false);
+        GridBagConstraints gbc_comboBoxDevice = new GridBagConstraints();
+        gbc_comboBoxDevice.fill = GridBagConstraints.HORIZONTAL;
+        gbc_comboBoxDevice.insets = new Insets(0, 0, 5, 0);
+        gbc_comboBoxDevice.gridx = 1;
+        gbc_comboBoxDevice.gridy = 9;
+        panel.add(comboBoxDevice, gbc_comboBoxDevice);
+
         // GPU memory the automatic cell estimate may plan for. Lower it to leave room
         // for other programs, or to force cells on a small test image.
         JLabel lblGpuMemory = new JLabel("GPU memory to use (GB)");
@@ -693,7 +717,7 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_lblGpuMemory.anchor = GridBagConstraints.WEST;
         gbc_lblGpuMemory.insets = new Insets(0, 0, 5, 5);
         gbc_lblGpuMemory.gridx = 0;
-        gbc_lblGpuMemory.gridy = 9;
+        gbc_lblGpuMemory.gridy = 10;
         panel.add(lblGpuMemory, gbc_lblGpuMemory);
 
         JSpinner spinnerGpuMemory = new JSpinner(new SpinnerNumberModel(4.0, 0.5, 1024.0, 0.5));
@@ -702,12 +726,12 @@ public class RichardsonLucyGUI extends JFrame {
         gbc_spinnerGpuMemory.fill = GridBagConstraints.HORIZONTAL;
         gbc_spinnerGpuMemory.insets = new Insets(0, 0, 5, 0);
         gbc_spinnerGpuMemory.gridx = 1;
-        gbc_spinnerGpuMemory.gridy = 9;
+        gbc_spinnerGpuMemory.gridy = 10;
         panel.add(spinnerGpuMemory, gbc_spinnerGpuMemory);
 
         GridBagConstraints gbc_btnRun = new GridBagConstraints();
         gbc_btnRun.gridx = 1;
-        gbc_btnRun.gridy = 10;
+        gbc_btnRun.gridy = 11;
         panel.add(btnRun, gbc_btnRun);
 
         // plan the cells; in auto mode the plan fills the cell size fields and decides
@@ -807,7 +831,7 @@ public class RichardsonLucyGUI extends JFrame {
             }
             long[] volume = { imp.getWidth(), imp.getHeight(), imp.getNSlices() };
             double budgetGB = ((Number) spinnerGpuMemory.getValue()).doubleValue();
-            String key = imp.getID() + " " + psfSource + " " + Arrays.toString(volume) + " " + Arrays.toString(psfSize) + " "
+            String key = deviceName + " " + imp.getID() + " " + psfSource + " " + Arrays.toString(volume) + " " + Arrays.toString(psfSize) + " "
                 + budgetGB + " " + manual;
             if (key.equals(lastPlanKey[0])) return;
             lastPlanKey[0] = key;
@@ -855,41 +879,65 @@ public class RichardsonLucyGUI extends JFrame {
             s.addChangeListener(e -> replanCells.run());
         }
 
-        // read the GPU's limits once, off the event thread (creating the OpenCL context takes a moment)
-        new Thread(() -> {
-            try {
-                CLIJ2 clij2 = CLIJ2.getInstance("RTX"); // same device the deconvolution uses
-                gpuName = clij2.getGPUName();
-                gpuMaxAllocationBytes = clij2.getCLIJ().getClearCLContext().getDevice()
-                    .getMaxMemoryAllocationSizeInBytes();
-                long total = clij2.getCLIJ().getGPUMemoryInBytes();
-                SwingUtilities.invokeLater(() -> {
-                    textArea.section("GPU: " + gpuName);
-                    textArea.info(String.format(Locale.ROOT, "%.1f GB, largest single buffer %.1f GB",
-                        total / (double) (1L << 30), gpuMaxAllocationBytes / (double) (1L << 30)));
-                    gpuMemoryBytes = total;
-                    // default to 80% of the GPU, or to the clij2fft.gpuMemoryGB system property
-                    // (dev scripts lower it to force cells on small test images);
-                    // setting it re-runs the estimate
-                    double defaultGB = Math.floor(0.8 * total / (double) (1L << 30) * 2) / 2;
-                    String override = System.getProperty("clij2fft.gpuMemoryGB");
-                    if (override != null) {
-                        try {
-                            defaultGB = Double.parseDouble(override);
-                            textArea.warn("GPU memory to use set to " + defaultGB + " GB by clij2fft.gpuMemoryGB");
+        // open a device and read its limits, off the event thread (creating the OpenCL
+        // context takes a moment); the first call also fills the device list. CLIJ keeps
+        // one device open, so switching closes the previous one.
+        Consumer<String> readDevice = requested -> {
+            comboBoxDevice.setEnabled(false);
+            new Thread(() -> {
+                try {
+                    List<String> names = CLIJ.getAvailableDeviceNames();
+                    CLIJ2 clij2 = CLIJ2.getInstance(requested);
+                    String name = clij2.getGPUName();
+                    long maxAllocation = clij2.getCLIJ().getClearCLContext().getDevice()
+                        .getMaxMemoryAllocationSizeInBytes();
+                    long total = clij2.getCLIJ().getGPUMemoryInBytes();
+                    SwingUtilities.invokeLater(() -> {
+                        deviceName = name; // set first, so the selection below is not taken as a switch
+                        if (comboBoxDevice.getItemCount() == 0) {
+                            comboBoxDevice.setModel(new DefaultComboBoxModel<>(names.toArray(new String[0])));
                         }
-                        catch (NumberFormatException nfe) {
-                            textArea.warn("Ignoring clij2fft.gpuMemoryGB=" + override + " (not a number)");
+                        comboBoxDevice.setSelectedItem(name);
+                        comboBoxDevice.setEnabled(true);
+                        textArea.section("Device: " + name);
+                        textArea.info(String.format(Locale.ROOT, "%.1f GB, largest single buffer %.1f GB",
+                            total / (double) (1L << 30), maxAllocation / (double) (1L << 30)));
+                        gpuMaxAllocationBytes = maxAllocation;
+                        gpuMemoryBytes = total;
+                        // default to 80% of the GPU, or to the clij2fft.gpuMemoryGB system property
+                        // (dev scripts lower it to force cells on small test images);
+                        // setting it re-runs the estimate
+                        double defaultGB = Math.floor(0.8 * total / (double) (1L << 30) * 2) / 2;
+                        String override = System.getProperty("clij2fft.gpuMemoryGB");
+                        if (override != null) {
+                            try {
+                                defaultGB = Double.parseDouble(override);
+                                textArea.warn("GPU memory to use set to " + defaultGB + " GB by clij2fft.gpuMemoryGB");
+                            }
+                            catch (NumberFormatException nfe) {
+                                textArea.warn("Ignoring clij2fft.gpuMemoryGB=" + override + " (not a number)");
+                            }
                         }
-                    }
-                    if (((Number) spinnerGpuMemory.getValue()).doubleValue() == defaultGB) replanCells.run();
-                    else spinnerGpuMemory.setValue(defaultGB);
-                });
+                        if (((Number) spinnerGpuMemory.getValue()).doubleValue() == defaultGB) replanCells.run();
+                        else spinnerGpuMemory.setValue(defaultGB);
+                    });
+                }
+                catch (Exception | LinkageError ex) {
+                    textArea.warn(RichardsonLucyModelController.describeOpenCLFailure(ex));
+                    textArea.warn("Cell sizes cannot be estimated without a device.");
+                    SwingUtilities.invokeLater(() -> {
+                        comboBoxDevice.setSelectedItem(deviceName); // back to the device still in use
+                        comboBoxDevice.setEnabled(comboBoxDevice.getItemCount() > 0);
+                    });
+                }
+            }, "Device info").start();
+        };
+        comboBoxDevice.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED && !e.getItem().equals(deviceName)) {
+                readDevice.accept((String) e.getItem());
             }
-            catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> textArea.warn("Could not read GPU memory: " + ex));
-            }
-        }, "GPU info").start();
+        });
+        readDevice.accept(deviceName);
         
         btnRun.addActionListener(new ActionListener() {
         	public void actionPerformed(ActionEvent e) {
@@ -952,6 +1000,7 @@ public class RichardsonLucyGUI extends JFrame {
                 modelController.setSigmaXY(sigmaXY);
                 modelController.setSigmaZ(sigmaZ);
                 modelController.setConfocalFactor(confocalFactor);
+                modelController.setDeviceName(deviceName);
         		
         		System.out.println("run decon on "+imp.getTitle());
         		System.out.println("x spacing "+modelController.getXYSpacing());
@@ -1045,10 +1094,17 @@ public class RichardsonLucyGUI extends JFrame {
 
         		modelController.setPSFType(psfType);
 
+        		// switching the device closes the one in use, so not while it runs
+        		comboBoxDevice.setEnabled(false);
         		new Thread("Deconvolution Thread") {
         			@Override
         			public void run() {
-        				modelController.runDeconvolution(imp, psfImgs);
+        				try {
+        					modelController.runDeconvolution(imp, psfImgs);
+        				}
+        				finally {
+        					SwingUtilities.invokeLater(() -> comboBoxDevice.setEnabled(comboBoxDevice.getItemCount() > 0));
+        				}
         			}
         		}.start();
         		

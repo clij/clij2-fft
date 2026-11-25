@@ -99,7 +99,11 @@ public class RichardsonLucyModelController {
 	float sigmaZ=3.f;
 	
 	PSFTypeEnum psfType;
-	
+
+	// the OpenCL device: a name from CLIJ's device list, or part of one; CLIJ takes the
+	// first device whose name contains it, else the first GPU, else the first device
+	String deviceName = "RTX";
+
 	RichardsonLucyModelController(OpService ops, LogService log, StatusService status) {
 		this.ops = ops;
 		this.log = log;
@@ -109,6 +113,37 @@ public class RichardsonLucyModelController {
 	public void setStatusService(StatusService status) {
 		this.status = status;
 	}
+
+	public void setDeviceName(String deviceName) {
+		this.deviceName = deviceName;
+	}
+
+	/**
+	 * The CLIJ2 instance on the deconvolution device, or null, after a warning
+	 * in the log, when no OpenCL device can be opened.
+	 */
+	private CLIJ2 getCLIJ2() {
+		try {
+			return CLIJ2.getInstance(deviceName);
+		}
+		catch (Exception | LinkageError e) {
+			status.warn(describeOpenCLFailure(e));
+			return null;
+		}
+	}
+
+	/**
+	 * A log message for when CLIJ cannot open an OpenCL device. The first attempt
+	 * fails with OpenCL error -1001 when no driver offers a platform; CLIJ then
+	 * leaves its device list null, so later attempts fail with a NullPointerException.
+	 */
+	static String describeOpenCLFailure(Throwable e) {
+		String why = String.valueOf(e.getMessage());
+		if (why.contains("-1001") || why.contains("allDevices")) why = "no OpenCL platform found";
+		return "No OpenCL device available (" + why + "). Deconvolution needs one, a GPU or a CPU; "
+			+ "check that an OpenCL driver works (clinfo should list a device), then restart Fiji.";
+	}
+
 	
 	public float getXYSpacing() {
 		return xySpacing;
@@ -316,16 +351,8 @@ public class RichardsonLucyModelController {
 				randomAccess.get().setReal(255.0);
 			}
 			
-			CLIJ2 clij2=null;
-			
-			// get clij
-			try {
-				clij2 = CLIJ2.getInstance("RTX");
-			}
-			catch(Exception e) {
-				System.out.println(e);
-				return null;
-			}
+			CLIJ2 clij2 = getCLIJ2();
+			if (clij2 == null) return null;
 			
 			ImageJFunctions.show(thresholded, "Thresholded Beads");
 			
@@ -366,17 +393,9 @@ public class RichardsonLucyModelController {
 	 */
 	public void runDeconvolution(ImagePlus imp, Img[] psfs) {
 
-		CLIJ2 clij2=null;
-		
-		// get clij
-		try {
-			clij2 = CLIJ2.getInstance("RTX");
-			this.status.showStatus(0, 2, "Using device "+clij2.getGPUName());
-		}
-		catch(Exception e) {
-			System.out.println(e);
-			return;
-		}
+		CLIJ2 clij2 = getCLIJ2();
+		if (clij2 == null) return;
+		this.status.showStatus(0, 2, "Using device "+clij2.getGPUName());
 
 		int nChannels = imp.getNChannels();
 		if (imp.getNFrames() > 1) {
