@@ -1,5 +1,9 @@
-from clij2fft.libs import getlib
+import threading
+
 import numpy as np
+import pyopencl as cl
+
+from clij2fft.libs import getlib
 from clij2fft.pad import pad, get_pad_size, get_next_fft_size, unpad
 
 # what the common error codes from the native calls mean
@@ -14,6 +18,55 @@ def _check(ret, call):
     """ raise if a native call failed; otherwise its output is not a result """
     if ret != 0:
         raise RuntimeError(f"clij2fft {call} failed with error {ret}: {_ERRORS.get(ret, 'see the OpenCL error codes')}")
+
+# One OpenCL context per (platform, device), made on first use and reused for the life of the
+# process. The native functions that make their own context on every call leave it alive (clFFT
+# keeps its compiled kernels per context until clfftTeardown), so memory grew with every call.
+_contexts = {}
+_contexts_lock = threading.Lock()
+
+def _get_context(platform, device):
+    """ the OpenCL context and device for (platform, device); made once, then reused """
+    with _contexts_lock:
+        if (platform, device) not in _contexts:
+            try:
+                dev = cl.get_platforms()[platform].get_devices()[device]
+            except cl.Error as e:
+                code = getattr(e, "code", None)
+                raise RuntimeError(f"clij2fft OpenCL setup failed with error {code}: {_ERRORS.get(code, str(e))}") from None
+            except IndexError:
+                raise RuntimeError(f"clij2fft: there is no OpenCL device {device} on platform {platform}") from None
+            _contexts[(platform, device)] = (cl.Context([dev]), dev)
+        return _contexts[(platform, device)]
+
+def _gpu_buffers(ctx, arrays):
+    return [cl.Buffer(ctx, cl.mem_flags.READ_WRITE | cl.mem_flags.COPY_HOST_PTR, hostbuf=np.ascontiguousarray(a, np.float32)) for a in arrays]
+
+def _convcorr(lib, image, psf, out, correlate, platform, device):
+    """ out = image convolved (correlate=False) or correlated (True) with psf, on the GPU """
+    ctx, dev = _get_context(platform, device)
+    queue = cl.CommandQueue(ctx, dev)
+    buffers = _gpu_buffers(ctx, (image, psf, out))
+    try:
+        n2, n1, n0 = out.shape
+        _check(lib.conv3d_32f_lp(n0, n1, n2, *(b.int_ptr for b in buffers), correlate, ctx.int_ptr, queue.int_ptr, dev.int_ptr), "conv3d_32f_lp")
+        cl.enqueue_copy(queue, out, buffers[2])
+    finally:
+        for b in buffers:
+            b.release()
+
+def _deconv(lib, iterations, regularizationfactor, image, psf, estimate, normal, platform, device):
+    """ iterations of Richardson-Lucy on the GPU, starting from estimate and writing the result into it """
+    ctx, dev = _get_context(platform, device)
+    queue = cl.CommandQueue(ctx, dev)
+    buffers = _gpu_buffers(ctx, (image, psf, estimate, normal))
+    try:
+        n2, n1, n0 = image.shape
+        _check(lib.deconv3d_32f_lp_tv(iterations, regularizationfactor, n0, n1, n2, *(b.int_ptr for b in buffers), ctx.int_ptr, queue.int_ptr, dev.int_ptr), "deconv3d_32f_lp_tv")
+        cl.enqueue_copy(queue, estimate, buffers[2])
+    finally:
+        for b in buffers:
+            b.release()
 
 def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess=None, lib=None, platform=0, device=0):
     """ perform Richardson-Lucy on img using psf.  The image is extended to the next smooth size 
@@ -70,9 +123,9 @@ def richardson_lucy(img, psf, numiterations, regularizationfactor=0, first_guess
     # deconvolution using clij2fft
     try:
         if regularizationfactor==0:
-            _check(lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f")
+            _deconv(lib, numiterations, 0.0, img, shifted_psf, result, normal, platform, device)
         else:
-            _check(lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f_tv")
+            _deconv(lib, numiterations, regularizationfactor, img, shifted_psf, result, normal, platform, device)
     finally:
         if cleanup==True:
             lib.cleanup()
@@ -150,7 +203,7 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
     try:
         print('calling convcorr',platform, device)
         # the normalization factor is the valid region correlated with the PSF
-        _check(lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1,platform,device), "convcorr3d_32f")
+        _convcorr(lib, valid, shifted_psf, normal, True, platform, device)
 
         # get rid of any zeros in the normal to avoid divide by zero issues
         # TODO: clarify why this changed
@@ -158,9 +211,9 @@ def richardson_lucy_nc(img, psf, numiterations, regularizationfactor=0, lib=None
 
         # deconvolution using clij2fft
         if regularizationfactor==0:
-            _check(lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f")
+            _deconv(lib, numiterations, 0.0, img, shifted_psf, result, normal, platform, device)
         else:
-            _check(lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f_tv")
+            _deconv(lib, numiterations, regularizationfactor, img, shifted_psf, result, normal, platform, device)
     finally:
         if cleanup==True:
             lib.cleanup()
@@ -230,13 +283,13 @@ def richardson_lucy_interpolate(img, psf, numiterations, regularizationfactor=0,
     normal=np.zeros(extended_size).astype(np.float32)
     
     # the normalization factor is the valid region correlated with the PSF
-    _check(lib.convcorr3d_32f(int(normal.shape[2]), int(normal.shape[1]), int(normal.shape[0]), valid, shifted_psf, normal,1, platform, device), "convcorr3d_32f")
+    _convcorr(lib, valid, shifted_psf, normal, True, platform, device)
     
     # deconvolution using clij2fft
     if regularizationfactor==0:
-        _check(lib.deconv3d_32f(numiterations, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f")
+        _deconv(lib, numiterations, 0.0, img, shifted_psf, result, normal, platform, device)
     else:
-        _check(lib.deconv3d_32f_tv(numiterations, regularizationfactor, int(img.shape[2]), int(img.shape[1]), int(img.shape[0]), img, shifted_psf, result, normal, platform, device), "deconv3d_32f_tv")
+        _deconv(lib, numiterations, regularizationfactor, img, shifted_psf, result, normal, platform, device)
     
     # unpad and return
     return unpad(result, original_size), normal, valid

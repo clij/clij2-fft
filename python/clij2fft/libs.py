@@ -34,6 +34,11 @@ def getlib():
     clij2fft.deconv3d_32f_tv.argtypes = [c_int, c_float, c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, array_3d_float, c_int, c_int]
     clij2fft.convcorr3d_32f.argtypes = [c_int, c_int, c_int, array_3d_float, array_3d_float, array_3d_float, c_bool, c_int, c_int]
 
+    # the same computations on GPU buffers in a context the caller made (as the Java side uses them):
+    # sizes, buffers, then the context, queue and device as OpenCL handles
+    clij2fft.conv3d_32f_lp.argtypes = [c_size_t, c_size_t, c_size_t, c_longlong, c_longlong, c_longlong, c_bool, c_longlong, c_longlong, c_longlong]
+    clij2fft.deconv3d_32f_lp_tv.argtypes = [c_int, c_float, c_size_t, c_size_t, c_size_t, c_longlong, c_longlong, c_longlong, c_longlong, c_longlong, c_longlong, c_longlong]
+
     return clij2fft
 
 
