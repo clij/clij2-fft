@@ -959,10 +959,13 @@ int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf
 	ret = clEnqueueWriteBuffer(commandQueue, d_psf, CL_TRUE, 0, N2*N1*N0 * sizeof(float), h_psf, 0, NULL, NULL);
   CHECKRETURN(ret,"convcorr3d_32f copy PSF",1);
 
-  conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, correlate, (long long)context, (long long)commandQueue, (long long)deviceIDs[deviceIndex]);
+  ret = conv3d_32f_lp(N0, N1, N2, (long long)d_image, (long long)d_psf, (long long)d_out, correlate, (long long)context, (long long)commandQueue, (long long)deviceIDs[deviceIndex]);
 
   // copy back to host 
-  ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
+  // unless it failed: then keep its error, returned after the clean up below
+  if (ret == CL_SUCCESS) {
+    ret = clEnqueueReadBuffer( commandQueue, d_out, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
+  }
  
   // Release OpenCL memory objects. 
   clReleaseMemObject( d_image);
@@ -978,7 +981,7 @@ int convcorr3d_32f(size_t N0, size_t N1, size_t N2, float *h_image, float *h_psf
  
   ENTEREXIT(0,"convcorr3d_32f");
 
-  return 0;
+  return ret;
 }
 
 int deconv3d_32f_lp(int iterations, size_t N0, size_t N1, size_t N2, long long l_observed, long long l_psf, long long l_estimate, long long l_normal, long long l_context, long long l_queue, long long l_device) {
@@ -1103,9 +1106,11 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
   
    // FFT of PSF
   ret = clfftEnqueueTransform(planHandleForward, CLFFT_FORWARD, 1, &commandQueue, 0, NULL, NULL, &d_psf, &psfFFT, NULL);
+  CHECKRETURN(ret, "deconv3d_32f_lp_tv fft of psf", 1);
 
   if (d_normal!=NULL) {
     ret = callInPlaceKernel(kernelRemoveSmallValues, d_normal, n, commandQueue, globalItemSize, localItemSize);
+    CHECKRETURN(ret, "deconv3d_32f_lp_tv remove small values", 1);
   }
 
   printf("\nRichardson Lucy Started");
@@ -1158,7 +1163,9 @@ int deconv3d_32f_lp_tv(int iterations, float regularizationFactor, size_t N0, si
         CHECKRETURN(ret, "deconv3d_32f_lp_tv divide by normal", 1);
       }      
 
+      // errors from kernels that failed while running show up here
       ret = clFinish(commandQueue);
+      CHECKRETURN(ret, "deconv3d_32f_lp_tv finish iteration", 1);
 
       if (i==0) {
         printf("\n");
@@ -1305,10 +1312,13 @@ int deconv3d_32f_tv(int iterations, float regularizationFactor, size_t N0, size_
   unsigned long n = N0*N1*N2;
   unsigned long nFreq=(N0/2+1)*N1*N2;
      
-  deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)d_normal, (long long)context, (long long)commandQueue, (long long)deviceIDs[deviceIndex]); 
+  ret = deconv3d_32f_lp_tv(iterations, regularizationFactor, N0, N1, N2, (long long)d_observed, (long long)d_psf, (long long)d_estimate, (long long)d_normal, (long long)context, (long long)commandQueue, (long long)deviceIDs[deviceIndex]); 
     
   // copy back to host 
-  ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
+  // unless it failed: then keep its error, returned after the clean up below
+  if (ret == CL_SUCCESS) {
+    ret = clEnqueueReadBuffer( commandQueue, d_estimate, CL_TRUE, 0, N0*N1*N2*sizeof(float), h_out, 0, NULL, NULL );
+  }
 
   cleanup3:
     // Release OpenCL memory objects. 
