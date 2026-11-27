@@ -12,6 +12,16 @@ _ERRORS = {
     -4: "the GPU ran out of memory (CL_MEM_OBJECT_ALLOCATION_FAILURE)",
     -5: "CL_OUT_OF_RESOURCES, usually the GPU running out of memory",
     -6: "the computer ran out of memory (CL_OUT_OF_HOST_MEMORY)",
+    # clFFT's own codes
+    4096: "clFFT internal error (CLFFT_BUGCHECK)",
+    4097: "clFFT can't do this transform, for example a length it doesn't support (CLFFT_NOTIMPLEMENTED)",
+    4098: "clFFT can't do this transposed transform (CLFFT_TRANSPOSED_NOTIMPLEMENTED)",
+    4099: "clFFT couldn't open a file (CLFFT_FILE_NOT_FOUND)",
+    4100: "clFFT couldn't create a file (CLFFT_FILE_CREATE_FAILURE)",
+    4101: "clFFT version conflict (CLFFT_VERSION_MISMATCH)",
+    4102: "clFFT has no such plan, usually because making the plan failed, for example for a length it doesn't support (CLFFT_INVALID_PLAN)",
+    4103: "the device has no double precision (CLFFT_DEVICE_NO_DOUBLE)",
+    4104: "clFFT plan made for a different device (CLFFT_DEVICE_MISMATCH)",
 }
 
 def _check(ret, call):
